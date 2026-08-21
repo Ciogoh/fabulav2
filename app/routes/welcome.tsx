@@ -1,19 +1,28 @@
 /**
- * Il nome, chiesto una volta sola.
+ * Il nome — e, se si vuole, una password — chiesti una volta sola.
  *
  * Entrando con un codice, Better Auth crea l'account con la parte davanti alla
  * chiocciola come nome. Va bene per farlo esistere, non va bene per l'admin che
  * deve decidere su una richiesta: `m.rossi91` non dice chi è. Quindi lo
  * chiediamo subito dopo il primo accesso, e mai più.
+ *
+ * La password è facoltativa: chi non la imposta continua a entrare col
+ * codice, esattamente come oggi. Chi la imposta può scegliere ogni volta —
+ * `auth.api.setPassword` è la funzione server di Better Auth pensata proprio
+ * per questo caso (un account senza password che se ne aggiunge una prima),
+ * a differenza di `changePassword`, che ne pretende già una esistente.
  */
 
 import { Form, redirect, useSearchParams } from "react-router";
 import type { Route } from "./+types/welcome";
 import { db } from "~/lib/db.server";
+import { auth } from "~/lib/auth.server";
 import { requireUser } from "~/lib/session.server";
 import { getLang } from "~/i18n/lang.server";
 import type { Language } from "~/generated/prisma/enums";
 import { useT } from "~/i18n/use-t";
+
+const MIN_PASSWORD_LENGTH = 10;
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await requireUser(request);
@@ -25,12 +34,16 @@ export async function action({ request }: Route.ActionArgs) {
   const form = await request.formData();
 
   const name = String(form.get("name") ?? "").trim();
+  const password = String(form.get("password") ?? "");
   const rawNext = String(form.get("next") ?? "/");
   const next =
     rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
 
   if (name.length < 2) {
     return { error: "welcome.nameRequired" as const };
+  }
+  if (password.length > 0 && password.length < MIN_PASSWORD_LENGTH) {
+    return { error: "welcome.passwordTooShort" as const };
   }
 
   await db.user.update({
@@ -43,6 +56,18 @@ export async function action({ request }: Route.ActionArgs) {
       language: getLang(request).toUpperCase() as Language,
     },
   });
+
+  if (password.length > 0) {
+    try {
+      await auth.api.setPassword({
+        body: { newPassword: password },
+        headers: request.headers,
+      });
+    } catch (error) {
+      console.error("Impostazione password al benvenuto fallita:", error);
+      return { error: "welcome.passwordFailed" as const };
+    }
+  }
 
   return redirect(next);
 }
@@ -81,6 +106,24 @@ export default function Welcome({
             maxLength={80}
             className="rounded border border-rule bg-card px-3 py-2.5 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
           />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="password"
+            className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
+          >
+            {t("welcome.password")}
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            minLength={10}
+            className="rounded border border-rule bg-card px-3 py-2.5 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+          />
+          <p className="text-xs text-muted">{t("welcome.passwordHint")}</p>
         </div>
 
         <button

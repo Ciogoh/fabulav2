@@ -7,4 +7,10 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  server: {
+    // Vite rifiuta di serie ogni `Host` che non sia localhost, contro il
+    // DNS rebinding — e per lo stesso motivo blocca anche il tunnel
+    // Cloudflare, che in sviluppo passa da qui.
+    allowedHosts: ["try.fabulabz.com"],
+  },
 });

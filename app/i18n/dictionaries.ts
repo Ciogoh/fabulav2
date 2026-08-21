@@ -85,8 +85,12 @@ const en = {
   "welcome.heading": "One last thing",
   "welcome.intro": "What should we call you? The admins see this name on your requests.",
   "welcome.name": "Your name",
+  "welcome.password": "Password (optional)",
+  "welcome.passwordHint": "Set one now if you'd rather sign in with a password than a code — you can always use either afterwards. Leave it blank to keep using codes only.",
   "welcome.save": "Continue",
   "welcome.nameRequired": "Write your name to continue.",
+  "welcome.passwordTooShort": "At least 10 characters, or leave it blank.",
+  "welcome.passwordFailed": "The name was saved, but something went wrong setting the password. No matter — you can still sign in with a code.",
 
   "nav.calendar": "Calendar",
 
@@ -243,8 +247,12 @@ const it: Dictionary = {
   "welcome.heading": "Un'ultima cosa",
   "welcome.intro": "Come ti chiami? Gli admin vedono questo nome sulle tue richieste.",
   "welcome.name": "Il tuo nome",
+  "welcome.password": "Password (facoltativa)",
+  "welcome.passwordHint": "Impostala ora se preferisci entrare con una password invece che col codice — dopo puoi sempre usare entrambi. Lasciala vuota per continuare solo col codice.",
   "welcome.save": "Continua",
   "welcome.nameRequired": "Scrivi il tuo nome per continuare.",
+  "welcome.passwordTooShort": "Almeno 10 caratteri, oppure lasciala vuota.",
+  "welcome.passwordFailed": "Il nome è salvato, ma qualcosa è andato storto impostando la password. Nessun problema: puoi comunque entrare col codice.",
 
   "nav.calendar": "Calendario",
 
@@ -398,8 +406,12 @@ const de: Dictionary = {
   "welcome.heading": "Noch eine Sache",
   "welcome.intro": "Wie heißt du? Die Admins sehen diesen Namen bei deinen Anfragen.",
   "welcome.name": "Dein Name",
+  "welcome.password": "Passwort (optional)",
+  "welcome.passwordHint": "Lege jetzt eines fest, wenn du lieber mit einem Passwort statt mit einem Code anmelden möchtest — danach kannst du immer beides nutzen. Leer lassen, um nur mit Codes fortzufahren.",
   "welcome.save": "Weiter",
   "welcome.nameRequired": "Schreibe deinen Namen, um fortzufahren.",
+  "welcome.passwordTooShort": "Mindestens 10 Zeichen, oder leer lassen.",
+  "welcome.passwordFailed": "Der Name wurde gespeichert, aber beim Setzen des Passworts ist etwas schiefgelaufen. Kein Problem: Du kannst dich weiterhin mit einem Code anmelden.",
 
   "nav.calendar": "Kalender",
 
