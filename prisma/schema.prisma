@@ -1,0 +1,280 @@
+// Fabula — schema dati
+//
+// Nove tabelle, come da specifica. Due principi guidano tutto lo schema:
+//
+//  1. Gli stati visibili (Libero / Prenotato / In uso) NON sono campi salvati:
+//     si calcolano dalle prenotazioni attive, così non possono andare fuori
+//     sincrono con la realtà.
+//
+//  2. Kit e KitAsset non compaiono mai nel calcolo della disponibilità.
+//     Servono solo al catalogo per riempire il carrello in un colpo solo.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+// L'URL di connessione non sta più qui: da Prisma 7 vive in prisma.config.ts
+// per le migrazioni e nell'adapter per il client a runtime.
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------- persone
+
+enum Role {
+  MEMBER
+  ADMIN
+}
+
+enum Language {
+  EN
+  IT
+  DE
+}
+
+model User {
+  id       String   @id @default(cuid())
+  email    String   @unique
+  name     String
+  language Language @default(EN)
+
+  /// `input: false` nella configurazione di Better Auth: senza quello chiunque
+  /// potrebbe mandare `role=ADMIN` nella richiesta di registrazione e nominarsi
+  /// amministratore da solo.
+  role Role @default(MEMBER)
+
+  /// Socio dell'associazione. Non dà permessi: serve agli admin per
+  /// riconoscere chi conoscono quando valutano una richiesta.
+  isMember Boolean @default(false)
+
+  /// Gestiti da Better Auth.
+  emailVerified Boolean @default(false)
+  image         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  requests        Request[]
+  messages        Message[]
+  decidedRequests Request[] @relation("DecidedBy")
+  sessions        Session[]
+  accounts        Account[]
+}
+
+// ------------------------------------------------------- autenticazione
+//
+// Generate dalla CLI di Better Auth (`@better-auth/cli generate`) e incollate
+// qui. Non modificarle a mano: se serve un cambiamento, rigenera e confronta.
+// Rispetto all'originale sono stati tolti solo gli `@@map` in minuscolo, per
+// restare coerenti con i nomi di tabella del resto dello schema.
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  /// Hash della password, non la password. Better Auth non salva mai il testo.
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+/// Codici OTP e link di verifica, a scadenza.
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+// ---------------------------------------------------------------- catalogo
+
+model Category {
+  id        String  @id @default(cuid())
+  name      String
+  slug      String  @unique
+  sortOrder Int     @default(0)
+  assets    Asset[]
+}
+
+model Asset {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  /// Dove trovarlo, testo libero ("scaffale B3, magazzino di via Roma").
+  /// Visibile solo a chi ha fatto l'accesso — vedi la matrice dei permessi.
+  location String?
+
+  /// Falso per gli oggetti che restano visibili nel catalogo ma non si
+  /// possono prenotare (in riparazione, riservati, dismessi).
+  isBookable Boolean @default(true)
+
+  /// Note interne: mai mostrate a chi non è admin.
+  adminNotes String?
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  photos       AssetPhoto[]
+  requestItems RequestItem[]
+  kitAssets    KitAsset[]
+
+  @@index([categoryId])
+}
+
+model AssetPhoto {
+  id      String @id @default(cuid())
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  /// Immagine piena (max 1 MB) e miniatura generata al caricamento.
+  url      String
+  thumbUrl String
+
+  sortOrder Int @default(0)
+
+  @@index([assetId])
+}
+
+// ------------------------------------------------------------------- kit
+//
+// Un kit è una scorciatoia del catalogo: si scioglie nei suoi pezzi dentro
+// al carrello. Nessuna di queste due tabelle entra nel calcolo della
+// disponibilità — quello guarda solo RequestItem.
+
+model Kit {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assets KitAsset[]
+
+  /// Solo per mostrare all'admin che quei pezzi arrivavano dallo stesso kit.
+  requestItems RequestItem[]
+}
+
+model KitAsset {
+  kitId     String
+  kit       Kit    @relation(fields: [kitId], references: [id], onDelete: Cascade)
+  assetId   String
+  asset     Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  sortOrder Int    @default(0)
+
+  @@id([kitId, assetId])
+  @@index([assetId])
+}
+
+// -------------------------------------------------------------- richieste
+
+/// Solo gli stati DECISIONALI. Il passaggio di mano non sta qui: vive sui
+/// singoli RequestItem come pickedUpAt / returnedAt, così una riconsegna
+/// parziale libera subito i pezzi tornati indietro invece di tenerli
+/// bloccati fino all'ultimo.
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model Request {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Giorni interi: il prestito va dall'inizio del primo alla fine dell'ultimo.
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+
+  status  RequestStatus @default(PENDING)
+  /// A cosa serve, scritto da chi fa la richiesta.
+  purpose String?
+
+  /// Nota interna dell'admin sulla richiesta. Mai mostrata a chi l'ha fatta.
+  adminNote String?
+
+  decidedAt   DateTime?
+  decidedById String?
+  decidedBy   User?     @relation("DecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items    RequestItem[]
+  messages Message[]
+
+  @@index([userId])
+  @@index([status, startDate, endDate])
+}
+
+model RequestItem {
+  id        String  @id @default(cuid())
+  requestId String
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  assetId   String
+  /// Restrict: un oggetto con dei prestiti alle spalle non si cancella per
+  /// sbaglio, altrimenti sparisce lo storico di chi l'ha avuto.
+  asset     Asset   @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  /// Da quale kit era stato aggiunto. Puramente descrittivo.
+  fromKitId String?
+  fromKit   Kit?    @relation(fields: [fromKitId], references: [id], onDelete: SetNull)
+
+  /// Registrati da un admin al passaggio di mano fisico.
+  pickedUpAt DateTime?
+  returnedAt DateTime?
+
+  @@unique([requestId, assetId])
+  @@index([assetId])
+}
+
+model Message {
+  id        String  @id @default(cuid())
+  requestId String
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([requestId])
+}
+
+// Le tabelle dell'autenticazione (sessioni, provider, codici OTP) le
+// aggiungerà la libreria di accesso quando la colleghiamo.

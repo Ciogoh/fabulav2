@@ -1,0 +1,48 @@
+# Fabula — due container, niente di più.
+#
+# In sviluppo serve solo il database:      docker compose up -d db
+# In produzione tutto quanto:              docker compose --profile full up -d
+#
+# Per spostare la piattaforma su un'altra macchina bastano questo file, il
+# .env e il dump del database. Il dominio pubblico non cambia, perché è
+# legato al tunnel Cloudflare e non alla macchina.
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fabula}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fabula}
+      POSTGRES_DB: ${POSTGRES_DB:-fabula}
+    ports:
+      # Esposto solo su localhost: da fuori si passa dal tunnel, mai da qui.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fabula} -d ${POSTGRES_DB:-fabula}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    profiles: ["full"]
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fabula}:${POSTGRES_PASSWORD:-fabula}@db:5432/${POSTGRES_DB:-fabula}
+      NODE_ENV: production
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    volumes:
+      # Le foto stanno qui. Vanno nel backup insieme al dump del database.
+      - ./data/uploads:/app/data/uploads
+
+volumes:
+  db-data:

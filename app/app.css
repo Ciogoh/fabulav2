@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/**
+ * Fabula — sistema visivo.
+ *
+ * Stessa palette e stessi caratteri della specifica, così il documento e il
+ * prodotto si riconoscono come la stessa cosa.
+ *
+ * I colori vivono in variabili CSS ridefinite per il tema scuro; le utility di
+ * Tailwind le leggono tramite `@theme inline`. Nessun colore viene dichiarato
+ * solo dentro al blocco scuro, altrimenti sparirebbe nel tema chiaro.
+ */
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Spectral", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-rule: var(--rule);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-free: var(--free);
+  --color-free-bg: var(--free-bg);
+  --color-held: var(--held);
+  --color-held-bg: var(--held-bg);
+  --color-out: var(--out);
+  --color-out-bg: var(--out-bg);
+}
+
+:root {
+  --paper: #edeff2;
+  --card: #ffffff;
+  --sunk: #e4e7ec;
+  --ink: #16202e;
+  --muted: #5f6a7b;
+  --faint: #8b95a5;
+  --rule: #d3d9e2;
+  --accent: #2e4ea8;
+  --accent-soft: #e2e8f6;
+
+  --free: #15704b;
+  --free-bg: #dff0e6;
+  --held: #96600a;
+  --held-bg: #f6ead3;
+  --out: #a9383a;
+  --out-bg: #f6e1e1;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0f131a;
+    --card: #161b24;
+    --sunk: #1b212c;
+    --ink: #e3e8ef;
+    --muted: #97a2b2;
+    --faint: #6c7686;
+    --rule: #2a313e;
+    --accent: #86a4ee;
+    --accent-soft: #1d2740;
+
+    --free: #5bc793;
+    --free-bg: #14291f;
+    --held: #e0ac55;
+    --held-bg: #2b2214;
+    --out: #ec8480;
+    --out-bg: #2e1a1b;
+
+    color-scheme: dark;
+  }
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* I campi data nativi restano leggibili anche sul fondo scuro. */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(var(--date-icon-invert, 0));
+  cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    --date-icon-invert: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
