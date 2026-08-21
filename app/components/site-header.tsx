@@ -58,6 +58,9 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
               <Link to="/admin/members" className="text-muted hover:text-ink">
                 {t("nav.adminMembers")}
               </Link>
+              <Link to="/admin/assets" className="text-muted hover:text-ink">
+                {t("nav.adminAssets")}
+              </Link>
             </>
           )}
         </nav>
