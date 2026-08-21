@@ -35,6 +35,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const name = String(form.get("name") ?? "").trim();
   const password = String(form.get("password") ?? "");
+  const confirmPassword = String(form.get("confirmPassword") ?? "");
   const rawNext = String(form.get("next") ?? "/");
   const next =
     rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
@@ -44,6 +45,9 @@ export async function action({ request }: Route.ActionArgs) {
   }
   if (password.length > 0 && password.length < MIN_PASSWORD_LENGTH) {
     return { error: "welcome.passwordTooShort" as const };
+  }
+  if (password.length > 0 && password !== confirmPassword) {
+    return { error: "welcome.passwordMismatch" as const };
   }
 
   await db.user.update({
@@ -108,22 +112,42 @@ export default function Welcome({
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="password"
-            className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
-          >
-            {t("welcome.password")}
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            minLength={10}
-            className="rounded border border-rule bg-card px-3 py-2.5 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
-          />
-          <p className="text-xs text-muted">{t("welcome.passwordHint")}</p>
+        <div className="mt-2 rounded border border-rule bg-sunk/40 p-4">
+          <p className="text-sm text-muted">{t("welcome.passwordIntro")}</p>
+
+          <div className="mt-4 flex flex-col gap-1.5">
+            <label
+              htmlFor="password"
+              className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
+            >
+              {t("welcome.password")}
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              minLength={10}
+              className="rounded border border-rule bg-card px-3 py-2.5 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+            />
+          </div>
+
+          <div className="mt-4 flex flex-col gap-1.5">
+            <label
+              htmlFor="confirmPassword"
+              className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
+            >
+              {t("welcome.confirmPassword")}
+            </label>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              minLength={10}
+              className="rounded border border-rule bg-card px-3 py-2.5 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+            />
+          </div>
         </div>
 
         <button
