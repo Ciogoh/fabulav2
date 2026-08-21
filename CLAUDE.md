@@ -265,6 +265,14 @@ niente.
 
 ## Trappole già incontrate
 
+- **`prisma migrate status` non vede lo scollamento fra schema e database.**
+  Confronta solo le migrazioni fra loro, quindi un campo aggiunto a
+  `schema.prisma` senza migrazione risulta «tutto a posto». Il typecheck passa
+  pure — il client viene generato dallo schema — e si scopre tutto alla prima
+  query, a runtime. **Dopo ogni modifica allo schema, controlla davvero:**
+  `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script`
+  deve rispondere «This is an empty migration». È già successo con
+  `Request.adminNote`.
 - **La directory di lavoro dei comandi torna alla radice del workspace.** Usa
   percorsi assoluti o `pnpm --dir`. Un `pnpm add` lanciato dal posto sbagliato è
   risalito fino alla home dell'utente e ci ha creato un `package.json`.
