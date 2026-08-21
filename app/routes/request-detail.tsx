@@ -240,9 +240,9 @@ function AdminSection({
   admin: { note: string | null; holderName: string; holderEmail: string };
 }) {
   const t = useT();
-  const noteFetcher = useFetcher();
-  const decisionFetcher = useFetcher();
-  const reminderFetcher = useFetcher();
+  const noteFetcher = useFetcher<typeof action>();
+  const decisionFetcher = useFetcher<typeof action>();
+  const reminderFetcher = useFetcher<typeof action>();
 
   return (
     <section className="mt-8 rounded border border-rule bg-card p-4">
@@ -280,6 +280,9 @@ function AdminSection({
           </decisionFetcher.Form>
         </div>
       )}
+      {decisionFetcher.data && !decisionFetcher.data.ok && (
+        <p className="mt-2 text-sm text-out">{t(decisionFetcher.data.error)}</p>
+      )}
 
       {status === "APPROVED" && (
         <reminderFetcher.Form method="post" className="mt-4">
@@ -291,10 +294,13 @@ function AdminSection({
           >
             {t("requests.admin.sendReminder")}
           </button>
-          {reminderFetcher.data?.ok && reminderFetcher.state === "idle" && (
+          {reminderFetcher.state === "idle" && reminderFetcher.data?.ok && (
             <span className="ml-3 text-sm text-muted">
               {t("requests.admin.reminderSent")}
             </span>
+          )}
+          {reminderFetcher.data && !reminderFetcher.data.ok && (
+            <p className="mt-2 text-sm text-out">{t(reminderFetcher.data.error)}</p>
           )}
         </reminderFetcher.Form>
       )}
@@ -339,7 +345,7 @@ type ChatMessage = {
 function ChatSection({ id, messages }: { id: string; messages: ChatMessage[] }) {
   const t = useT();
   const lang = useLang();
-  const fetcher = useFetcher();
+  const fetcher = useFetcher<typeof action>();
   const formRef = useRef<HTMLFormElement>(null);
 
   // Il campo si svuota da solo dopo un invio riuscito, senza bisogno di
@@ -410,6 +416,9 @@ function ChatSection({ id, messages }: { id: string; messages: ChatMessage[] }) 
           {t("requests.chat.send")}
         </button>
       </fetcher.Form>
+      {fetcher.data && !fetcher.data.ok && (
+        <p className="mt-2 text-sm text-out">{t(fetcher.data.error)}</p>
+      )}
     </section>
   );
 }

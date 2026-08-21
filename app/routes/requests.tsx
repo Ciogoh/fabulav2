@@ -160,9 +160,9 @@ export async function action({ request }: Route.ActionArgs) {
     if (admins.length > 0) {
       const names = assetIds.map((id) => assetById.get(id)!.name).join(", ");
       await Promise.all(
-        admins.map((to) =>
+        admins.map((adminEmail) =>
           sendEmail({
-            to,
+            to: adminEmail,
             subject: `Fabula: nuova richiesta da ${user.name}`,
             text:
               `${user.name} (${user.email}) ha richiesto: ${names}\n` +

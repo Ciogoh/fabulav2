@@ -1,26 +1,28 @@
 /**
  * Il catalogo — la prima cosa che si vede, senza account.
  *
- * La scelta di progetto che conta: **le date si scelgono prima, non dopo**.
- * In cima ci sono due campi data e la griglia si filtra da sola. L'alternativa
- * istintiva — aprire ogni oggetto per guardarne il calendario — costringe ad
- * aprire dieci schede per capire cosa è libero un dato fine settimana, ed è
- * ciò che rende faticose queste piattaforme.
+ * La scelta di progetto che conta: **le date si scelgono dopo, non prima**.
+ * Si sfoglia il catalogo — che mostra solo lo stato di oggi — si mettono
+ * oggetti nel carrello, e le date si indicano una volta sola premendo
+ * «Richiedi». L'alternativa (due campi data in cima che filtrano la griglia)
+ * costringeva a ripensare le date prima ancora di sapere cosa si vuole
+ * prendere, ed è il motivo per cui un oggetto occupato oggi ma libero fra due
+ * settimane risultava introvabile.
  */
 
-import { Form, useSearchParams } from "react-router";
+import { useEffect, useState } from "react";
+import { Form, Link, useFetcher, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/catalogue";
+import type { action as createRequestAction } from "./requests";
 import { db } from "~/lib/db.server";
 import {
-  FREE,
   formatDay,
-  getBusyAssetIds,
   getCurrentAvailability,
-  parseDay,
   todayUtc,
   type AssetAvailability,
 } from "~/lib/availability.server";
-import { useFormatDay, useT } from "~/i18n/use-t";
+import { getUser } from "~/lib/session.server";
+import { useT } from "~/i18n/use-t";
 import { StateBadge } from "~/components/state-badge";
 import { useCart, type CartEntry } from "~/lib/use-cart";
 
@@ -30,15 +32,9 @@ export function meta(_: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const from = parseDay(url.searchParams.get("from"));
-  const to = parseDay(url.searchParams.get("to"));
   const categorySlug = url.searchParams.get("cat");
 
-  // Un periodo vale solo se completo e nel verso giusto.
-  const range = from && to && to >= from ? { from, to } : null;
-  const datesInvalid = Boolean(from && to && to < from);
-
-  const [categories, assets, kits] = await Promise.all([
+  const [categories, assets, kits, user, current] = await Promise.all([
     db.category.findMany({ orderBy: { sortOrder: "asc" } }),
     db.asset.findMany({
       where: categorySlug ? { category: { slug: categorySlug } } : undefined,
@@ -68,86 +64,45 @@ export async function loader({ request }: Route.LoaderArgs) {
         },
       },
     }),
+    getUser(request),
+    getCurrentAvailability(),
   ]);
 
-  // Due modi di leggere la disponibilità: dentro a un periodo scelto è una
-  // domanda sì/no; senza periodo si mostra lo stato di oggi.
-  let availability: Record<string, AssetAvailability>;
-
-  if (range) {
-    const busy = await getBusyAssetIds(range.from, range.to);
-    availability = Object.fromEntries(
-      assets.map((asset) => [
-        asset.id,
-        busy.has(asset.id)
-          ? { state: "UNAVAILABLE" as const, until: null, from: null }
-          : FREE,
-      ])
-    );
-  } else {
-    const current = await getCurrentAvailability();
-    availability = Object.fromEntries(
-      assets.map((asset) => [asset.id, current.get(asset.id) ?? FREE])
-    );
-  }
-
-  const freeCount = assets.filter(
-    (asset) => asset.isBookable && availability[asset.id].state === "FREE"
-  ).length;
+  const availability: Record<string, AssetAvailability> = Object.fromEntries(
+    assets.map((asset) => [
+      asset.id,
+      current.get(asset.id) ?? { state: "FREE" as const, until: null, from: null },
+    ])
+  );
 
   return {
     assets,
     kits,
     categories,
     availability,
-    freeCount,
-    datesInvalid,
     today: formatDay(todayUtc()),
-    range: range
-      ? { from: formatDay(range.from), to: formatDay(range.to) }
-      : null,
+    user: user ? { name: user.name } : null,
   };
 }
 
 export default function Catalogue({ loaderData }: Route.ComponentProps) {
-  const {
-    assets,
-    kits,
-    categories,
-    availability,
-    freeCount,
-    datesInvalid,
-    today,
-    range,
-  } = loaderData;
+  const { assets, kits, categories, availability, today, user } = loaderData;
   const t = useT();
-  const formatDay = useFormatDay();
   const [searchParams] = useSearchParams();
   const cart = useCart();
 
   const activeCategory = searchParams.get("cat") ?? "";
-  const bookable = (id: string) => availability[id]?.state === "FREE";
+  const bookableIds = new Set(
+    assets.filter((asset) => asset.isBookable).map((asset) => asset.id)
+  );
 
   return (
     <>
-      <FilterBar
-        today={today}
-        range={range}
-        categories={categories}
-        activeCategory={activeCategory}
-        datesInvalid={datesInvalid}
-      />
+      <FilterBar categories={categories} activeCategory={activeCategory} />
 
       <main className="mx-auto w-full max-w-6xl px-6 pb-24 pt-8">
         <p className="font-mono text-xs uppercase tracking-widest text-faint">
-          {range
-            ? t("catalogue.showingFree", {
-                count: freeCount,
-                total: assets.length,
-                from: formatDay(range.from),
-                to: formatDay(range.to),
-              })
-            : t("catalogue.showingAll", { count: assets.length })}
+          {t("catalogue.showingAll", { count: assets.length })}
         </p>
 
         {kits.length > 0 && !activeCategory && (
@@ -157,7 +112,7 @@ export default function Catalogue({ loaderData }: Route.ComponentProps) {
                 <KitCard
                   key={kit.id}
                   kit={kit}
-                  canAdd={(id) => bookable(id)}
+                  canAdd={(id) => bookableIds.has(id)}
                   onAdd={cart.add}
                 />
               ))}
@@ -183,7 +138,7 @@ export default function Catalogue({ loaderData }: Route.ComponentProps) {
         )}
       </main>
 
-      <CartBar cart={cart} hasDates={Boolean(range)} />
+      <CartBar cart={cart} today={today} user={user} />
     </>
   );
 }
@@ -191,17 +146,11 @@ export default function Catalogue({ loaderData }: Route.ComponentProps) {
 /* ------------------------------------------------------------- filtri */
 
 function FilterBar({
-  today,
-  range,
   categories,
   activeCategory,
-  datesInvalid,
 }: {
-  today: string;
-  range: { from: string; to: string } | null;
   categories: Array<{ id: string; name: string; slug: string }>;
   activeCategory: string;
-  datesInvalid: boolean;
 }) {
   const t = useT();
 
@@ -211,19 +160,8 @@ function FilterBar({
         <h1 className="font-serif text-3xl font-semibold tracking-tight">
           {t("catalogue.heading")}
         </h1>
-        <p className="mt-1 max-w-prose text-sm text-muted">
-          {t("catalogue.datesHint")}
-        </p>
 
         <Form method="get" className="mt-5 flex flex-wrap items-end gap-3">
-          <Field label={t("catalogue.from")} name="from" min={today} value={range?.from} />
-          <Field
-            label={t("catalogue.to")}
-            name="to"
-            min={range?.from ?? today}
-            value={range?.to}
-          />
-
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="cat"
@@ -235,6 +173,7 @@ function FilterBar({
               id="cat"
               name="cat"
               defaultValue={activeCategory}
+              onChange={(event) => event.currentTarget.form?.requestSubmit()}
               className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
             >
               <option value="">{t("catalogue.allCategories")}</option>
@@ -246,60 +185,16 @@ function FilterBar({
             </select>
           </div>
 
-          <button
-            type="submit"
-            className="rounded bg-accent px-4 py-2 text-sm font-medium text-white focus:outline-2 focus:outline-offset-2 focus:outline-accent"
-          >
-            {t("catalogue.checkDates")}
-          </button>
-
-          {(range || activeCategory) && (
+          {activeCategory && (
             <a
               href="/"
               className="px-2 py-2 text-sm text-muted underline underline-offset-4 hover:text-ink"
             >
-              {t("catalogue.clearDates")}
+              {t("catalogue.clearFilter")}
             </a>
           )}
         </Form>
-
-        {datesInvalid && (
-          <p role="alert" className="mt-3 text-sm text-out">
-            {t("catalogue.endBeforeStart")}
-          </p>
-        )}
       </div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  name,
-  min,
-  value,
-}: {
-  label: string;
-  name: string;
-  min: string;
-  value?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label
-        htmlFor={name}
-        className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
-      >
-        {label}
-      </label>
-      <input
-        id={name}
-        name={name}
-        type="date"
-        min={min}
-        defaultValue={value ?? ""}
-        className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
-      />
     </div>
   );
 }
@@ -323,7 +218,9 @@ function AssetCard({
 }) {
   const t = useT();
   const state = availability.state;
-  const canAdd = asset.isBookable && state === "FREE";
+  // Occupato *oggi* non vuol dire indisponibile: le date si scelgono dopo,
+  // premendo «Richiedi», e lì si verifica il periodo scelto davvero.
+  const canAdd = asset.isBookable;
 
   return (
     <article className="flex flex-col overflow-hidden rounded border border-rule bg-card">
@@ -488,12 +385,15 @@ function KitCard({
 
 function CartBar({
   cart,
-  hasDates,
+  today,
+  user,
 }: {
   cart: ReturnType<typeof useCart>;
-  hasDates: boolean;
+  today: string;
+  user: { name: string } | null;
 }) {
   const t = useT();
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   if (!cart.ready || cart.entries.length === 0) return null;
 
@@ -517,15 +417,231 @@ function CartBar({
           >
             {t("cart.clear")}
           </button>
-          <button
-            type="submit"
-            disabled={!hasDates}
-            title={hasDates ? undefined : t("cart.needDates")}
-            className="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-sunk disabled:text-faint"
-          >
-            {t("cart.submit")} ({cart.entries.length})
-          </button>
+
+          {user ? (
+            <button
+              type="button"
+              onClick={() => setDialogOpen(true)}
+              className="rounded bg-accent px-4 py-2 text-sm font-medium text-white"
+            >
+              {t("cart.submit")} ({cart.entries.length})
+            </button>
+          ) : (
+            <Link
+              to="/signin?next=/"
+              className="rounded bg-accent px-4 py-2 text-sm font-medium text-white"
+            >
+              {t("cart.submit")} ({cart.entries.length})
+            </Link>
+          )}
         </div>
+      </div>
+
+      {dialogOpen && (
+        <RequestDialog
+          entries={cart.entries}
+          today={today}
+          onClose={() => setDialogOpen(false)}
+          onSuccess={() => {
+            cart.clear();
+            setDialogOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* --------------------------------------------------------- richiesta */
+
+/** `2026-09-03` spostato di `days` giorni, restando su giorni interi UTC. */
+function shiftDayString(day: string, days: number): string {
+  const [year, month, date] = day.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, date + days))
+    .toISOString()
+    .slice(0, 10);
+}
+
+function RequestDialog({
+  entries,
+  today,
+  onClose,
+  onSuccess,
+}: {
+  entries: CartEntry[];
+  today: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const t = useT();
+  const navigate = useNavigate();
+  const fetcher = useFetcher<typeof createRequestAction>();
+
+  const [from, setFrom] = useState(today);
+  const [to, setTo] = useState(today);
+  const [longer, setLonger] = useState(false);
+  const [purpose, setPurpose] = useState("");
+
+  const maxTo = longer ? undefined : shiftDayString(from, 6);
+  const busy = fetcher.state !== "idle";
+
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data) {
+      if (fetcher.data.ok) {
+        onSuccess();
+        navigate(`/requests/${fetcher.data.id}`);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetcher.state, fetcher.data]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  const result = fetcher.data && !fetcher.data.ok ? fetcher.data : null;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-6"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t border border-rule bg-card p-5 sm:rounded">
+        <h2 className="font-serif text-xl font-semibold">
+          {t("request.heading")}
+        </h2>
+
+        <ul className="mt-3 max-h-24 overflow-y-auto text-sm text-muted">
+          {entries.map((entry) => (
+            <li key={entry.assetId}>{entry.name}</li>
+          ))}
+        </ul>
+
+        <fetcher.Form
+          method="post"
+          action="/requests"
+          className="mt-5 flex flex-col gap-4"
+        >
+          <input
+            type="hidden"
+            name="items"
+            value={JSON.stringify(
+              entries.map((entry) => ({
+                assetId: entry.assetId,
+                fromKitId: entry.fromKitId,
+              }))
+            )}
+          />
+
+          <div className="flex gap-3">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <label
+                htmlFor="from"
+                className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
+              >
+                {t("request.from")}
+              </label>
+              <input
+                id="from"
+                name="from"
+                type="date"
+                min={today}
+                value={from}
+                onChange={(event) => {
+                  setFrom(event.target.value);
+                  if (to < event.target.value) setTo(event.target.value);
+                }}
+                className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+              />
+            </div>
+            <div className="flex flex-1 flex-col gap-1.5">
+              <label
+                htmlFor="to"
+                className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
+              >
+                {t("request.to")}
+              </label>
+              <input
+                id="to"
+                name="to"
+                type="date"
+                min={from}
+                max={maxTo}
+                value={to}
+                onChange={(event) => setTo(event.target.value)}
+                className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+              />
+            </div>
+          </div>
+
+          <p className="text-[0.8rem] text-muted">{t("request.maxSpan")}</p>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="longer"
+              value="1"
+              checked={longer}
+              onChange={(event) => setLonger(event.target.checked)}
+              className="h-4 w-4"
+            />
+            {t("request.longer")}
+          </label>
+
+          {longer && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="purpose"
+                className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
+              >
+                {t("request.purpose")}
+              </label>
+              <textarea
+                id="purpose"
+                name="purpose"
+                rows={3}
+                required
+                value={purpose}
+                onChange={(event) => setPurpose(event.target.value)}
+                className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+              />
+            </div>
+          )}
+
+          {result && (
+            <p role="alert" className="rounded bg-out-bg px-3 py-2 text-sm text-out">
+              {t(result.error)}
+              {result.conflicts && result.conflicts.length > 0 && (
+                <> — {result.conflicts.join(", ")}</>
+              )}
+            </p>
+          )}
+
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-sm text-muted underline underline-offset-4 hover:text-ink"
+            >
+              {t("request.cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={busy}
+              className="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:bg-sunk disabled:text-faint"
+            >
+              {t("request.submit")}
+            </button>
+          </div>
+        </fetcher.Form>
       </div>
     </div>
   );

@@ -23,6 +23,7 @@ import {
   todayUtc,
   type OccupancyState,
 } from "~/lib/availability.server";
+import { getUser } from "~/lib/session.server";
 import { useLang, useT } from "~/i18n/use-t";
 
 /** Cinque settimane: un mese abbondante, ancora leggibile su uno schermo. */
@@ -42,6 +43,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   const start = startOfWeek(anchor);
   const end = shiftDays(start, DAYS - 1);
 
+  const user = await getUser(request);
+  const isAdmin = user?.role === "ADMIN";
+
   const [assets, occupancy] = await Promise.all([
     db.asset.findMany({
       orderBy: [{ category: { sortOrder: "asc" } }, { name: "asc" }],
@@ -53,7 +57,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     }),
     // Le richieste in attesa si vedono: dicono «qualcuno l'ha già chiesto per
     // quelle date», ed è un'informazione utile prima di chiedere lo stesso.
-    getOccupancy(start, end, { includePending: true }),
+    // `withHolders` solo per admin: il pubblico non deve mai sapere chi ha
+    // cosa, solo che è occupato.
+    getOccupancy(start, end, { includePending: true, withHolders: isAdmin }),
   ]);
 
   const busyAssetIds = new Set(occupancy.map((entry) => entry.assetId));
@@ -64,7 +70,9 @@ export async function loader({ request }: Route.LoaderArgs) {
         .filter((entry) => entry.assetId === asset.id)
         .map((entry) => ({
           id: entry.id,
+          requestId: entry.requestId,
           state: entry.state,
+          holder: entry.holder,
           // Ritagliate sulla finestra: una prenotazione che comincia prima
           // deve comunque disegnarsi dal bordo sinistro.
           offset: Math.max(0, daysBetween(start, entry.startDate)),
@@ -85,11 +93,12 @@ export async function loader({ request }: Route.LoaderArgs) {
     next: formatDay(shiftDays(start, DAYS)),
     todayOffset: daysBetween(start, todayUtc()),
     days: Array.from({ length: DAYS }, (_, i) => formatDay(shiftDays(start, i))),
+    isAdmin,
   };
 }
 
 export default function Calendar({ loaderData }: Route.ComponentProps) {
-  const { rows, showAll, totalAssets, days, todayOffset, previous, next } =
+  const { rows, showAll, totalAssets, days, todayOffset, previous, next, isAdmin } =
     loaderData;
   const t = useT();
   const lang = useLang();
@@ -241,7 +250,7 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
                   {/* Le barre. Se due si sovrappongono, la griglia le impila
                       su righe successive invece di nasconderne una. */}
                   {row.bars.map((bar) => (
-                    <Bar key={bar.id} {...bar} />
+                    <Bar key={bar.id} {...bar} isAdmin={isAdmin} />
                   ))}
                 </div>
               </div>
@@ -276,24 +285,46 @@ const BAR_LABELS = {
 } as const;
 
 function Bar({
+  requestId,
   state,
   offset,
   length,
+  holder,
+  isAdmin,
 }: {
+  requestId: string;
   state: OccupancyState;
   offset: number;
   length: number;
+  holder: string | null;
+  isAdmin: boolean;
 }) {
   const t = useT();
+  const label = holder ? `${t(BAR_LABELS[state])} · ${holder}` : t(BAR_LABELS[state]);
+  const className = `relative z-10 flex items-center overflow-hidden rounded px-1.5 ${BAR_STYLES[state]}`;
+  const style = { gridColumn: `${offset + 1} / span ${length}` };
+
+  // Solo l'admin può aprire il dettaglio: al pubblico la barra resta un
+  // rettangolo informativo, senza chi ce l'ha e senza dove andare.
+  if (isAdmin) {
+    return (
+      <Link
+        to={`/requests/${requestId}`}
+        className={`${className} hover:ring-2 hover:ring-accent`}
+        style={style}
+        title={label}
+      >
+        <span className="truncate font-mono text-[0.6rem] uppercase tracking-wider">
+          {label}
+        </span>
+      </Link>
+    );
+  }
 
   return (
-    <div
-      className={`relative z-10 flex items-center overflow-hidden rounded px-1.5 ${BAR_STYLES[state]}`}
-      style={{ gridColumn: `${offset + 1} / span ${length}` }}
-      title={t(BAR_LABELS[state])}
-    >
+    <div className={className} style={style} title={label}>
       <span className="truncate font-mono text-[0.6rem] uppercase tracking-wider">
-        {t(BAR_LABELS[state])}
+        {label}
       </span>
     </div>
   );
