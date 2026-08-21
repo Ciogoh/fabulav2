@@ -19,6 +19,7 @@ import { sendEmail } from "~/lib/email.server";
 import { useFormatDay, useLang, useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import type { RequestStatus } from "~/generated/prisma/enums";
+import { AdminBadge } from "~/components/admin-badge";
 
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Fabula" }];
@@ -51,7 +52,7 @@ async function loadAuthorized(userId: string, isAdminRole: boolean, id: string) 
           id: true,
           body: true,
           createdAt: true,
-          author: { select: { id: true, name: true } },
+          author: { select: { id: true, name: true, role: true } },
         },
       },
     },
@@ -88,6 +89,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       body: m.body,
       createdAt: m.createdAt.toISOString(),
       authorName: m.author.name,
+      authorIsAdmin: m.author.role === "ADMIN",
       isMine: m.author.id === user.id,
     })),
     currentUserId: user.id,
@@ -339,6 +341,7 @@ type ChatMessage = {
   body: string;
   createdAt: string;
   authorName: string;
+  authorIsAdmin: boolean;
   isMine: boolean;
 };
 
@@ -374,7 +377,10 @@ function ChatSection({ id, messages }: { id: string; messages: ChatMessage[] }) 
             }`}
           >
             <div className="flex items-baseline justify-between gap-3">
-              <span className="font-medium">{message.authorName}</span>
+              <span className="flex items-center gap-1.5">
+                <span className="font-medium">{message.authorName}</span>
+                {message.authorIsAdmin && <AdminBadge />}
+              </span>
               <span className="font-mono text-[0.62rem] text-faint">
                 {new Date(message.createdAt).toLocaleString(lang, {
                   day: "numeric",

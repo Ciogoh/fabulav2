@@ -10,6 +10,9 @@ export default [
   route("language", "routes/language.tsx"),
   route("requests", "routes/requests.tsx"),
   route("requests/:id", "routes/request-detail.tsx"),
+  route("admin/members", "routes/admin.members.tsx"),
+  route("admin/requests", "routes/admin.requests.tsx"),
+  route("reset-password", "routes/reset-password.tsx"),
   // Tutto l'accesso passa da un solo gestore di Better Auth.
   route("api/auth/*", "routes/api.auth.$.tsx"),
 ] satisfies RouteConfig;

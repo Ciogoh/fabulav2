@@ -14,6 +14,7 @@ export type HeaderUser = {
   name: string;
   email: string;
   isAdmin: boolean;
+  pendingCount?: number;
 };
 
 export function SiteHeader({ user }: { user: HeaderUser | null }) {
@@ -44,6 +45,21 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
           <Link to="/requests" className="text-muted hover:text-ink">
             {t("nav.myRequests")}
           </Link>
+          {user?.isAdmin && (
+            <>
+              <Link to="/admin/requests" className="text-muted hover:text-ink">
+                {t("nav.adminQueue")}
+                {Boolean(user.pendingCount) && (
+                  <span className="ml-1.5 rounded-full bg-out-bg px-1.5 py-0.5 font-mono text-[0.65rem] font-medium text-out">
+                    {user.pendingCount}
+                  </span>
+                )}
+              </Link>
+              <Link to="/admin/members" className="text-muted hover:text-ink">
+                {t("nav.adminMembers")}
+              </Link>
+            </>
+          )}
         </nav>
 
         <div className="ml-auto flex items-center gap-4">

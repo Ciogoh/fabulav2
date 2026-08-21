@@ -84,11 +84,17 @@ model Session {
 }
 
 model Account {
-  id                    String    @id
-  accountId             String
-  providerId            String
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String @id
+  /// Chi ha emesso l'identità: "local:credential" per la password,
+  /// "local:oauth:google" per Google. Concetto introdotto da Better Auth
+  /// 1.7 (non c'era quando questa tabella è stata generata la prima volta),
+  /// e il suo endpoint di reset password lo richiede per trovare
+  /// l'account con la password di un utente — senza, va in errore.
+  issuer      String
+  accountId   String
+  providerId  String
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -100,6 +106,7 @@ model Account {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
+  @@unique([issuer, accountId])
   @@index([userId])
 }
 

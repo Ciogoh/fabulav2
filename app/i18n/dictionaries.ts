@@ -29,6 +29,8 @@ const en = {
   "nav.myRequests": "My requests",
   "nav.signIn": "Sign in",
   "nav.language": "Language",
+  "nav.adminQueue": "To approve",
+  "nav.adminMembers": "Members",
 
   "catalogue.heading": "Catalogue",
   "catalogue.clearFilter": "Clear",
@@ -144,6 +146,34 @@ const en = {
   "requests.chat.empty": "No messages yet.",
   "requests.chat.placeholder": "Write a message…",
   "requests.chat.send": "Send",
+
+  "members.heading": "Members",
+  "members.empty": "No members yet.",
+  "members.badgeAdmin": "Admin",
+  "members.makeAdmin": "Make admin",
+  "members.removeAdmin": "Remove admin",
+  "members.sendReset": "Send password reset link",
+  "members.resetSent": "Sent.",
+  "members.confirmToggle": "Change this person's role?",
+  "members.confirmResetStep1": "Send a password reset link to this person?",
+  "members.confirmResetStep2": "Sure? This lets them set a new password.",
+  "members.errorSelf": "You cannot change your own role.",
+  "members.errorLastAdmin": "This is the last admin — promote someone else first.",
+  "members.errorGeneric": "Something went wrong. Try again.",
+
+  "adminQueue.heading": "To approve",
+  "adminQueue.empty": "Nothing pending.",
+  "adminQueue.showAll": "Show all requests",
+  "adminQueue.showPending": "Show only pending",
+
+  "resetPassword.heading": "Choose a new password",
+  "resetPassword.intro": "At least 10 characters.",
+  "resetPassword.newPassword": "New password",
+  "resetPassword.confirmPassword": "Confirm password",
+  "resetPassword.submit": "Save password",
+  "resetPassword.mismatch": "The two passwords do not match.",
+  "resetPassword.failed": "That did not work. The link may have expired — ask for a new one.",
+  "resetPassword.invalidToken": "This link is missing its token. Ask for a new one.",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -157,6 +187,8 @@ const it: Dictionary = {
   "nav.myRequests": "Le mie richieste",
   "nav.signIn": "Entra",
   "nav.language": "Lingua",
+  "nav.adminQueue": "Da approvare",
+  "nav.adminMembers": "Soci",
 
   "catalogue.heading": "Catalogo",
   "catalogue.clearFilter": "Azzera",
@@ -272,6 +304,34 @@ const it: Dictionary = {
   "requests.chat.empty": "Nessun messaggio ancora.",
   "requests.chat.placeholder": "Scrivi un messaggio…",
   "requests.chat.send": "Invia",
+
+  "members.heading": "Soci",
+  "members.empty": "Nessun socio ancora.",
+  "members.badgeAdmin": "Admin",
+  "members.makeAdmin": "Rendi admin",
+  "members.removeAdmin": "Togli admin",
+  "members.sendReset": "Manda link per reimpostare la password",
+  "members.resetSent": "Mandato.",
+  "members.confirmToggle": "Cambiare il ruolo di questa persona?",
+  "members.confirmResetStep1": "Mandare un link per reimpostare la password a questa persona?",
+  "members.confirmResetStep2": "Sicuro? Da quel link può scegliersi una password nuova.",
+  "members.errorSelf": "Non puoi cambiare il tuo stesso ruolo.",
+  "members.errorLastAdmin": "È l'ultimo admin rimasto — rendine admin un altro prima.",
+  "members.errorGeneric": "Qualcosa è andato storto. Riprova.",
+
+  "adminQueue.heading": "Da approvare",
+  "adminQueue.empty": "Niente in attesa.",
+  "adminQueue.showAll": "Mostra tutte le richieste",
+  "adminQueue.showPending": "Mostra solo quelle in attesa",
+
+  "resetPassword.heading": "Scegli una nuova password",
+  "resetPassword.intro": "Almeno 10 caratteri.",
+  "resetPassword.newPassword": "Nuova password",
+  "resetPassword.confirmPassword": "Conferma password",
+  "resetPassword.submit": "Salva la password",
+  "resetPassword.mismatch": "Le due password non coincidono.",
+  "resetPassword.failed": "Non ha funzionato. Il link potrebbe essere scaduto: chiedine uno nuovo.",
+  "resetPassword.invalidToken": "A questo link manca il token. Chiedine uno nuovo.",
 };
 
 const de: Dictionary = {
@@ -282,6 +342,8 @@ const de: Dictionary = {
   "nav.myRequests": "Meine Anfragen",
   "nav.signIn": "Anmelden",
   "nav.language": "Sprache",
+  "nav.adminQueue": "Zu genehmigen",
+  "nav.adminMembers": "Mitglieder",
 
   "catalogue.heading": "Katalog",
   "catalogue.clearFilter": "Zurücksetzen",
@@ -397,6 +459,34 @@ const de: Dictionary = {
   "requests.chat.empty": "Noch keine Nachrichten.",
   "requests.chat.placeholder": "Schreibe eine Nachricht…",
   "requests.chat.send": "Senden",
+
+  "members.heading": "Mitglieder",
+  "members.empty": "Noch keine Mitglieder.",
+  "members.badgeAdmin": "Admin",
+  "members.makeAdmin": "Zum Admin machen",
+  "members.removeAdmin": "Admin entfernen",
+  "members.sendReset": "Link zum Passwort-Zurücksetzen senden",
+  "members.resetSent": "Gesendet.",
+  "members.confirmToggle": "Die Rolle dieser Person ändern?",
+  "members.confirmResetStep1": "Dieser Person einen Link zum Passwort-Zurücksetzen senden?",
+  "members.confirmResetStep2": "Sicher? Damit kann sie ein neues Passwort wählen.",
+  "members.errorSelf": "Du kannst deine eigene Rolle nicht ändern.",
+  "members.errorLastAdmin": "Das ist der letzte Admin — mach zuerst jemand anderen zum Admin.",
+  "members.errorGeneric": "Etwas ist schiefgelaufen. Versuche es erneut.",
+
+  "adminQueue.heading": "Zu genehmigen",
+  "adminQueue.empty": "Nichts ausstehend.",
+  "adminQueue.showAll": "Alle Anfragen zeigen",
+  "adminQueue.showPending": "Nur ausstehende zeigen",
+
+  "resetPassword.heading": "Neues Passwort wählen",
+  "resetPassword.intro": "Mindestens 10 Zeichen.",
+  "resetPassword.newPassword": "Neues Passwort",
+  "resetPassword.confirmPassword": "Passwort bestätigen",
+  "resetPassword.submit": "Passwort speichern",
+  "resetPassword.mismatch": "Die beiden Passwörter stimmen nicht überein.",
+  "resetPassword.failed": "Das hat nicht geklappt. Der Link ist vielleicht abgelaufen — fordere einen neuen an.",
+  "resetPassword.invalidToken": "Diesem Link fehlt das Token. Fordere einen neuen an.",
 };
 
 export const dictionaries: Record<Lang, Dictionary> = { en, it, de };

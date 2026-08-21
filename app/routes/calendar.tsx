@@ -13,7 +13,7 @@
  */
 
 import { Link, useSearchParams } from "react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Route } from "./+types/calendar";
 import { db } from "~/lib/db.server";
 import {
@@ -371,8 +371,15 @@ function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
 function SubscribeBox() {
   const t = useT();
   const [copied, setCopied] = useState(false);
-  const url =
-    typeof window === "undefined" ? "" : `${window.location.origin}/calendar.ics`;
+  // Comincia vuoto anche nel browser: leggere `window.location` durante il
+  // primo render darebbe un HTML diverso da quello mandato dal server (che
+  // non conosce il dominio pubblico dietro al tunnel Cloudflare) e React
+  // segnalerebbe un errore di hydration. Si riempie subito dopo, in un
+  // effetto — stesso schema di `useCart` in use-cart.ts.
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    setUrl(`${window.location.origin}/calendar.ics`);
+  }, []);
 
   return (
     <section className="mt-10 rounded border border-rule bg-card p-5">

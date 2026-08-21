@@ -13,6 +13,7 @@ import { getLang } from "~/i18n/lang.server";
 import { LangProvider } from "~/i18n/use-t";
 import { SiteHeader } from "~/components/site-header";
 import { getUser } from "~/lib/session.server";
+import { db } from "~/lib/db.server";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -29,6 +30,13 @@ export const links: Route.LinksFunction = () => [
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await getUser(request);
+  const isAdmin = user?.role === "ADMIN";
+
+  // Solo per gli admin: chi guarda il catalogo da anonimo non paga questa
+  // query in più a ogni pagina.
+  const pendingCount = isAdmin
+    ? await db.request.count({ where: { status: "PENDING" } })
+    : undefined;
 
   return {
     // La preferenza salvata sul profilo vince sul cookie: chi entra da un
@@ -37,7 +45,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     user: user && {
       name: user.name,
       email: user.email,
-      isAdmin: user.role === "ADMIN",
+      isAdmin,
+      pendingCount,
     },
   };
 }
