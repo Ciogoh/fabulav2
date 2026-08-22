@@ -12,6 +12,14 @@
 
 import { db } from "~/lib/db.server";
 
+/** Un giorno di libertà oltre i sette per una richiesta ordinaria: 7 giorni
+ * interi vuol dire una differenza di 6 fra inizio e fine. Condiviso fra la
+ * creazione di una richiesta e la modifica delle sue date. */
+export const MAX_ORDINARY_SPAN_DAYS = 7;
+/** Tetto anche per le richieste speciali: contro input assurdi, non contro
+ * richieste legittime — nessuna associazione presta qualcosa per un anno. */
+export const MAX_SPECIAL_SPAN_DAYS = 90;
+
 /** Lo stato di oggi, quando non è stato scelto nessun periodo. */
 export type AssetState = "FREE" | "RESERVED" | "IN_USE";
 

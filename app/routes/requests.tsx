@@ -14,6 +14,8 @@ import { requireUser } from "~/lib/session.server";
 import {
   formatDay,
   getBusyAssetIds,
+  MAX_ORDINARY_SPAN_DAYS,
+  MAX_SPECIAL_SPAN_DAYS,
   parseDay,
   todayUtc,
 } from "~/lib/availability.server";
@@ -25,13 +27,6 @@ import type { RequestStatus } from "~/generated/prisma/enums";
 export function meta(_: Route.MetaArgs) {
   return [{ title: "Fabula" }];
 }
-
-/** Un giorno di libertà oltre i sette per una richiesta ordinaria: 7 giorni
- * interi vuol dire una differenza di 6 fra inizio e fine. */
-const MAX_ORDINARY_SPAN_DAYS = 7;
-/** Tetto anche per le richieste speciali: contro input assurdi, non contro
- * richieste legittime — nessuna associazione presta qualcosa per un anno. */
-const MAX_SPECIAL_SPAN_DAYS = 90;
 
 type CartItemInput = { assetId: string; fromKitId?: string };
 

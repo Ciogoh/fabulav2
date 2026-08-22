@@ -24,6 +24,7 @@ import {
 import { getUser } from "~/lib/session.server";
 import { useT } from "~/i18n/use-t";
 import { StateBadge } from "~/components/state-badge";
+import { DateRangeFields } from "~/components/date-range-fields";
 import { useCart, type CartEntry } from "~/lib/use-cart";
 
 export function meta(_: Route.MetaArgs) {
@@ -454,14 +455,6 @@ function CartBar({
 
 /* --------------------------------------------------------- richiesta */
 
-/** `2026-09-03` spostato di `days` giorni, restando su giorni interi UTC. */
-function shiftDayString(day: string, days: number): string {
-  const [year, month, date] = day.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, date + days))
-    .toISOString()
-    .slice(0, 10);
-}
-
 function RequestDialog({
   entries,
   today,
@@ -482,7 +475,6 @@ function RequestDialog({
   const [longer, setLonger] = useState(false);
   const [purpose, setPurpose] = useState("");
 
-  const maxTo = longer ? undefined : shiftDayString(from, 6);
   const busy = fetcher.state !== "idle";
 
   useEffect(() => {
@@ -541,80 +533,17 @@ function RequestDialog({
             )}
           />
 
-          <div className="flex gap-3">
-            <div className="flex flex-1 flex-col gap-1.5">
-              <label
-                htmlFor="from"
-                className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
-              >
-                {t("request.from")}
-              </label>
-              <input
-                id="from"
-                name="from"
-                type="date"
-                min={today}
-                value={from}
-                onChange={(event) => {
-                  setFrom(event.target.value);
-                  if (to < event.target.value) setTo(event.target.value);
-                }}
-                className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
-              />
-            </div>
-            <div className="flex flex-1 flex-col gap-1.5">
-              <label
-                htmlFor="to"
-                className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
-              >
-                {t("request.to")}
-              </label>
-              <input
-                id="to"
-                name="to"
-                type="date"
-                min={from}
-                max={maxTo}
-                value={to}
-                onChange={(event) => setTo(event.target.value)}
-                className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
-              />
-            </div>
-          </div>
-
-          <p className="text-[0.8rem] text-muted">{t("request.maxSpan")}</p>
-
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="longer"
-              value="1"
-              checked={longer}
-              onChange={(event) => setLonger(event.target.checked)}
-              className="h-4 w-4"
-            />
-            {t("request.longer")}
-          </label>
-
-          {longer && (
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="purpose"
-                className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
-              >
-                {t("request.purpose")}
-              </label>
-              <textarea
-                id="purpose"
-                name="purpose"
-                rows={3}
-                required
-                value={purpose}
-                onChange={(event) => setPurpose(event.target.value)}
-                className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
-              />
-            </div>
-          )}
+          <DateRangeFields
+            today={today}
+            from={from}
+            to={to}
+            longer={longer}
+            purpose={purpose}
+            onFromChange={setFrom}
+            onToChange={setTo}
+            onLongerChange={setLonger}
+            onPurposeChange={setPurpose}
+          />
 
           {result && (
             <p role="alert" className="rounded bg-out-bg px-3 py-2 text-sm text-out">
