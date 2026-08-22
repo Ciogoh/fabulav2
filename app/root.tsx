@@ -14,6 +14,7 @@ import { LangProvider } from "~/i18n/use-t";
 import { SiteHeader } from "~/components/site-header";
 import { getUser } from "~/lib/session.server";
 import { db } from "~/lib/db.server";
+import { startReminderScheduler } from "~/lib/reminders.server";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -29,6 +30,11 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export async function loader({ request }: Route.LoaderArgs) {
+  // Parte una volta sola per processo (guardia interna su `globalThis`) —
+  // qui perché il loader radice gira a ogni richiesta, ed è l'unico punto
+  // sicuramente lato server di questo modulo universale.
+  startReminderScheduler();
+
   const user = await getUser(request);
   const isAdmin = user?.role === "ADMIN";
 

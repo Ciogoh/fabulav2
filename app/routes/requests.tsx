@@ -17,7 +17,7 @@ import {
   parseDay,
   todayUtc,
 } from "~/lib/availability.server";
-import { adminEmails, sendEmail } from "~/lib/email.server";
+import { notifyAdminsNewRequest } from "~/lib/notifications.server";
 import { useFormatDay, useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import type { RequestStatus } from "~/generated/prisma/enums";
@@ -156,23 +156,16 @@ export async function action({ request }: Route.ActionArgs) {
   });
 
   try {
-    const admins = adminEmails();
-    if (admins.length > 0) {
-      const names = assetIds.map((id) => assetById.get(id)!.name).join(", ");
-      await Promise.all(
-        admins.map((adminEmail) =>
-          sendEmail({
-            to: adminEmail,
-            subject: `Fabula: nuova richiesta da ${user.name}`,
-            text:
-              `${user.name} (${user.email}) ha richiesto: ${names}\n` +
-              `Dal ${formatDay(from)} al ${formatDay(to)}.\n` +
-              (purpose ? `Motivo: ${purpose}\n` : "") +
-              `\n${new URL(request.url).origin}/requests/${created.id}`,
-          })
-        )
-      );
-    }
+    await notifyAdminsNewRequest({
+      requestId: created.id,
+      requesterName: user.name,
+      requesterEmail: user.email,
+      itemNames: assetIds.map((id) => assetById.get(id)!.name),
+      startDate: from,
+      endDate: to,
+      purpose: purpose || null,
+      origin: new URL(request.url).origin,
+    });
   } catch (error) {
     // Un'email che non parte non deve invalidare una richiesta già scritta
     // sul database: chi l'ha fatta la vede comunque tra le sue.

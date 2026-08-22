@@ -239,6 +239,10 @@ model Request {
   decidedById String?
   decidedBy   User?     @relation("DecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
 
+  /// Quando è partito il promemoria automatico di riconsegna. Evita di
+  /// mandarlo due volte se il processo riparte lo stesso giorno.
+  reminderSentAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

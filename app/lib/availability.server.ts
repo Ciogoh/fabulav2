@@ -68,11 +68,16 @@ const BLOCKING = {
  */
 export async function getBusyAssetIds(
   start: Date,
-  end: Date
+  end: Date,
+  options: { excludeRequestId?: string } = {}
 ): Promise<Set<string>> {
   const items = await db.requestItem.findMany({
     where: {
       ...BLOCKING,
+      // Rimodificare le date di una richiesta già approvata non deve farla
+      // risultare in conflitto con sé stessa — i suoi stessi oggetti sono
+      // "occupati" solo perché è lei ad occuparli.
+      ...(options.excludeRequestId ? { requestId: { not: options.excludeRequestId } } : {}),
       request: {
         ...BLOCKING.request,
         startDate: { lte: end },
