@@ -81,6 +81,7 @@ const en = {
   "signin.password": "Password",
   "signin.failed": "That did not work. Check the address and try again.",
   "signin.badCode": "Wrong or expired code.",
+  "signin.tooManyRequests": "Too many tries in a short time. Wait a minute and try again.",
   "signin.badPassword": "Wrong email or password.",
 
   "welcome.heading": "One last thing",
@@ -269,6 +270,7 @@ const it: Dictionary = {
   "signin.password": "Password",
   "signin.failed": "Non ha funzionato. Controlla l'indirizzo e riprova.",
   "signin.badCode": "Codice sbagliato o scaduto.",
+  "signin.tooManyRequests": "Troppi tentativi in poco tempo. Aspetta un minuto e riprova.",
   "signin.badPassword": "Email o password sbagliate.",
 
   "welcome.heading": "Un'ultima cosa",
@@ -454,6 +456,7 @@ const de: Dictionary = {
   "signin.password": "Passwort",
   "signin.failed": "Hat nicht geklappt. Prüfe die Adresse und versuche es nochmal.",
   "signin.badCode": "Code falsch oder abgelaufen.",
+  "signin.tooManyRequests": "Zu viele Versuche in kurzer Zeit. Warte eine Minute und versuche es erneut.",
   "signin.badPassword": "E-Mail oder Passwort falsch.",
 
   "welcome.heading": "Noch eine Sache",

@@ -79,7 +79,12 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
     });
 
     setBusy(false);
-    if (failure) return setError(t("signin.failed"));
+    // 429 vuol dire "hai chiesto troppi codici in un minuto", non "email
+    // sbagliata" — sono due problemi diversi e il messaggio deve dirlo,
+    // altrimenti sembra un guasto invece di un limite temporaneo.
+    if (failure) {
+      return setError(t(failure.status === 429 ? "signin.tooManyRequests" : "signin.failed"));
+    }
     setStep({ name: "code", email });
   }
 
@@ -154,8 +159,13 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
             className="mt-8 flex flex-col gap-4"
             onSubmit={async (event) => {
               event.preventDefault();
-              const otp = new FormData(event.currentTarget).get("otp");
-              if (typeof otp !== "string" || !otp) return;
+              const rawOtp = new FormData(event.currentTarget).get("otp");
+              // Chi lo incolla dall'app di posta a volte si porta dietro uno
+              // spazio prima o dopo: con `maxLength` a 6 basta a spostare
+              // fuori dalla finestra una cifra vera e a far fallire un
+              // codice che, guardato, sembra giusto.
+              const otp = typeof rawOtp === "string" ? rawOtp.trim() : "";
+              if (!otp) return;
 
               setBusy(true);
               setError(null);
@@ -166,7 +176,11 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
               });
 
               setBusy(false);
-              if (failure) return setError(t("signin.badCode"));
+              if (failure) {
+                return setError(
+                  t(failure.status === 429 ? "signin.tooManyRequests" : "signin.badCode")
+                );
+              }
               await afterSignIn();
             }}
           >
