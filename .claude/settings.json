@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | { read -r f; case \"$f\" in */app/routes/*|*/app/i18n/dictionaries.ts) pnpm typecheck ;; esac; }",
+            "statusMessage": "pnpm typecheck (rotte o dizionari i18n toccati)"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | { read -r f; case \"$f\" in */.env) echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"fabula/.env contiene segreti (Resend, Google OAuth, token Cloudflare, session secret) — conferma che vuoi davvero modificarlo.\"}}' ;; esac; }"
+          }
+        ]
+      }
+    ]
+  }
+}
