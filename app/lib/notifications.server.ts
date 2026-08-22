@@ -4,7 +4,7 @@
  * promemoria di riconsegna in particolare serve identico sia al bottone
  * manuale sia allo spazzatore automatico (`reminders.server.ts`).
  *
- * Restano tutte in italiano, non tradotte per lingua del destinatario:
+ * Restano tutte in inglese, non tradotte per lingua del destinatario:
  * è già così per ogni email di Fabula (codice OTP, reset password), quindi
  * le nuove seguono lo stesso schema invece di inventarne uno a parte.
  *
@@ -42,14 +42,14 @@ export async function notifyAdminsNewRequest(
   if (admins.length === 0) return;
 
   const text =
-    `${params.requesterName} (${params.requesterEmail}) ha richiesto: ${params.itemNames.join(", ")}\n` +
-    `Dal ${formatDay(params.startDate)} al ${formatDay(params.endDate)}.\n` +
-    (params.purpose ? `Motivo: ${params.purpose}\n` : "") +
+    `${params.requesterName} (${params.requesterEmail}) requested: ${params.itemNames.join(", ")}\n` +
+    `From ${formatDay(params.startDate)} to ${formatDay(params.endDate)}.\n` +
+    (params.purpose ? `Reason: ${params.purpose}\n` : "") +
     `\n${requestLink(params.origin, params.requestId)}`;
 
   await Promise.all(
     admins.map((to) =>
-      sendEmail({ to, subject: `Fabula: nuova richiesta da ${params.requesterName}`, text })
+      sendEmail({ to, subject: `Fabula: new request from ${params.requesterName}`, text })
     )
   );
 }
@@ -63,15 +63,15 @@ export async function notifyRequesterDecision(
 ): Promise<void> {
   const approved = params.decision === "approved";
   const text =
-    `Ciao ${params.name},\n\n` +
-    `La tua richiesta per ${params.itemNames.join(", ")} ` +
-    `(dal ${formatDay(params.startDate)} al ${formatDay(params.endDate)}) ` +
-    (approved ? "è stata approvata.\n" : "non è stata approvata.\n") +
+    `Hi ${params.name},\n\n` +
+    `Your request for ${params.itemNames.join(", ")} ` +
+    `(from ${formatDay(params.startDate)} to ${formatDay(params.endDate)}) ` +
+    (approved ? "has been approved.\n" : "has not been approved.\n") +
     `\n${requestLink(params.origin, params.requestId)}`;
 
   await sendEmail({
     to: params.to,
-    subject: approved ? "Fabula: richiesta approvata" : "Fabula: richiesta non approvata",
+    subject: approved ? "Fabula: request approved" : "Fabula: request not approved",
     text,
   });
 }
@@ -80,13 +80,13 @@ export async function notifyRequesterCancelled(
   params: RequestSummary & { to: string; name: string }
 ): Promise<void> {
   const text =
-    `Ciao ${params.name},\n\n` +
-    `Un admin ha annullato la tua richiesta per ${params.itemNames.join(", ")} ` +
-    `(dal ${formatDay(params.startDate)} al ${formatDay(params.endDate)}). ` +
-    `Se pensi sia un errore, scrivi in chat sulla richiesta.\n` +
+    `Hi ${params.name},\n\n` +
+    `An admin has cancelled your request for ${params.itemNames.join(", ")} ` +
+    `(from ${formatDay(params.startDate)} to ${formatDay(params.endDate)}). ` +
+    `If you think this is a mistake, write in the request's chat.\n` +
     `\n${requestLink(params.origin, params.requestId)}`;
 
-  await sendEmail({ to: params.to, subject: "Fabula: richiesta annullata", text });
+  await sendEmail({ to: params.to, subject: "Fabula: request cancelled", text });
 }
 
 export async function sendReturnReminder(params: {
@@ -96,9 +96,9 @@ export async function sendReturnReminder(params: {
   endDate: Date;
 }): Promise<void> {
   const text =
-    `Ciao ${params.name},\n\n` +
-    `Un promemoria: ricordati di riportare entro il ${formatDay(params.endDate)}:\n` +
+    `Hi ${params.name},\n\n` +
+    `A reminder: please return by ${formatDay(params.endDate)}:\n` +
     `${params.itemNames.join(", ")}\n`;
 
-  await sendEmail({ to: params.to, subject: "Fabula: promemoria riconsegna", text });
+  await sendEmail({ to: params.to, subject: "Fabula: return reminder", text });
 }

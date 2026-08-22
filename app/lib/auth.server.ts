@@ -46,16 +46,16 @@ export const auth = betterAuth({
     async sendResetPassword({ user, url }) {
       await sendEmail({
         to: user.email,
-        subject: "Fabula — reimposta la password",
+        subject: "Fabula — reset your password",
         text: [
-          `Ciao ${user.name},`,
+          `Hi ${user.name},`,
           "",
-          "Hai chiesto di reimpostare la password di Fabula.",
-          "Apri questo indirizzo per sceglierne una nuova:",
+          "You asked to reset your Fabula password.",
+          "Open this link to choose a new one:",
           "",
           url,
           "",
-          "Se non sei stato tu, ignora questo messaggio: la password resta quella di prima.",
+          "If this wasn't you, ignore this message: your password stays the same.",
         ].join("\n"),
       });
     },
@@ -102,18 +102,18 @@ export const auth = betterAuth({
       async sendVerificationOTP({ email, otp, type }) {
         const subject =
           type === "forget-password"
-            ? "Fabula — codice per reimpostare la password"
-            : "Fabula — il tuo codice di accesso";
+            ? "Fabula — code to reset your password"
+            : "Fabula — your sign-in code";
 
         await sendEmail({
           to: email,
           subject,
           text: [
-            "Il tuo codice per Fabula:",
+            "Your code for Fabula:",
             "",
             `    ${otp}`,
             "",
-            "Vale dieci minuti. Se non l'hai chiesto tu, ignora questo messaggio.",
+            "Valid for ten minutes. If you didn't request this, ignore this message.",
           ].join("\n"),
         });
       },
