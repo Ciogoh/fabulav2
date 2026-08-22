@@ -25,7 +25,7 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
   const fetcher = useFetcher();
 
   return (
-    <header className="border-b border-rule bg-card">
+    <header className={`border-b border-rule ${user?.isAdmin ? "bg-out-bg" : "bg-card"}`}>
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-3 px-6 py-4">
         <Link
           to="/"

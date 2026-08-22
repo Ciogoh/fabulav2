@@ -12,7 +12,7 @@
  * nascondono le poche che contano.
  */
 
-import { Link, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useEffect, useState } from "react";
 import type { Route } from "./+types/calendar";
 import { db } from "~/lib/db.server";
@@ -80,6 +80,10 @@ export async function loader({ request }: Route.LoaderArgs) {
             Math.min(DAYS - 1, daysBetween(start, entry.endDate)) -
             Math.max(0, daysBetween(start, entry.startDate)) +
             1,
+          // Un prestito più lungo della finestra si taglia nel disegno, ma
+          // continua davvero fuori schermo: la freccia lo dice a chi guarda.
+          continuesBefore: entry.startDate < start,
+          continuesAfter: entry.endDate > end,
         }))
         .filter((bar) => bar.length > 0),
     }));
@@ -116,6 +120,20 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
 
   const allParam = showAll ? "" : "&all=1";
 
+  // Le 35 celle attraversano spesso un cambio di mese: un segmento per ogni
+  // mese diverso, invece di un'unica etichetta che ne racconterebbe solo uno.
+  const monthSegments: { key: string; label: string; startIndex: number; span: number }[] = [];
+  for (const [index, day] of days.entries()) {
+    const date = new Date(`${day}T00:00:00Z`);
+    const key = `${date.getUTCFullYear()}-${date.getUTCMonth()}`;
+    const last = monthSegments.at(-1);
+    if (last && last.key === key) {
+      last.span += 1;
+    } else {
+      monthSegments.push({ key, label: monthLabel.format(date), startIndex: index, span: 1 });
+    }
+  }
+
   return (
     <main className="mx-auto w-full max-w-6xl px-6 pb-24 pt-8">
       <h1 className="font-serif text-3xl font-semibold tracking-tight">
@@ -138,9 +156,7 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
           </NavLink>
         </nav>
 
-        <span className="font-mono text-xs uppercase tracking-widest text-faint">
-          {monthLabel.format(new Date(`${days[0]}T00:00:00Z`))}
-        </span>
+        <MonthJump key={days[0]} anchor={days[0]} showAll={showAll} />
 
         <Link
           to={`/calendar?${new URLSearchParams({
@@ -165,6 +181,30 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
             className="min-w-max"
             style={{ ["--day" as string]: "30px" }}
           >
+            {/* I mesi attraversati dalla finestra, con una riga divisoria
+                dove uno finisce e comincia il successivo. */}
+            <div className="flex border-b border-rule">
+              <div className="w-52 shrink-0 border-r border-rule" />
+              <div
+                className="grid"
+                style={{
+                  gridTemplateColumns: `repeat(${days.length}, var(--day))`,
+                }}
+              >
+                {monthSegments.map((segment, index) => (
+                  <div
+                    key={segment.key}
+                    className={`truncate px-1.5 py-1 text-center font-mono text-[0.62rem] uppercase tracking-widest text-faint ${
+                      index > 0 ? "border-l border-rule" : ""
+                    }`}
+                    style={{ gridColumn: `${segment.startIndex + 1} / span ${segment.span}` }}
+                  >
+                    {segment.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Intestazione dei giorni */}
             <div className="flex border-b border-rule">
               <div className="w-52 shrink-0 border-r border-rule px-3 py-2" />
@@ -291,6 +331,8 @@ function Bar({
   length,
   holder,
   isAdmin,
+  continuesBefore,
+  continuesAfter,
 }: {
   requestId: string;
   state: OccupancyState;
@@ -298,11 +340,25 @@ function Bar({
   length: number;
   holder: string | null;
   isAdmin: boolean;
+  continuesBefore: boolean;
+  continuesAfter: boolean;
 }) {
   const t = useT();
   const label = holder ? `${t(BAR_LABELS[state])} · ${holder}` : t(BAR_LABELS[state]);
-  const className = `relative z-10 flex items-center overflow-hidden rounded px-1.5 ${BAR_STYLES[state]}`;
+  // Niente angolo arrotondato sul lato che continua fuori dalla finestra:
+  // insieme alla freccia, dice a colpo d'occhio che la barra è tagliata, non
+  // che il prestito finisce lì.
+  const className = `relative z-10 flex items-center overflow-hidden px-1.5 ${BAR_STYLES[state]} ${
+    continuesBefore ? "" : "rounded-l"
+  } ${continuesAfter ? "" : "rounded-r"}`;
   const style = { gridColumn: `${offset + 1} / span ${length}` };
+  const content = (
+    <span className="truncate font-mono text-[0.6rem] uppercase tracking-wider">
+      {continuesBefore && "‹ "}
+      {label}
+      {continuesAfter && " ›"}
+    </span>
+  );
 
   // Solo l'admin può aprire il dettaglio: al pubblico la barra resta un
   // rettangolo informativo, senza chi ce l'ha e senza dove andare.
@@ -314,18 +370,14 @@ function Bar({
         style={style}
         title={label}
       >
-        <span className="truncate font-mono text-[0.6rem] uppercase tracking-wider">
-          {label}
-        </span>
+        {content}
       </Link>
     );
   }
 
   return (
     <div className={className} style={style} title={label}>
-      <span className="truncate font-mono text-[0.6rem] uppercase tracking-wider">
-        {label}
-      </span>
+      {content}
     </div>
   );
 }
@@ -347,6 +399,32 @@ function Legend() {
         </span>
       ))}
     </div>
+  );
+}
+
+/**
+ * Salto diretto a un mese, per non dover cliccare «Dopo» molte volte per una
+ * richiesta fra tre mesi. `key={days[0]}` nel chiamante rimonta il campo a
+ * ogni cambio di finestra, così `defaultValue` torna a riflettere il mese
+ * corrente invece di restare fermo sull'ultima scelta dell'utente.
+ */
+function MonthJump({ anchor, showAll }: { anchor: string; showAll: boolean }) {
+  const t = useT();
+  const navigate = useNavigate();
+
+  return (
+    <label className="flex items-center gap-2 text-sm text-muted">
+      <span className="sr-only">{t("calendar.jumpToMonth")}</span>
+      <input
+        type="month"
+        defaultValue={anchor.slice(0, 7)}
+        onChange={(event) => {
+          if (!event.target.value) return;
+          navigate(`/calendar?from=${event.target.value}-01${showAll ? "&all=1" : ""}`);
+        }}
+        className="rounded border border-rule bg-card px-2 py-1 font-mono text-xs text-muted hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+      />
+    </label>
   );
 }
 
