@@ -70,6 +70,20 @@ export const auth = betterAuth({
       }
     : {},
 
+  account: {
+    /**
+     * **Trovato provando Google sul serio.** Col database configurato,
+     * Better Auth di serie tiene lo stato dell'OAuth in due posti che non
+     * durano uguale: una riga di verifica nel database (10 minuti) e un
+     * cookie firmato (5 minuti). Chi si ferma sulla schermata "Google non
+     * ha verificato questa app" più di 5 minuti — probabile la prima volta,
+     * con un client ancora in test — torna con la riga ancora valida ma il
+     * cookie già scaduto: "state_mismatch". La modalità "cookie" tiene
+     * tutto in un solo cookie cifrato, con una sola scadenza a 10 minuti.
+     */
+    storeStateStrategy: "cookie",
+  },
+
   user: {
     additionalFields: {
       // `input: false` su tutti e tre. Senza, il corpo della richiesta di
