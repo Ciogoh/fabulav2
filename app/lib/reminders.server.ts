@@ -9,6 +9,7 @@
  */
 
 import { db } from "~/lib/db.server";
+import { fullLabelOf } from "~/lib/person";
 import { todayUtc } from "~/lib/availability.server";
 import { sendReturnReminder } from "~/lib/notifications.server";
 
@@ -44,7 +45,15 @@ async function runDailySweep(): Promise<void> {
     select: {
       id: true,
       endDate: true,
-      user: { select: { name: true, email: true } },
+      user: {
+        select: {
+          name: true,
+          firstName: true,
+          lastName: true,
+          alias: true,
+          email: true,
+        },
+      },
       items: {
         where: { pickedUpAt: { not: null }, returnedAt: null },
         select: { asset: { select: { name: true } } },
@@ -56,7 +65,9 @@ async function runDailySweep(): Promise<void> {
     try {
       await sendReturnReminder({
         to: req.user.email,
-        name: req.user.name,
+        // Nell'email il nome vero accanto all'alias: chi la riceve deve
+        // riconoscersi anche se l'alias se l'era dimenticato.
+        name: fullLabelOf(req.user),
         itemNames: req.items.map((item) => item.asset.name),
         endDate: req.endDate,
       });

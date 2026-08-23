@@ -11,14 +11,15 @@
  */
 
 import { db } from "~/lib/db.server";
+import { displayNameOf, fullLabelOf, type Person } from "~/lib/person";
 
-/** Un giorno di libertà oltre i sette per una richiesta ordinaria: 7 giorni
- * interi vuol dire una differenza di 6 fra inizio e fine. Condiviso fra la
- * creazione di una richiesta e la modifica delle sue date. */
-export const MAX_ORDINARY_SPAN_DAYS = 7;
-/** Tetto anche per le richieste speciali: contro input assurdi, non contro
- * richieste legittime — nessuna associazione presta qualcosa per un anno. */
-export const MAX_SPECIAL_SPAN_DAYS = 90;
+// I due tetti di durata vivono in `availability.shared.ts`, che il browser
+// può importare senza tirarsi dietro Prisma; qui si ri-esportano perché il
+// lato server continui a trovarli dove li ha sempre trovati.
+export {
+  MAX_ORDINARY_SPAN_DAYS,
+  MAX_SPECIAL_SPAN_DAYS,
+} from "~/lib/availability.shared";
 
 /** Lo stato di oggi, quando non è stato scelto nessun periodo. */
 export type AssetState = "FREE" | "RESERVED" | "IN_USE";
@@ -168,8 +169,12 @@ export type Occupancy = {
   startDate: Date;
   endDate: Date;
   state: OccupancyState;
-  /** Chi ha in mano l'oggetto. Presente **solo** per gli amministratori. */
+  /** Chi ha in mano l'oggetto, come si fa chiamare. Presente **solo** per
+   * gli amministratori. */
   holder: string | null;
+  /** Lo stesso, ma con il nome vero fra parentesi quando c'è un alias: sulla
+   * barra non ci sta, nel suggerimento del passaggio del mouse sì. */
+  holderFull: string | null;
 };
 
 /**
@@ -212,7 +217,16 @@ export async function getOccupancy(
           startDate: true,
           endDate: true,
           status: true,
-          user: options.withHolders ? { select: { name: true } } : false,
+          user: options.withHolders
+            ? {
+                select: {
+                  name: true,
+                  firstName: true,
+                  lastName: true,
+                  alias: true,
+                },
+              }
+            : false,
         },
       },
     },
@@ -232,9 +246,22 @@ export async function getOccupancy(
         : item.pickedUpAt
           ? "IN_USE"
           : "RESERVED",
-    holder:
-      options.withHolders && "user" in item.request
-        ? ((item.request.user as { name: string } | null)?.name ?? null)
-        : null,
+    ...holderOf(options.withHolders === true, item.request),
   }));
+}
+
+/**
+ * I due nomi di chi ha in mano l'oggetto, o due `null`.
+ *
+ * Sta in una funzione a parte perché il pubblico non deve vederne nessuno dei
+ * due: `withHolders` spento è il caso normale, e questa è l'unica porta da
+ * cui i nomi possono uscire.
+ */
+function holderOf(
+  withHolders: boolean,
+  request: { user?: Person | null }
+): { holder: string | null; holderFull: string | null } {
+  const user = withHolders ? request.user : null;
+  if (!user) return { holder: null, holderFull: null };
+  return { holder: displayNameOf(user), holderFull: fullLabelOf(user) };
 }

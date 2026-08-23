@@ -27,7 +27,9 @@ export async function action({ request }: Route.ActionArgs) {
   // resta fermo sul suo valore iniziale e — avendo la precedenza — riporta
   // tutto in inglese al primo accesso da un altro computer.
   const user = await getUser(request);
-  if (user) {
+  // Solo se cambia davvero: premere la lingua già attiva è la cosa più facile
+  // del mondo con tre pulsanti sempre in vista, e non deve costare una scrittura.
+  if (user && user.language !== lang.toUpperCase()) {
     await db.user.update({
       where: { id: user.id },
       data: { language: lang.toUpperCase() as Language },

@@ -9,8 +9,11 @@
 
 import { Link } from "react-router";
 import type { Route } from "./+types/requests";
+import { PageShell } from "~/components/page";
+import { pageTitle } from "~/i18n/meta";
 import { db } from "~/lib/db.server";
 import { requireUser } from "~/lib/session.server";
+import { fullLabelOf } from "~/lib/person";
 import {
   formatDay,
   getBusyAssetIds,
@@ -24,8 +27,8 @@ import { useFormatDay, useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import type { RequestStatus } from "~/generated/prisma/enums";
 
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "Fabula" }];
+export function meta({ matches }: Route.MetaArgs) {
+  return [{ title: pageTitle(matches, "requests.heading") }];
 }
 
 type CartItemInput = { assetId: string; fromKitId?: string };
@@ -153,7 +156,8 @@ export async function action({ request }: Route.ActionArgs) {
   try {
     await notifyAdminsNewRequest({
       requestId: created.id,
-      requesterName: user.name,
+      // Gli admin devono sapere chi è davvero, non solo come si fa chiamare.
+      requesterName: fullLabelOf(user),
       requesterEmail: user.email,
       itemNames: assetIds.map((id) => assetById.get(id)!.name),
       startDate: from,
@@ -183,35 +187,37 @@ export default function MyRequests({ loaderData }: Route.ComponentProps) {
   const formatDayLabel = useFormatDay();
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 pb-24 pt-8">
-      <h1 className="font-serif text-3xl font-semibold tracking-tight">
-        {t("requests.heading")}
-      </h1>
+    <main>
+      <PageShell width="narrow" className="pb-24 pt-8">
+        <h1 className="font-serif text-3xl font-semibold tracking-tight">
+          {t("requests.heading")}
+        </h1>
 
-      {requests.length === 0 ? (
-        <p className="mt-16 text-center text-muted">{t("requests.empty")}</p>
-      ) : (
-        <ul className="mt-6 flex flex-col gap-3">
-          {requests.map((r) => (
-            <li key={r.id}>
-              <Link
-                to={`/requests/${r.id}`}
-                className="block rounded border border-rule bg-card p-4 hover:border-accent"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-mono text-[0.68rem] uppercase tracking-widest text-faint">
-                    {formatDayLabel(r.startDate)} — {formatDayLabel(r.endDate)}
-                  </span>
-                  <span className="rounded-full bg-sunk px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-muted">
-                    {t(STATUS_LABELS[r.status])}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm">{r.itemNames.join(" · ")}</p>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+        {requests.length === 0 ? (
+          <p className="mt-16 text-center text-muted">{t("requests.empty")}</p>
+        ) : (
+          <ul className="mt-6 flex flex-col gap-3">
+            {requests.map((r) => (
+              <li key={r.id}>
+                <Link
+                  to={`/requests/${r.id}`}
+                  className="block rounded border border-rule bg-card p-4 hover:border-accent"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+                      {formatDayLabel(r.startDate)} — {formatDayLabel(r.endDate)}
+                    </span>
+                    <span className="rounded-full bg-sunk px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-muted">
+                      {t(STATUS_LABELS[r.status])}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm">{r.itemNames.join(" · ")}</p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </PageShell>
     </main>
   );
 }

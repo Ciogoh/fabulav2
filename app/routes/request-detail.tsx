@@ -13,6 +13,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/request-detail";
+import { PageShell } from "~/components/page";
+import { buttonClass } from "~/components/button";
+import { pageTitle } from "~/i18n/meta";
 import { db } from "~/lib/db.server";
 import { requireAdmin, requireUser } from "~/lib/session.server";
 import {
@@ -28,10 +31,12 @@ import { useFormatDay, useLang, useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import type { RequestStatus } from "~/generated/prisma/enums";
 import { AdminBadge } from "~/components/admin-badge";
+import { Avatar, PersonName } from "~/components/person";
+import { fullLabelOf, type Person } from "~/lib/person";
 import { DateRangeFields } from "~/components/date-range-fields";
 
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "Fabula" }];
+export function meta({ matches }: Route.MetaArgs) {
+  return [{ title: pageTitle(matches, "requests.detailHeading") }];
 }
 
 async function loadAuthorized(userId: string, isAdminRole: boolean, id: string) {
@@ -45,7 +50,17 @@ async function loadAuthorized(userId: string, isAdminRole: boolean, id: string) 
       status: true,
       purpose: true,
       adminNote: true,
-      user: { select: { name: true, email: true } },
+      // Campo per campo, e con quelli del profilo: chi decide su una
+      // richiesta deve vedere l'alias *e* il nome vero.
+      user: {
+        select: {
+          name: true,
+          firstName: true,
+          lastName: true,
+          alias: true,
+          email: true,
+        },
+      },
       items: {
         select: {
           id: true,
@@ -62,7 +77,17 @@ async function loadAuthorized(userId: string, isAdminRole: boolean, id: string) 
           id: true,
           body: true,
           createdAt: true,
-          author: { select: { id: true, name: true, role: true } },
+          author: {
+            select: {
+              id: true,
+              name: true,
+              firstName: true,
+              lastName: true,
+              alias: true,
+              image: true,
+              role: true,
+            },
+          },
         },
       },
     },
@@ -100,7 +125,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       id: m.id,
       body: m.body,
       createdAt: m.createdAt.toISOString(),
-      authorName: m.author.name,
+      author: {
+        name: m.author.name,
+        firstName: m.author.firstName,
+        lastName: m.author.lastName,
+        alias: m.author.alias,
+        image: m.author.image,
+      },
       authorIsAdmin: m.author.role === "ADMIN",
       isMine: m.author.id === user.id,
     })),
@@ -108,7 +139,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     admin: isAdmin
       ? {
           note: req.adminNote,
-          holderName: req.user.name,
+          holder: {
+            name: req.user.name,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            alias: req.user.alias,
+          },
           holderEmail: req.user.email,
         }
       : null,
@@ -201,7 +237,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       try {
         await notifyRequesterCancelled({
           to: req.user.email,
-          name: req.user.name,
+          name: fullLabelOf(req.user),
           itemNames: req.items.map((item) => item.asset.name),
           startDate: req.startDate,
           endDate: req.endDate,
@@ -243,7 +279,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     try {
       await notifyRequesterDecision({
         to: req.user.email,
-        name: req.user.name,
+        name: fullLabelOf(req.user),
         itemNames: req.items.map((item) => item.asset.name),
         startDate: req.startDate,
         endDate: req.endDate,
@@ -285,7 +321,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     try {
       await sendReturnReminder({
         to: req.user.email,
-        name: req.user.name,
+        name: fullLabelOf(req.user),
         itemNames: req.items.map((item) => item.asset.name),
         endDate: req.endDate,
       });
@@ -317,37 +353,39 @@ export default function RequestDetail({ loaderData }: Route.ComponentProps) {
   const anyPickedUp = items.some((item) => item.pickedUp);
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 pb-24 pt-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-serif text-2xl font-semibold tracking-tight">
-          {formatDayLabel(startDate)} — {formatDayLabel(endDate)}
-        </h1>
-        <span className="rounded-full bg-sunk px-2.5 py-1 font-mono text-[0.68rem] font-medium uppercase tracking-wider text-muted">
-          {t(STATUS_LABELS[status])}
-        </span>
-      </div>
+    <main>
+      <PageShell width="narrow" className="pb-24 pt-8">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="font-serif text-2xl font-semibold tracking-tight">
+            {formatDayLabel(startDate)} — {formatDayLabel(endDate)}
+          </h1>
+          <span className="rounded-full bg-sunk px-2.5 py-1 font-mono text-[0.68rem] font-medium uppercase tracking-wider text-muted">
+            {t(STATUS_LABELS[status])}
+          </span>
+        </div>
 
-      {purpose && <p className="mt-2 text-sm text-muted">{purpose}</p>}
+        {purpose && <p className="mt-2 text-sm text-muted">{purpose}</p>}
 
-      {canEditOrCancel && (
-        <RequestActions
-          id={id}
-          today={today}
-          startDate={startDate}
-          endDate={endDate}
-          canCancel={!anyPickedUp}
-        />
-      )}
+        {canEditOrCancel && (
+          <RequestActions
+            id={id}
+            today={today}
+            startDate={startDate}
+            endDate={endDate}
+            canCancel={!anyPickedUp}
+          />
+        )}
 
-      <ul className="mt-6 flex flex-col gap-1.5 border-t border-rule pt-4 text-sm">
-        {items.map((item) => (
-          <ItemRow key={item.id} id={id} item={item} isAdmin={Boolean(admin)} status={status} />
-        ))}
-      </ul>
+        <ul className="mt-6 flex flex-col gap-1.5 border-t border-rule pt-4 text-sm">
+          {items.map((item) => (
+            <ItemRow key={item.id} id={id} item={item} isAdmin={Boolean(admin)} status={status} />
+          ))}
+        </ul>
 
-      {admin && <AdminSection id={id} status={status} admin={admin} />}
+        {admin && <AdminSection id={id} status={status} admin={admin} />}
 
-      <ChatSection id={id} messages={messages} />
+        <ChatSection id={id} messages={messages} />
+      </PageShell>
     </main>
   );
 }
@@ -391,7 +429,7 @@ function RequestActions({
         <button
           type="button"
           onClick={() => setEditing((value) => !value)}
-          className="rounded border border-rule px-3 py-1.5 text-sm text-muted hover:border-accent hover:text-accent"
+          className={buttonClass("quiet", "sm")}
         >
           {t("request.editDates")}
         </button>
@@ -407,7 +445,7 @@ function RequestActions({
             <button
               type="submit"
               disabled={cancelFetcher.state !== "idle"}
-              className="rounded border border-rule px-3 py-1.5 text-sm text-muted hover:border-out hover:text-out"
+              className={buttonClass("danger", "sm")}
             >
               {t("request.cancelRequest")}
             </button>
@@ -458,7 +496,7 @@ function RequestActions({
             <button
               type="submit"
               disabled={editFetcher.state !== "idle"}
-              className="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:bg-sunk disabled:text-faint"
+              className={buttonClass("primary")}
             >
               {t("request.submit")}
             </button>
@@ -499,7 +537,7 @@ function ItemRow({
       <span>
         {item.name}
         {item.fromKitName && (
-          <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-wider text-faint">
+          <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-wider text-muted">
             {item.fromKitName}
           </span>
         )}
@@ -507,7 +545,7 @@ function ItemRow({
 
       <span className="flex items-center gap-2">
         {item.returned ? (
-          <span className="font-mono text-[0.65rem] uppercase tracking-wider text-faint">
+          <span className="font-mono text-[0.65rem] uppercase tracking-wider text-muted">
             {t("requests.item.returned")}
           </span>
         ) : item.pickedUp ? (
@@ -523,7 +561,7 @@ function ItemRow({
             <button
               type="submit"
               disabled={fetcher.state !== "idle"}
-              className="rounded border border-rule px-2 py-1 font-mono text-[0.62rem] uppercase tracking-wider text-muted hover:border-accent hover:text-accent"
+              className={buttonClass("quiet", "sm", "font-mono text-[0.62rem] uppercase tracking-wider")}
             >
               {t("requests.admin.markPickedUp")}
             </button>
@@ -536,7 +574,7 @@ function ItemRow({
             <button
               type="submit"
               disabled={fetcher.state !== "idle"}
-              className="rounded border border-rule px-2 py-1 font-mono text-[0.62rem] uppercase tracking-wider text-muted hover:border-accent hover:text-accent"
+              className={buttonClass("quiet", "sm", "font-mono text-[0.62rem] uppercase tracking-wider")}
             >
               {t("requests.admin.markReturned")}
             </button>
@@ -556,7 +594,7 @@ function AdminSection({
 }: {
   id: string;
   status: RequestStatus;
-  admin: { note: string | null; holderName: string; holderEmail: string };
+  admin: { note: string | null; holder: Person; holderEmail: string };
 }) {
   const t = useT();
   const noteFetcher = useFetcher<typeof action>();
@@ -565,13 +603,13 @@ function AdminSection({
 
   return (
     <section className="mt-8 rounded border border-rule bg-card p-4">
-      <span className="font-mono text-[0.66rem] uppercase tracking-widest text-faint">
+      <span className="font-mono text-[0.66rem] uppercase tracking-widest text-muted">
         {t("requests.admin.heading")}
       </span>
 
       <p className="mt-2 text-sm">
         {t("requests.admin.requestedBy")}{" "}
-        <strong className="font-medium">{admin.holderName}</strong>{" "}
+        <PersonName person={admin.holder} className="font-medium" />{" "}
         <span className="text-muted">({admin.holderEmail})</span>
       </p>
 
@@ -582,7 +620,7 @@ function AdminSection({
             <button
               type="submit"
               disabled={decisionFetcher.state !== "idle"}
-              className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white disabled:bg-sunk disabled:text-faint"
+              className={buttonClass("primary", "sm")}
             >
               {t("requests.admin.approve")}
             </button>
@@ -592,7 +630,7 @@ function AdminSection({
             <button
               type="submit"
               disabled={decisionFetcher.state !== "idle"}
-              className="rounded border border-rule px-3 py-1.5 text-sm text-muted hover:border-out hover:text-out"
+              className={buttonClass("danger", "sm")}
             >
               {t("requests.admin.reject")}
             </button>
@@ -609,7 +647,7 @@ function AdminSection({
           <button
             type="submit"
             disabled={reminderFetcher.state !== "idle"}
-            className="rounded border border-accent px-3 py-1.5 text-sm font-medium text-accent enabled:hover:bg-accent-soft disabled:cursor-not-allowed disabled:border-rule disabled:text-faint"
+            className={buttonClass("secondary", "sm")}
           >
             {t("requests.admin.sendReminder")}
           </button>
@@ -628,7 +666,7 @@ function AdminSection({
         <input type="hidden" name="intent" value="note" />
         <label
           htmlFor={`note-${id}`}
-          className="font-mono text-[0.66rem] uppercase tracking-widest text-faint"
+          className="font-mono text-[0.66rem] uppercase tracking-widest text-muted"
         >
           {t("requests.admin.note")}
         </label>
@@ -637,12 +675,12 @@ function AdminSection({
           name="note"
           rows={3}
           defaultValue={admin.note ?? ""}
-          className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+          className="min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm"
         />
         <button
           type="submit"
           disabled={noteFetcher.state !== "idle"}
-          className="self-start rounded border border-rule px-3 py-1.5 text-sm text-muted hover:border-accent hover:text-accent"
+          className={buttonClass("quiet", "sm", "self-start")}
         >
           {t("requests.admin.saveNote")}
         </button>
@@ -657,7 +695,7 @@ type ChatMessage = {
   id: string;
   body: string;
   createdAt: string;
-  authorName: string;
+  author: Person;
   authorIsAdmin: boolean;
   isMine: boolean;
 };
@@ -678,7 +716,7 @@ function ChatSection({ id, messages }: { id: string; messages: ChatMessage[] }) 
 
   return (
     <section className="mt-8 border-t border-rule pt-4">
-      <span className="font-mono text-[0.66rem] uppercase tracking-widest text-faint">
+      <span className="font-mono text-[0.66rem] uppercase tracking-widest text-muted">
         {t("requests.chat.heading")}
       </span>
 
@@ -694,11 +732,12 @@ function ChatSection({ id, messages }: { id: string; messages: ChatMessage[] }) 
             }`}
           >
             <div className="flex items-baseline justify-between gap-3">
-              <span className="flex items-center gap-1.5">
-                <span className="font-medium">{message.authorName}</span>
+              <span className="flex items-center gap-2">
+                <Avatar person={message.author} size="sm" />
+                <PersonName person={message.author} className="font-medium" />
                 {message.authorIsAdmin && <AdminBadge />}
               </span>
-              <span className="font-mono text-[0.62rem] text-faint">
+              <span className="font-mono text-[0.62rem] text-muted">
                 {new Date(message.createdAt).toLocaleString(lang, {
                   day: "numeric",
                   month: "short",
@@ -728,13 +767,13 @@ function ChatSection({ id, messages }: { id: string; messages: ChatMessage[] }) 
             rows={2}
             required
             placeholder={t("requests.chat.placeholder")}
-            className="w-full rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+            className="min-h-11 w-full rounded border border-rule bg-card px-3 py-2 text-sm"
           />
         </div>
         <button
           type="submit"
           disabled={fetcher.state !== "idle"}
-          className="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:bg-sunk disabled:text-faint"
+          className={buttonClass("primary")}
         >
           {t("requests.chat.send")}
         </button>

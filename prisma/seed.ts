@@ -1,8 +1,10 @@
 /**
  * Dati di esempio per lo sviluppo.
  *
- * Le date sono relative a oggi, così il catalogo mostra sempre tutti e tre gli
- * stati — libero, prenotato, in uso — senza doverle riscrivere ogni settimana.
+ * Le date sono relative a oggi, così il catalogo mostra sempre ognuno dei suoi
+ * casi — libero, libero con una prenotazione in arrivo, occupato perché
+ * ritirato, occupato perché in attesa di ritiro — senza doverle riscrivere
+ * ogni settimana.
  *
  *   pnpm db:seed
  */
@@ -156,7 +158,29 @@ async function main() {
     },
   });
 
-  // Futura: approvata ma non ritirata → badge "Prenotato".
+  // Iniziata ma non ancora ritirata: l'oggetto è ancora in magazzino, ma oggi
+  // non si può avere. È l'unico caso in cui «Prenotato» significava davvero
+  // «no», e per questo il badge lo mostra come occupato insieme al ritirato.
+  await db.request.create({
+    data: {
+      userId: giulia.id,
+      startDate: day(-1),
+      endDate: day(2),
+      status: "APPROVED",
+      purpose: "Prove luci in aula magna",
+      decidedAt: new Date(),
+      decidedById: admin.id,
+      items: {
+        create: [
+          { assetId: assets.get("Faro LED PAR 64 · 01")! },
+          { assetId: assets.get("Centralina luci DMX 12 canali")! },
+        ],
+      },
+    },
+  });
+
+  // Futura: approvata ma non ritirata. Oggi l'oggetto è sullo scaffale, quindi
+  // il badge dice «Libero» e la prenotazione scende nella riga piccola.
   await db.request.create({
     data: {
       userId: lukas.id,

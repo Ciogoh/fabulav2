@@ -8,6 +8,10 @@
 
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/admin.members";
+import { PageShell } from "~/components/page";
+import { buttonClass } from "~/components/button";
+import { pageTitle } from "~/i18n/meta";
+import { Avatar, PersonName } from "~/components/person";
 import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { requireAdmin } from "~/lib/session.server";
@@ -15,8 +19,8 @@ import { useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import { AdminBadge } from "~/components/admin-badge";
 
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "Fabula" }];
+export function meta({ matches }: Route.MetaArgs) {
+  return [{ title: pageTitle(matches, "members.heading") }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -24,7 +28,17 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const users = await db.user.findMany({
     orderBy: { name: "asc" },
-    select: { id: true, name: true, email: true, role: true, isMember: true },
+    select: {
+      id: true,
+      name: true,
+      firstName: true,
+      lastName: true,
+      alias: true,
+      image: true,
+      email: true,
+      role: true,
+      isMember: true,
+    },
   });
 
   return { users, currentUserId: admin.id };
@@ -86,24 +100,26 @@ export default function AdminMembers({ loaderData }: Route.ComponentProps) {
   const t = useT();
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 pb-24 pt-8">
-      <h1 className="font-serif text-3xl font-semibold tracking-tight">
-        {t("members.heading")}
-      </h1>
+    <main>
+      <PageShell width="narrow" className="pb-24 pt-8">
+        <h1 className="font-serif text-3xl font-semibold tracking-tight">
+          {t("members.heading")}
+        </h1>
 
-      {users.length === 0 ? (
-        <p className="mt-16 text-center text-muted">{t("members.empty")}</p>
-      ) : (
-        <ul className="mt-6 flex flex-col gap-3">
-          {users.map((user) => (
-            <MemberRow
-              key={user.id}
-              user={user}
-              isSelf={user.id === currentUserId}
-            />
-          ))}
-        </ul>
-      )}
+        {users.length === 0 ? (
+          <p className="mt-16 text-center text-muted">{t("members.empty")}</p>
+        ) : (
+          <ul className="mt-6 flex flex-col gap-3">
+            {users.map((user) => (
+              <MemberRow
+                key={user.id}
+                user={user}
+                isSelf={user.id === currentUserId}
+              />
+            ))}
+          </ul>
+        )}
+      </PageShell>
     </main>
   );
 }
@@ -119,7 +135,8 @@ function MemberRow({ user, isSelf }: { user: MemberRow; isSelf: boolean }) {
   return (
     <li className="rounded border border-rule bg-card p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium">{user.name}</span>
+        <Avatar person={user} size="md" />
+        <PersonName person={user} className="font-medium" />
         {isAdmin && <AdminBadge />}
         <span className="text-sm text-muted">{user.email}</span>
       </div>
@@ -138,7 +155,7 @@ function MemberRow({ user, isSelf }: { user: MemberRow; isSelf: boolean }) {
           <button
             type="submit"
             disabled={isSelf || roleFetcher.state !== "idle"}
-            className="rounded border border-rule px-3 py-1.5 text-sm text-muted hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+            className={buttonClass("quiet", "sm")}
           >
             {isAdmin ? t("members.removeAdmin") : t("members.makeAdmin")}
           </button>
@@ -160,7 +177,7 @@ function MemberRow({ user, isSelf }: { user: MemberRow; isSelf: boolean }) {
           <button
             type="submit"
             disabled={resetFetcher.state !== "idle"}
-            className="rounded border border-rule px-3 py-1.5 text-sm text-muted hover:border-accent hover:text-accent"
+            className={buttonClass("quiet", "sm")}
           >
             {t("members.sendReset")}
           </button>

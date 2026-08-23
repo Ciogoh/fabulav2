@@ -20,7 +20,13 @@ import type { Language, Role } from "~/generated/prisma/enums";
 export type CurrentUser = {
   id: string;
   email: string;
+  /** Il nome in una stringa sola. Per mostrarlo non si usa quasi mai questo:
+   * si passa l'oggetto intero a `displayNameOf` o a `<PersonName>`. */
   name: string;
+  firstName: string | null;
+  lastName: string | null;
+  alias: string | null;
+  image: string | null;
   role: Role;
   language: Language;
   isMember: boolean;
@@ -43,6 +49,10 @@ export async function getUser(request: Request): Promise<CurrentUser | null> {
       id: true,
       email: true,
       name: true,
+      firstName: true,
+      lastName: true,
+      alias: true,
+      image: true,
       role: true,
       language: true,
       isMember: true,

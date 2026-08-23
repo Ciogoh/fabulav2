@@ -5,6 +5,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useRouteLoaderData,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -15,6 +16,8 @@ import { SiteHeader } from "~/components/site-header";
 import { getUser } from "~/lib/session.server";
 import { db } from "~/lib/db.server";
 import { startReminderScheduler } from "~/lib/reminders.server";
+import { PageShell } from "~/components/page";
+import { ButtonLink } from "~/components/button";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -50,6 +53,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     lang: getLang(request, user?.language),
     user: user && {
       name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      alias: user.alias,
+      image: user.image,
       email: user.email,
       isAdmin,
       pendingCount,
@@ -84,8 +91,14 @@ export function headers(): HeadersInit {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  // La lingua vera dell'interfaccia, non "en" fisso: un lettore di schermo
+  // legge l'attributo `lang` per scegliere la voce, e leggeva l'italiano con
+  // la pronuncia inglese. `useRouteLoaderData` e non le props perché `Layout`
+  // avvolge anche l'`ErrorBoundary`, dove il loader può non aver girato.
+  const data = useRouteLoaderData<typeof loader>("root");
+
   return (
-    <html lang="en">
+    <html lang={data?.lang ?? "en"}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -111,6 +124,11 @@ export default function App({ loaderData }: Route.ComponentProps) {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  // L'intestazione va disegnata anche qui. Senza, una pagina inesistente
+  // lasciava un piccolo collegamento "Fabula" come unica via d'uscita: chi ci
+  // finiva dal segnalibro sbagliato non aveva il catalogo né il calendario.
+  const data = useRouteLoaderData<typeof loader>("root");
+
   let heading = "Something went wrong";
   let detail = "Try again, or go back to the catalogue.";
   let stack: string | undefined;
@@ -130,20 +148,23 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-24">
-      <h1 className="font-serif text-3xl font-semibold">{heading}</h1>
-      <p className="mt-3 text-muted">{detail}</p>
-      <a
-        href="/"
-        className="mt-8 inline-block text-accent underline underline-offset-4"
-      >
-        Fabula
-      </a>
-      {stack && (
-        <pre className="mt-8 overflow-x-auto rounded border border-rule bg-card p-4 font-mono text-xs">
-          <code>{stack}</code>
-        </pre>
-      )}
-    </main>
+    <LangProvider lang={data?.lang ?? "en"}>
+      <SiteHeader user={data?.user ?? null} />
+      <main>
+        <PageShell width="narrow" className="pb-24 pt-16">
+          <h1 className="font-serif text-3xl font-semibold">{heading}</h1>
+          <p className="mt-3 text-muted">{detail}</p>
+          <ButtonLink to="/" variant="secondary" className="mt-8">
+            {"\u2190 "}
+            Fabula
+          </ButtonLink>
+          {stack && (
+            <pre className="mt-8 overflow-x-auto rounded border border-rule bg-card p-4 font-mono text-xs">
+              <code>{stack}</code>
+            </pre>
+          )}
+        </PageShell>
+      </main>
+    </LangProvider>
   );
 }

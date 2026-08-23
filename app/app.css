@@ -9,6 +9,20 @@
  * I colori vivono in variabili CSS ridefinite per il tema scuro; le utility di
  * Tailwind le leggono tramite `@theme inline`. Nessun colore viene dichiarato
  * solo dentro al blocco scuro, altrimenti sparirebbe nel tema chiaro.
+ *
+ * Due regole imparate a caro prezzo, da non rompere:
+ *
+ * 1. **Ogni token semantico dice una cosa sola.** `--out` significa
+ *    «indisponibile o guasto» e nient'altro: quando serviva un fondo per la
+ *    modalità admin è stato preso in prestito `--out-bg`, e per mesi
+ *    l'intestazione ha detto «errore» a chiunque avesse i permessi. Se serve
+ *    un colore nuovo, si aggiunge un token nuovo.
+ * 2. **Il testo sopra un fondo pieno usa `--on-accent`, mai `white`.**
+ *    Nel tema scuro l'accento è chiaro, quindi sopra ci va inchiostro scuro:
+ *    bianco su `#86a4ee` fa 2,45:1 e non si legge.
+ *
+ * I rapporti di contrasto indicati sono calcolati sul fondo su cui il colore
+ * viene davvero usato; sotto AA (4,5:1) non si scende per il testo.
  */
 
 @theme {
@@ -27,6 +41,7 @@
   --color-rule: var(--rule);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
 
   --color-free: var(--free);
   --color-free-bg: var(--free-bg);
@@ -34,6 +49,11 @@
   --color-held-bg: var(--held-bg);
   --color-out: var(--out);
   --color-out-bg: var(--out-bg);
+  --color-idle: var(--idle);
+  --color-idle-bg: var(--idle-bg);
+
+  --color-admin-bg: var(--admin-bg);
+  --color-admin-rule: var(--admin-rule);
 }
 
 :root {
@@ -41,18 +61,31 @@
   --card: #ffffff;
   --sunk: #e4e7ec;
   --ink: #16202e;
-  --muted: #5f6a7b;
-  --faint: #8b95a5;
+  /* 6,16:1 su card — le etichette piccole che portano informazione stanno
+     qui, non su `--faint`. */
+  --muted: #586273;
+  /* Solo decorazione: monogrammi segnaposto, celle vuote, separatori. */
+  --faint: #6e7787;
   --rule: #d3d9e2;
   --accent: #2e4ea8;
   --accent-soft: #e2e8f6;
+  --on-accent: #ffffff; /* 7,58:1 su --accent */
 
   --free: #15704b;
   --free-bg: #dff0e6;
-  --held: #96600a;
+  --held: #8a5700; /* 5,12:1 su --held-bg */
   --held-bg: #f6ead3;
   --out: #a9383a;
   --out-bg: #f6e1e1;
+  /* «Non prestabile»: non è un guasto e non è un allarme, è assenza di
+     stato. Neutro di proposito, così il rosso resta libero. */
+  --idle: #4d5666; /* 5,97:1 su --idle-bg */
+  --idle-bg: #e4e7ec;
+
+  /* La modalità admin. Non è uno stato del prestito: si vede da un fondo
+     appena più caldo, non dal colore dell'errore. */
+  --admin-bg: #f2f0ec;
+  --admin-rule: #ddd8d0;
 
   color-scheme: light;
 }
@@ -63,11 +96,12 @@
     --card: #161b24;
     --sunk: #1b212c;
     --ink: #e3e8ef;
-    --muted: #97a2b2;
-    --faint: #6c7686;
+    --muted: #97a2b2; /* 6,68:1 su card */
+    --faint: #7b8595;
     --rule: #2a313e;
     --accent: #86a4ee;
     --accent-soft: #1d2740;
+    --on-accent: #0f131a; /* 7,58:1 su --accent */
 
     --free: #5bc793;
     --free-bg: #14291f;
@@ -75,6 +109,11 @@
     --held-bg: #2b2214;
     --out: #ec8480;
     --out-bg: #2e1a1b;
+    --idle: #a6b0be; /* 6,49:1 su --idle-bg */
+    --idle-bg: #242b37;
+
+    --admin-bg: #191d26;
+    --admin-rule: #333a47;
 
     color-scheme: dark;
   }
@@ -91,16 +130,33 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Il foglio della richiesta blocca lo scorrimento dietro di sé: senza, sul
+   telefono si trascina la pagina invece del contenuto del foglio. */
+body[data-dialog-open="true"] {
+  overflow: hidden;
+}
+
 /* I campi data nativi restano leggibili anche sul fondo scuro. */
-input[type="date"]::-webkit-calendar-picker-indicator {
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator {
   filter: invert(var(--date-icon-invert, 0));
   cursor: pointer;
 }
 
 @media (prefers-color-scheme: dark) {
-  input[type="date"]::-webkit-calendar-picker-indicator {
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="month"]::-webkit-calendar-picker-indicator {
     --date-icon-invert: 1;
   }
+}
+
+/* Un anello di focus uguale ovunque, visibile su entrambi i temi. Il doppio
+   contorno (accento + fondo) tiene l'anello leggibile anche quando il
+   pulsante è pieno di accento. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

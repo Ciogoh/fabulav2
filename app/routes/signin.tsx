@@ -16,13 +16,17 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/signin";
+import { PageShell } from "~/components/page";
+import { buttonClass } from "~/components/button";
+import { pageTitle } from "~/i18n/meta";
 import { authClient } from "~/lib/auth-client";
 import { getUser } from "~/lib/session.server";
+import { googleConfigured, microsoftConfigured } from "~/lib/auth.server";
 import { useT } from "~/i18n/use-t";
 import { redirect } from "react-router";
 
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "Fabula" }];
+export function meta({ matches }: Route.MetaArgs) {
+  return [{ title: pageTitle(matches, "signin.heading") }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -30,7 +34,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   const user = await getUser(request);
   if (user) throw redirect("/");
 
-  return { googleEnabled: Boolean(process.env.GOOGLE_CLIENT_ID) };
+  // Le due bandiere arrivano da `auth.server.ts`: è lì che si decide se un
+  // provider esiste, e disegnare un pulsante con un metro diverso vuol dire
+  // prima o poi mostrarne uno che non funziona.
+  return { googleEnabled: googleConfigured, microsoftEnabled: microsoftConfigured };
 }
 
 type Step =
@@ -69,6 +76,24 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
     );
   }
 
+  /**
+   * Entrare con Google o Microsoft.
+   *
+   * `newUserCallbackURL` vale **solo per chi si registra adesso**: Better Auth
+   * ci manda lì la prima volta e altrove tutte le successive. Serve perché da
+   * un conto esterno arriva un nome in una stringa sola («Mario Rossi»), non
+   * nome e cognome separati come li vuole il profilo — e senza questa riga chi
+   * entrava con Google non vedeva mai la schermata del nome e restava per
+   * sempre senza cognome.
+   */
+  function social(provider: "google" | "microsoft") {
+    return authClient.signIn.social({
+      provider,
+      callbackURL: next,
+      newUserCallbackURL: `/welcome?next=${encodeURIComponent(next)}`,
+    });
+  }
+
   async function sendCode(email: string) {
     setBusy(true);
     setError(null);
@@ -89,196 +114,208 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-md px-6 py-16">
-      <h1 className="font-serif text-3xl font-semibold tracking-tight">
-        {t("signin.heading")}
-      </h1>
+    <main>
+      <PageShell width="form" className="py-16">
+        <h1 className="font-serif text-3xl font-semibold tracking-tight">
+          {t("signin.heading")}
+        </h1>
 
-      {step.name === "email" && (
-        <>
-          <p className="mt-2 text-sm text-muted">{t("signin.intro")}</p>
+        {step.name === "email" && (
+          <>
+            <p className="mt-2 text-sm text-muted">{t("signin.intro")}</p>
 
-          <form
-            className="mt-8 flex flex-col gap-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const email = new FormData(event.currentTarget).get("email");
-              if (typeof email === "string" && email) void sendCode(email);
-            }}
-          >
-            <Field
-              label={t("signin.email")}
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-            />
-            <Submit busy={busy} label={t("signin.sendCode")} busyLabel={t("signin.sending")} />
-          </form>
+            <form
+              className="mt-8 flex flex-col gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const email = new FormData(event.currentTarget).get("email");
+                if (typeof email === "string" && email) void sendCode(email);
+              }}
+            >
+              <Field
+                label={t("signin.email")}
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+              />
+              <Submit busy={busy} label={t("signin.sendCode")} busyLabel={t("signin.sending")} />
+            </form>
 
-          <p className="mt-4 text-sm text-muted">{t("signin.newHere")}</p>
+            <p className="mt-4 text-sm text-muted">{t("signin.newHere")}</p>
 
-          {loaderData.googleEnabled && (
-            <>
-              <Divider label={t("signin.or")} />
-              <button
-                type="button"
-                onClick={() =>
-                  authClient.signIn.social({
-                    provider: "google",
-                    callbackURL: next,
-                  })
-                }
-                className="w-full rounded border border-rule px-4 py-2.5 text-sm font-medium hover:border-accent hover:text-accent"
-              >
-                {t("signin.google")}
-              </button>
-            </>
-          )}
+            {(loaderData.microsoftEnabled || loaderData.googleEnabled) && (
+              <>
+                <Divider label={t("signin.or")} />
 
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setStep({ name: "password" });
-            }}
-            className="mt-6 text-sm text-muted underline underline-offset-4 hover:text-ink"
-          >
-            {t("signin.havePassword")}
-          </button>
-        </>
-      )}
+                {/* Microsoft davanti a Google: qui dentro l'account
+                    universitario ce l'hanno tutti, quello Google no. */}
+                {loaderData.microsoftEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => social("microsoft")}
+                    className={buttonClass("quiet", "md", "w-full")}
+                  >
+                    {t("signin.microsoft")}
+                  </button>
+                )}
 
-      {step.name === "code" && (
-        <>
-          <p className="mt-2 text-sm text-muted">
-            {t("signin.codeSentTo", { email: step.email })}
-          </p>
+                {loaderData.googleEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => social("google")}
+                    className={buttonClass("quiet", "md", "mt-3 w-full")}
+                  >
+                    {t("signin.google")}
+                  </button>
+                )}
+              </>
+            )}
 
-          <form
-            className="mt-8 flex flex-col gap-4"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              const rawOtp = new FormData(event.currentTarget).get("otp");
-              // Chi lo incolla dall'app di posta a volte si porta dietro uno
-              // spazio prima o dopo: con `maxLength` a 6 basta a spostare
-              // fuori dalla finestra una cifra vera e a far fallire un
-              // codice che, guardato, sembra giusto.
-              const otp = typeof rawOtp === "string" ? rawOtp.trim() : "";
-              if (!otp) return;
-
-              setBusy(true);
-              setError(null);
-
-              const { error: failure } = await authClient.signIn.emailOtp({
-                email: step.email,
-                otp,
-              });
-
-              setBusy(false);
-              if (failure) {
-                return setError(
-                  t(failure.status === 429 ? "signin.tooManyRequests" : "signin.badCode")
-                );
-              }
-              await afterSignIn();
-            }}
-          >
-            <Field
-              label={t("signin.code")}
-              name="otp"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              className="text-center font-mono text-2xl tracking-[0.4em]"
-              autoFocusOnMount
-              required
-            />
-            <Submit busy={busy} label={t("signin.verify")} busyLabel={t("signin.checking")} />
-          </form>
-
-          <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
             <button
               type="button"
-              onClick={() => void sendCode(step.email)}
-              className="text-muted underline underline-offset-4 hover:text-ink"
+              onClick={() => {
+                setError(null);
+                setStep({ name: "password" });
+              }}
+              className="mt-6 text-sm text-muted underline underline-offset-4 hover:text-ink"
             >
-              {t("signin.resend")}
+              {t("signin.havePassword")}
             </button>
+          </>
+        )}
+
+        {step.name === "code" && (
+          <>
+            <p className="mt-2 text-sm text-muted">
+              {t("signin.codeSentTo", { email: step.email })}
+            </p>
+
+            <form
+              className="mt-8 flex flex-col gap-4"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                const rawOtp = new FormData(event.currentTarget).get("otp");
+                // Chi lo incolla dall'app di posta a volte si porta dietro uno
+                // spazio prima o dopo: con `maxLength` a 6 basta a spostare
+                // fuori dalla finestra una cifra vera e a far fallire un
+                // codice che, guardato, sembra giusto.
+                const otp = typeof rawOtp === "string" ? rawOtp.trim() : "";
+                if (!otp) return;
+
+                setBusy(true);
+                setError(null);
+
+                const { error: failure } = await authClient.signIn.emailOtp({
+                  email: step.email,
+                  otp,
+                });
+
+                setBusy(false);
+                if (failure) {
+                  return setError(
+                    t(failure.status === 429 ? "signin.tooManyRequests" : "signin.badCode")
+                  );
+                }
+                await afterSignIn();
+              }}
+            >
+              <Field
+                label={t("signin.code")}
+                name="otp"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                className="text-center font-mono text-2xl tracking-[0.4em]"
+                autoFocusOnMount
+                required
+              />
+              <Submit busy={busy} label={t("signin.verify")} busyLabel={t("signin.checking")} />
+            </form>
+
+            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              <button
+                type="button"
+                onClick={() => void sendCode(step.email)}
+                className="text-muted underline underline-offset-4 hover:text-ink"
+              >
+                {t("signin.resend")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setStep({ name: "email" });
+                }}
+                className="text-muted underline underline-offset-4 hover:text-ink"
+              >
+                {t("signin.otherEmail")}
+              </button>
+            </div>
+          </>
+        )}
+
+        {step.name === "password" && (
+          <>
+            <p className="mt-2 text-sm text-muted">{t("signin.intro")}</p>
+
+            <form
+              className="mt-8 flex flex-col gap-4"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                const form = new FormData(event.currentTarget);
+                const email = String(form.get("email") ?? "");
+                const password = String(form.get("password") ?? "");
+
+                setBusy(true);
+                setError(null);
+
+                const { error: failure } = await authClient.signIn.email({
+                  email,
+                  password,
+                });
+
+                setBusy(false);
+                if (failure) return setError(t("signin.badPassword"));
+                await afterSignIn();
+              }}
+            >
+              <Field
+                label={t("signin.email")}
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+              />
+              <Field
+                label={t("signin.password")}
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+              />
+              <Submit busy={busy} label={t("signin.verify")} busyLabel={t("signin.checking")} />
+            </form>
+
             <button
               type="button"
               onClick={() => {
                 setError(null);
                 setStep({ name: "email" });
               }}
-              className="text-muted underline underline-offset-4 hover:text-ink"
+              className="mt-6 text-sm text-muted underline underline-offset-4 hover:text-ink"
             >
-              {t("signin.otherEmail")}
+              {t("signin.useCode")}
             </button>
-          </div>
-        </>
-      )}
+          </>
+        )}
 
-      {step.name === "password" && (
-        <>
-          <p className="mt-2 text-sm text-muted">{t("signin.intro")}</p>
-
-          <form
-            className="mt-8 flex flex-col gap-4"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              const form = new FormData(event.currentTarget);
-              const email = String(form.get("email") ?? "");
-              const password = String(form.get("password") ?? "");
-
-              setBusy(true);
-              setError(null);
-
-              const { error: failure } = await authClient.signIn.email({
-                email,
-                password,
-              });
-
-              setBusy(false);
-              if (failure) return setError(t("signin.badPassword"));
-              await afterSignIn();
-            }}
-          >
-            <Field
-              label={t("signin.email")}
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-            />
-            <Field
-              label={t("signin.password")}
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
-            <Submit busy={busy} label={t("signin.verify")} busyLabel={t("signin.checking")} />
-          </form>
-
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setStep({ name: "email" });
-            }}
-            className="mt-6 text-sm text-muted underline underline-offset-4 hover:text-ink"
-          >
-            {t("signin.useCode")}
-          </button>
-        </>
-      )}
-
-      {error && (
-        <p role="alert" className="mt-6 rounded bg-out-bg px-3 py-2 text-sm text-out">
-          {error}
-        </p>
-      )}
+        {error && (
+          <p role="alert" className="mt-6 rounded bg-out-bg px-3 py-2 text-sm text-out">
+            {error}
+          </p>
+        )}
+      </PageShell>
     </main>
   );
 }
@@ -301,7 +338,7 @@ function Field({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={name}
-        className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
+        className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
       >
         {label}
       </label>
@@ -314,7 +351,7 @@ function Field({
         ref={(node) => {
           if (autoFocusOnMount) node?.focus();
         }}
-        className={`rounded border border-rule bg-card px-3 py-2.5 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent ${className}`}
+        className={`min-h-11 rounded border border-rule bg-card px-3 py-2.5 text-sm ${className}`}
         {...rest}
       />
     </div>
@@ -334,7 +371,7 @@ function Submit({
     <button
       type="submit"
       disabled={busy}
-      className="rounded bg-accent px-4 py-2.5 text-sm font-medium text-white disabled:bg-sunk disabled:text-faint"
+      className={buttonClass("primary")}
     >
       {busy ? busyLabel : label}
     </button>
@@ -345,7 +382,7 @@ function Divider({ label }: { label: string }) {
   return (
     <div className="my-6 flex items-center gap-4">
       <span className="h-px flex-1 bg-rule" />
-      <span className="font-mono text-[0.68rem] uppercase tracking-widest text-faint">
+      <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
         {label}
       </span>
       <span className="h-px flex-1 bg-rule" />

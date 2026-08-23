@@ -1,9 +1,11 @@
 /**
  * Il pallino "Admin".
  *
- * Usa `--out`, non `--accent`: l'accento di brand è il rosso, ma la
- * palette attuale (blu) è provvisoria — vedi «Aspetto» in CLAUDE.md.
- * `--out` è già il colore più acceso disponibile oggi.
+ * Usa i token della modalità admin, non `--out`: prima prendeva in prestito
+ * il rosso dell'indisponibilità, e nella stessa schermata lo stesso colore
+ * diceva «questa persona amministra» e «questo oggetto è guasto». Quando la
+ * palette diventerà monocromatica col rosso come accento di brand (vedi
+ * «Aspetto» in CLAUDE.md) questo pallino non andrà toccato.
  */
 
 import { useT } from "~/i18n/use-t";
@@ -12,7 +14,7 @@ export function AdminBadge() {
   const t = useT();
 
   return (
-    <span className="inline-block rounded-full bg-out-bg px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-out">
+    <span className="inline-block rounded-full border border-admin-rule bg-admin-bg px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-muted">
       {t("members.badgeAdmin")}
     </span>
   );

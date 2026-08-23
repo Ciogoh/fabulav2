@@ -4,7 +4,13 @@
  * (solo in modifica) e cosa succede al salvataggio.
  */
 
+import { useState } from "react";
 import { useT } from "~/i18n/use-t";
+import { Select } from "~/components/select";
+import { MAX_CATEGORY_NAME, NEW_CATEGORY } from "~/lib/categories";
+
+/** Scritta a mano in otto punti: vedi la nota in CLAUDE.md sulle convenzioni. */
+const FIELD = "min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm";
 
 export type AssetDefaults = {
   name?: string;
@@ -34,7 +40,7 @@ export function AssetFields({
           required
           minLength={2}
           maxLength={120}
-          className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+          className={FIELD}
         />
       </Field>
 
@@ -44,7 +50,7 @@ export function AssetFields({
           name="description"
           rows={3}
           defaultValue={defaults?.description ?? ""}
-          className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+          className={FIELD}
         />
       </Field>
 
@@ -53,25 +59,14 @@ export function AssetFields({
           id="location"
           name="location"
           defaultValue={defaults?.location ?? ""}
-          className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+          className={FIELD}
         />
       </Field>
 
-      <Field label={t("assets.category")} name="categoryId">
-        <select
-          id="categoryId"
-          name="categoryId"
-          defaultValue={defaults?.categoryId ?? ""}
-          className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
-        >
-          <option value="">{t("assets.noCategory")}</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-      </Field>
+      <CategoryField
+        categories={categories}
+        defaultValue={defaults?.categoryId ?? ""}
+      />
 
       <Field label={t("assets.adminNotes")} name="adminNotes">
         <textarea
@@ -79,20 +74,85 @@ export function AssetFields({
           name="adminNotes"
           rows={2}
           defaultValue={defaults?.adminNotes ?? ""}
-          className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+          className={FIELD}
         />
       </Field>
 
-      <label className="flex items-center gap-2 text-sm">
+      {/* Stessa misura della spunta nel foglio della richiesta: 20px in una
+          riga alta 44, e tutta la riga è cliccabile. */}
+      <label className="-my-1 flex min-h-11 cursor-pointer items-center gap-3 text-sm">
         <input
           type="checkbox"
           name="unavailable"
           defaultChecked={defaults?.isBookable === false}
-          className="h-4 w-4"
+          className="h-5 w-5 shrink-0 accent-[var(--accent)]"
         />
         {t("assets.markUnavailable")}
       </label>
     </>
+  );
+}
+
+/**
+ * La categoria: sceglierne una, o inventarne una qui.
+ *
+ * L'ultima voce del menu è «+ Nuova categoria…», e sceglierla apre un campo
+ * di testo sotto. Nessun'altra pagina da visitare, nessun oggetto da salvare
+ * a metà: la categoria nasce nello stesso invio dell'oggetto (vedi
+ * `categories.server.ts`).
+ *
+ * Il campo che compare prende il fuoco da solo — chi ha appena scelto quella
+ * voce sta già scrivendo il nome, e senza `autoFocus` le prime lettere
+ * finiscono nel vuoto.
+ */
+function CategoryField({
+  categories,
+  defaultValue,
+}: {
+  categories: Array<{ id: string; name: string }>;
+  defaultValue: string;
+}) {
+  const t = useT();
+  const [choice, setChoice] = useState(defaultValue);
+  const creating = choice === NEW_CATEGORY;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label
+        htmlFor="categoryId"
+        className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+      >
+        {t("assets.category")}
+      </label>
+
+      <Select
+        id="categoryId"
+        name="categoryId"
+        value={choice}
+        onChange={(event) => setChoice(event.target.value)}
+      >
+        <option value="">{t("assets.noCategory")}</option>
+        {categories.map((category) => (
+          <option key={category.id} value={category.id}>
+            {category.name}
+          </option>
+        ))}
+        <option value={NEW_CATEGORY}>{t("assets.categoryNew")}</option>
+      </Select>
+
+      {creating && (
+        <input
+          name="newCategory"
+          autoFocus
+          required
+          minLength={2}
+          maxLength={MAX_CATEGORY_NAME}
+          placeholder={t("assets.categoryNewPlaceholder")}
+          aria-label={t("assets.categoryNewPlaceholder")}
+          className={`mt-1 ${FIELD}`}
+        />
+      )}
+    </div>
   );
 }
 
@@ -109,7 +169,7 @@ function Field({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={name}
-        className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
+        className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
       >
         {label}
       </label>

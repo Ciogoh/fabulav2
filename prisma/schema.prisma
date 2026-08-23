@@ -34,9 +34,26 @@ enum Language {
 }
 
 model User {
-  id       String   @id @default(cuid())
-  email    String   @unique
-  name     String
+  id    String @id @default(cuid())
+  email String @unique
+
+  /// Il nome in una stringa sola. Lo pretende Better Auth, che lo scrive alla
+  /// creazione dell'account con la parte davanti alla chiocciola. Noi lo
+  /// teniamo allineato a "firstName lastName" a ogni salvataggio del profilo,
+  /// così resta buono per gli account nati prima che i campi esistessero e
+  /// per le librerie che leggono solo questo.
+  name String
+
+  /// Nome e cognome, chiesti al primo accesso e modificabili dal profilo.
+  /// Nullo solo per gli account creati prima: `fullNameOf` ripiega su `name`.
+  firstName String?
+  lastName  String?
+
+  /// Come questa persona vuole essere chiamata. Se c'è, è **questo** che si
+  /// vede ovunque nell'interfaccia; nome e cognome restano sotto, nel
+  /// suggerimento del passaggio del mouse e per gli admin.
+  alias String?
+
   language Language @default(EN)
 
   /// `input: false` nella configurazione di Better Auth: senza quello chiunque
@@ -48,7 +65,10 @@ model User {
   /// riconoscere chi conoscono quando valutano una richiesta.
   isMember Boolean @default(false)
 
-  /// Gestiti da Better Auth.
+  /// Gestiti da Better Auth. `image` è la foto del profilo: la scriviamo noi
+  /// al caricamento (un solo JPEG quadrato, vedi `uploads.server.ts`) e la
+  /// scriverebbe Google al primo accesso con quello. Un file solo e non due
+  /// come per gli oggetti: un'avatar si mostra sempre piccola.
   emailVerified Boolean @default(false)
   image         String?
 

@@ -1,125 +1,338 @@
 /**
- * L'intestazione: il nome, i due collegamenti, il selettore di lingua.
+ * L'intestazione: il nome, i collegamenti, il selettore di lingua.
  *
  * Volutamente scarna. Chi arriva deve trovarsi davanti il catalogo, non una
  * barra di navigazione da studiare.
+ *
+ * Due difetti veri, corretti qui:
+ *
+ * - Il `<nav>` era `flex` senza `flex-wrap`. Con i sei collegamenti di un
+ *   admin diventava largo 466px dentro a uno schermo da 375: **l'intera
+ *   pagina scorreva in orizzontale**, gli ultimi due collegamenti restavano
+ *   fuori, e il foglio della richiesta — largo quanto la pagina, non quanto
+ *   lo schermo — finiva storto e tagliato. Tutto da una riga di CSS.
+ * - Nessun collegamento diceva dove sei. Ora è `NavLink`, che mette da solo
+ *   `aria-current="page"`: lo vedono sia l'occhio sia il lettore di schermo.
  */
 
-import { Link, useFetcher, useLocation, useNavigate } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Link, NavLink, useFetcher, useLocation, useNavigate } from "react-router";
 import { LANGUAGE_NAMES, LANGUAGES } from "~/i18n/dictionaries";
 import { useLang, useT } from "~/i18n/use-t";
 import { authClient } from "~/lib/auth-client";
+import { ButtonLink } from "~/components/button";
+import { AdminBadge } from "~/components/admin-badge";
+import { Avatar, PersonName } from "~/components/person";
+import type { Person } from "~/lib/person";
 
-export type HeaderUser = {
-  name: string;
+export type HeaderUser = Person & {
   email: string;
   isAdmin: boolean;
   pendingCount?: number;
 };
 
+/** Alto abbastanza da centrarci il pollice, senza gonfiare la barra. */
+const LINK =
+  "inline-flex min-h-9 items-center rounded px-0.5 text-muted hover:text-ink aria-[current=page]:font-medium aria-[current=page]:text-ink";
+
 export function SiteHeader({ user }: { user: HeaderUser | null }) {
   const t = useT();
-  const navigate = useNavigate();
-  const lang = useLang();
-  const location = useLocation();
-  const fetcher = useFetcher();
 
   return (
-    <header className={`border-b border-rule ${user?.isAdmin ? "bg-out-bg" : "bg-card"}`}>
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-3 px-6 py-4">
-        <Link
+    <header
+      className={
+        user?.isAdmin
+          ? "border-b border-admin-rule bg-admin-bg"
+          : "border-b border-rule bg-card"
+      }
+    >
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-6 py-3">
+        <NavLink
           to="/"
           className="font-serif text-2xl font-semibold tracking-tight text-ink"
         >
           {t("app.name")}
           <span className="text-accent">.</span>
-        </Link>
+        </NavLink>
 
-        <nav className="flex items-center gap-6 text-sm">
-          <Link to="/" className="text-muted hover:text-ink">
+        {/* Sul telefono i collegamenti prendono una riga intera *sotto* al
+            nome e al pulsante di uscita, invece di spingerli su una riga in
+            più: l'intestazione era arrivata a 185px, cioè un quarto dello
+            schermo prima di vedere un oggetto. */}
+        <nav className="order-last flex w-full min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-sm sm:order-none sm:w-auto">
+          {/* `end` sul catalogo: senza, la rotta indice risulterebbe attiva
+              su ogni pagina, perché ogni percorso comincia per "/". */}
+          <NavLink to="/" end className={LINK}>
             {t("nav.catalogue")}
-          </Link>
-          <Link to="/calendar" className="text-muted hover:text-ink">
+          </NavLink>
+          <NavLink to="/calendar" className={LINK}>
             {t("nav.calendar")}
-          </Link>
-          <Link to="/requests" className="text-muted hover:text-ink">
-            {t("nav.myRequests")}
-          </Link>
+          </NavLink>
+          {user && (
+            <NavLink to="/requests" className={LINK}>
+              {t("nav.myRequests")}
+            </NavLink>
+          )}
+
           {user?.isAdmin && (
-            <>
-              <Link to="/admin/requests" className="text-muted hover:text-ink">
+            <span className="flex flex-wrap items-center gap-x-5 gap-y-1">
+              <span className="hidden h-4 w-px bg-admin-rule sm:inline-block" />
+              <NavLink to="/admin/requests" className={LINK}>
                 {t("nav.adminQueue")}
                 {Boolean(user.pendingCount) && (
-                  <span className="ml-1.5 rounded-full bg-out-bg px-1.5 py-0.5 font-mono text-[0.65rem] font-medium text-out">
+                  <span className="ml-1.5 rounded-full bg-accent-soft px-1.5 py-0.5 font-mono text-[0.65rem] font-medium text-accent">
                     {user.pendingCount}
                   </span>
                 )}
-              </Link>
-              <Link to="/admin/members" className="text-muted hover:text-ink">
+              </NavLink>
+              <NavLink to="/admin/members" className={LINK}>
                 {t("nav.adminMembers")}
-              </Link>
-              <Link to="/admin/assets" className="text-muted hover:text-ink">
+              </NavLink>
+              <NavLink to="/admin/assets" className={LINK}>
                 {t("nav.adminAssets")}
-              </Link>
-            </>
+              </NavLink>
+            </span>
           )}
         </nav>
 
-        <div className="ml-auto flex items-center gap-4">
-          <fetcher.Form method="post" action="/language">
-            {/* Torniamo esattamente dove eravamo, filtri di ricerca compresi. */}
-            <input
-              type="hidden"
-              name="redirectTo"
-              value={location.pathname + location.search}
-            />
-            <label className="sr-only" htmlFor="lang-select">
-              {t("nav.language")}
-            </label>
-            <select
-              id="lang-select"
-              name="lang"
-              defaultValue={lang}
-              onChange={(event) => fetcher.submit(event.currentTarget.form)}
-              className="rounded border border-rule bg-card px-2 py-1.5 font-mono text-xs text-muted hover:text-ink focus:outline-2 focus:outline-offset-2 focus:outline-accent"
-            >
-              {LANGUAGES.map((code) => (
-                <option key={code} value={code}>
-                  {LANGUAGE_NAMES[code]}
-                </option>
-              ))}
-            </select>
-          </fetcher.Form>
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          <LanguageSwitch />
 
           {user ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted" title={user.email}>
-                {user.name}
-              </span>
-              <button
-                type="button"
-                onClick={() =>
-                  // `navigate` e non un ricaricamento: il loader di root
-                  // rilegge la sessione e l'intestazione si aggiorna da sola.
-                  void authClient
-                    .signOut()
-                    .then(() => navigate("/", { replace: true }))
-                }
-                className="rounded border border-rule px-3 py-1.5 text-sm text-muted hover:border-out hover:text-out"
-              >
-                {t("nav.signOut")}
-              </button>
-            </div>
+            <ProfileMenu user={user} />
           ) : (
-            <Link
-              to="/signin"
-              className="rounded border border-rule px-3 py-1.5 text-sm font-medium text-ink hover:border-accent hover:text-accent"
-            >
+            <ButtonLink to="/signin" variant="secondary" size="sm">
               {t("nav.signIn")}
-            </Link>
+            </ButtonLink>
           )}
         </div>
       </div>
     </header>
+  );
+}
+
+/**
+ * Le tre lingue, per iniziali.
+ *
+ * Era un menu a tendina largo quanto «Italiano» per una scelta che sta in due
+ * lettere e che si fa una volta sola. Tre pulsanti occupano meno del menu
+ * chiuso e tolgono un passaggio: prima bisognava aprirlo anche solo per
+ * sapere quali lingue c'erano.
+ *
+ * Restano `<button type="submit">` dentro a una form, e non pulsanti con un
+ * `onClick`: il browser manda solo il valore del pulsante premuto, quindi la
+ * lingua si cambia anche senza JavaScript e l'`action` non cambia di una riga.
+ *
+ * La lingua attiva non si distingue solo per colore — è la stessa regola dei
+ * pallini di stato: sotto ci passa una riga d'accento, che si vede anche
+ * stampata in bianco e nero.
+ *
+ * **La lingua premuta si accende subito, senza aspettare il server.** Non è
+ * una questione di velocità del server — l'`action` risponde in due
+ * millisecondi — ma di silenzio: cambiare lingua ricarica ogni testo della
+ * pagina, e finché non arriva tutto il pulsante restava spento come se la
+ * pressione non fosse stata registrata, invitando a premere di nuovo.
+ * `fetcher.formData` contiene già la lingua che sta viaggiando, quindi la
+ * risposta è immediata e non c'è nessuno stato in più da tenere allineato.
+ */
+function LanguageSwitch() {
+  const t = useT();
+  const lang = useLang();
+  const location = useLocation();
+  const fetcher = useFetcher();
+  const pending = fetcher.formData?.get("lang");
+
+  return (
+    <fetcher.Form
+      method="post"
+      action="/language"
+      aria-label={t("nav.language")}
+      className="flex items-center gap-0.5"
+    >
+      {/* Torniamo esattamente dove eravamo, filtri di ricerca compresi. */}
+      <input
+        type="hidden"
+        name="redirectTo"
+        value={location.pathname + location.search}
+      />
+
+      {LANGUAGES.map((code) => {
+        // Quella che sta viaggiando vince su quella confermata dal server.
+        const current = pending ? code === pending : code === lang;
+        return (
+          <button
+            key={code}
+            type="submit"
+            name="lang"
+            value={code}
+            aria-current={current ? "true" : undefined}
+            className={`inline-flex min-h-9 min-w-9 items-center justify-center rounded px-2 font-mono text-[0.7rem] uppercase tracking-widest ${
+              current
+                ? "font-medium text-ink underline decoration-accent decoration-2 underline-offset-4"
+                : "text-muted hover:text-ink"
+            }`}
+          >
+            {/* «EN» è un'abbreviazione: da sola, un lettore di schermo la
+                leggerebbe come una parola. Il nome per esteso viaggia
+                nascosto accanto, ed è quello che viene annunciato. */}
+            <span aria-hidden="true">{code}</span>
+            <span className="sr-only">{LANGUAGE_NAMES[code]}</span>
+          </button>
+        );
+      })}
+    </fetcher.Form>
+  );
+}
+
+/** Una voce del menu: alta 44px, larga quanto il pannello. Un elenco di righe
+ * alte venti pixel, in magazzino col pollice, si sbaglia. */
+const ITEM =
+  "flex min-h-11 w-full items-center rounded px-3 text-left text-sm text-muted hover:bg-sunk hover:text-ink";
+
+/**
+ * Il proprio nome apre un menu, non una pagina.
+ *
+ * «Esci» era un pulsante fisso accanto al nome: l'azione più rara
+ * dell'intestazione con il peso visivo della più frequente, e la prima cosa
+ * che l'occhio incontra arrivando da destra. Ora sta dentro al menu insieme al
+ * profilo, e nella barra restano solo cose che si usano davvero.
+ *
+ * **Si apre premendo, e anche col passaggio del mouse dove il mouse c'è
+ * davvero.** La guardia è `pointerType === "mouse"`: sul telefono un tocco
+ * genera *anche* un `pointerenter`, quindi senza quel controllo il menu si
+ * aprirebbe al tocco e il click subito dopo lo richiuderebbe — il difetto
+ * classico dei menu a scomparsa portati sul telefono.
+ *
+ * **Fra il nome e il pannello non c'è vuoto.** Lo spazio che si vede è
+ * `pt-2` *dentro* al contenitore del pannello, non un margine: se fosse un
+ * margine, il puntatore che scende da «Samu» verso «Esci» uscirebbe per un
+ * istante da tutte e due le caselle e il menu si chiuderebbe proprio mentre lo
+ * si sta per usare.
+ *
+ * È una disclosure, non un `role="menu"`: dentro ci sono un collegamento e un
+ * pulsante veri, quindi il tasto Tab li attraversa da solo e non serve
+ * reimplementare le frecce. Esc chiude e riporta il fuoco sul nome; uscire col
+ * Tab chiude pure, o resterebbe aperto un pannello che nessuno sta guardando.
+ *
+ * Il fuoco *non* è imprigionato dentro, a differenza del foglio della
+ * richiesta: quello è un dialogo che copre la pagina, questo è un menu che ci
+ * si appoggia sopra. Intrappolare il fuoco qui significherebbe non poter più
+ * uscire col Tab.
+ */
+function ProfileMenu({ user }: { user: HeaderUser }) {
+  const t = useT();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  /* Aperto dal passaggio del mouse, non da una pressione. Serve al `onClick`
+     qui sotto: col mouse sopra, il menu è **già** aperto quando arriva il
+     click, e un semplice «apri/chiudi» lo richiuderebbe nell'istante in cui
+     lo si preme. Col dito e da tastiera il passaggio non esiste, questo resta
+     falso, e il click torna a essere un interruttore. */
+  const openedByHover = useRef(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+
+    /* `pointerdown` e non `click`: chi preme fuori si aspetta che il menu sia
+       già sparito quando alza il dito, e il click che arriva dopo deve finire
+       su quello che ha premuto, non essere consumato per chiudere. */
+    function onPointerDown(event: PointerEvent) {
+      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={wrapRef}
+      className="relative"
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "mouse") return;
+        openedByHover.current = true;
+        setOpen(true);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== "mouse") return;
+        openedByHover.current = false;
+        setOpen(false);
+      }}
+      // Il fuoco che se ne va con Tab chiude: `relatedTarget` è dove sta
+      // andando, e se non è qui dentro il menu non serve più a nessuno.
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
+        className="flex min-h-9 items-center gap-2 rounded px-1 text-sm text-muted hover:text-ink aria-expanded:text-ink"
+      >
+        <Avatar person={user} size="sm" />
+        <PersonName person={user} />
+        {user.isAdmin && <AdminBadge />}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`h-2.5 w-2.5 transition-transform ${open ? "rotate-180" : ""}`}
+        >
+          <path d="M2.5 4.5 6 8l3.5-3.5" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-20 pt-2">
+          <div className="min-w-44 rounded border border-rule bg-card p-1 shadow-lg">
+            <Link
+              to="/account"
+              className={ITEM}
+              onClick={() => setOpen(false)}
+            >
+              {t("account.heading")}
+            </Link>
+
+            {/* Rosso solo al passaggio, come la variante `danger` del
+                pulsante: l'uscita non è un allarme finché non la si sta
+                davvero premendo. */}
+            <button
+              type="button"
+              className={`${ITEM} hover:text-out`}
+              onClick={() =>
+                // `navigate` e non un ricaricamento: il loader di root rilegge
+                // la sessione e l'intestazione si aggiorna da sola.
+                void authClient
+                  .signOut()
+                  .then(() => navigate("/", { replace: true }))
+              }
+            >
+              {t("nav.signOut")}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

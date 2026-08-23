@@ -5,15 +5,20 @@
 
 import { Form, redirect, useNavigation } from "react-router";
 import type { Route } from "./+types/admin.assets.new";
+import { PageShell } from "~/components/page";
+import { buttonClass } from "~/components/button";
+import { pageTitle } from "~/i18n/meta";
 import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
 import { saveAssetPhoto } from "~/lib/uploads.server";
 import { useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
+import { categoryFromForm } from "~/lib/categories.server";
 import { AssetFields } from "~/components/asset-fields";
+import { PhotoFields } from "~/components/photo-picker";
 
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "Fabula" }];
+export function meta({ matches }: Route.MetaArgs) {
+  return [{ title: pageTitle(matches, "assets.newHeading") }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -34,8 +39,13 @@ export async function action({ request }: Route.ActionArgs) {
   const description = String(form.get("description") ?? "").trim();
   const location = String(form.get("location") ?? "").trim();
   const adminNotes = String(form.get("adminNotes") ?? "").trim();
-  const categoryId = String(form.get("categoryId") ?? "") || null;
   const isBookable = form.get("unavailable") !== "on";
+
+  // Prima di creare l'oggetto: se la categoria nuova non ha un nome valido,
+  // l'oggetto non deve nascere e basta, o al secondo tentativo se ne
+  // ritroverebbe due.
+  const category = await categoryFromForm(form);
+  if (!category.ok) return { error: category.error };
 
   const asset = await db.asset.create({
     data: {
@@ -43,25 +53,42 @@ export async function action({ request }: Route.ActionArgs) {
       description: description || null,
       location: location || null,
       adminNotes: adminNotes || null,
-      categoryId,
+      categoryId: category.categoryId,
       isBookable,
     },
     select: { id: true },
   });
 
   const files = form.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
-  for (const file of files) {
+  let skipped = 0;
+
+  for (const [index, file] of files.entries()) {
     const result = await saveAssetPhoto(asset.id, file);
     if (result.ok) {
+      // L'ordine è quello in cui si vedono nel selettore, e il primo è quello
+      // che finisce in copertina nel catalogo.
       await db.assetPhoto.create({
-        data: { assetId: asset.id, url: result.url, thumbUrl: result.thumbUrl },
+        data: {
+          assetId: asset.id,
+          url: result.url,
+          thumbUrl: result.thumbUrl,
+          sortOrder: index,
+        },
       });
+    } else {
+      // Una foto rifiutata non blocca la creazione dell'oggetto — ma non deve
+      // nemmeno sparire in silenzio, com'era prima: si scopriva più tardi che
+      // di cinque foto ne erano arrivate tre. Le contiamo e la scheda di
+      // modifica lo dice.
+      skipped += 1;
     }
-    // Una foto rifiutata non deve bloccare la creazione dell'oggetto — chi
-    // carica corregge dopo, dalla scheda di modifica.
   }
 
-  return redirect(`/admin/assets/${asset.id}`);
+  return redirect(
+    skipped > 0
+      ? `/admin/assets/${asset.id}?skipped=${skipped}`
+      : `/admin/assets/${asset.id}`
+  );
 }
 
 export default function NewAsset({ loaderData, actionData }: Route.ComponentProps) {
@@ -71,45 +98,36 @@ export default function NewAsset({ loaderData, actionData }: Route.ComponentProp
   const busy = navigation.state !== "idle";
 
   return (
-    <main className="mx-auto w-full max-w-lg px-6 pb-24 pt-8">
-      <h1 className="font-serif text-3xl font-semibold tracking-tight">
-        {t("assets.newHeading")}
-      </h1>
+    <main>
+      <PageShell width="narrow" className="pb-24 pt-8">
+        <h1 className="font-serif text-3xl font-semibold tracking-tight">
+          {t("assets.newHeading")}
+        </h1>
 
-      <Form method="post" encType="multipart/form-data" className="mt-8 flex flex-col gap-4">
-        <AssetFields categories={categories} />
+        <Form method="post" encType="multipart/form-data" className="mt-8 flex flex-col gap-4">
+          <AssetFields categories={categories} />
 
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="photos"
-            className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
+          <PhotoFields />
+
+          {/* `self-start`: il modulo è una colonna flex, quindi senza questo
+              il pulsante si stira per tutta la larghezza e smette di sembrare
+              un pulsante. Sulle schermate d'accesso, che sono strette, la
+              larghezza piena invece è voluta. */}
+          <button
+            type="submit"
+            disabled={busy}
+            className={buttonClass("primary", "md", "self-start")}
           >
-            {t("assets.photos")}
-          </label>
-          <input
-            id="photos"
-            name="photos"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
-            className="text-sm"
-          />
-        </div>
+            {t("assets.save")}
+          </button>
+        </Form>
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="rounded bg-accent px-4 py-2.5 text-sm font-medium text-white disabled:bg-sunk disabled:text-faint"
-        >
-          {t("assets.save")}
-        </button>
-      </Form>
-
-      {actionData?.error && (
-        <p role="alert" className="mt-6 rounded bg-out-bg px-3 py-2 text-sm text-out">
-          {t(actionData.error)}
-        </p>
-      )}
+        {actionData?.error && (
+          <p role="alert" className="mt-6 rounded bg-out-bg px-3 py-2 text-sm text-out">
+            {t(actionData.error)}
+          </p>
+        )}
+      </PageShell>
     </main>
   );
 }

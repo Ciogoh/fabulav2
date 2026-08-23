@@ -8,12 +8,21 @@
  * costringeva a ripensare le date prima ancora di sapere cosa si vuole
  * prendere, ed è il motivo per cui un oggetto occupato oggi ma libero fra due
  * settimane risultava introvabile.
+ *
+ * Tre cose sono cambiate dopo averlo guardato col telefono in mano:
+ *
+ * - **C'è la ricerca.** Ventuno oggetti si sfogliano; sessanta no, e in
+ *   magazzino si vuole scrivere «SM58» invece di scorrere. Il filtro per
+ *   categoria da solo non ci arriva.
+ * - **La scheda è un collegamento.** La descrizione scritta dagli admin non
+ *   si leggeva da nessuna parte e la foto non si ingrandiva.
+ * - **Una griglia sola.** I kit stavano in una griglia a due colonne sopra
+ *   una griglia a tre: due larghezze di scheda diverse, una sotto l'altra.
  */
 
-import { useEffect, useState } from "react";
-import { Form, Link, useFetcher, useNavigate, useSearchParams } from "react-router";
+import { Link, useSearchParams, useSubmit } from "react-router";
+import { useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/catalogue";
-import type { action as createRequestAction } from "./requests";
 import { db } from "~/lib/db.server";
 import {
   formatDay,
@@ -23,51 +32,82 @@ import {
 } from "~/lib/availability.server";
 import { getUser } from "~/lib/session.server";
 import { useT } from "~/i18n/use-t";
+import { initialsOf } from "~/lib/initials";
+import { pageTitle, tagline } from "~/i18n/meta";
 import { StateBadge } from "~/components/state-badge";
-import { DateRangeFields } from "~/components/date-range-fields";
+import { PageShell } from "~/components/page";
+import { Select } from "~/components/select";
+import { Button } from "~/components/button";
+import { CartBar } from "~/components/cart-bar";
 import { useCart, type CartEntry } from "~/lib/use-cart";
 
-export function meta(_: Route.MetaArgs) {
-  return [{ title: "Fabula" }];
+export function meta({ matches }: Route.MetaArgs) {
+  return [
+    { title: pageTitle(matches, "catalogue.heading") },
+    { name: "description", content: tagline(matches) },
+  ];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const categorySlug = url.searchParams.get("cat");
+  const query = (url.searchParams.get("q") ?? "").trim();
 
-  const [categories, assets, kits, user, current] = await Promise.all([
-    db.category.findMany({ orderBy: { sortOrder: "asc" } }),
-    db.asset.findMany({
-      where: categorySlug ? { category: { slug: categorySlug } } : undefined,
-      orderBy: [{ category: { sortOrder: "asc" } }, { name: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        isBookable: true,
-        category: { select: { name: true, slug: true } },
-        photos: {
-          orderBy: { sortOrder: "asc" },
-          take: 1,
-          select: { thumbUrl: true },
+  // Nome oppure categoria: chi cerca «audio» pensa alla categoria, chi cerca
+  // «SM58» pensa all'oggetto, e nessuno dei due vuole sapere quale dei due
+  // campi sta interrogando.
+  const search = query
+    ? {
+        OR: [
+          { name: { contains: query, mode: "insensitive" as const } },
+          {
+            category: {
+              name: { contains: query, mode: "insensitive" as const },
+            },
+          },
+        ],
+      }
+    : {};
+
+  const [categories, assets, kits, user, current, totalAssets] =
+    await Promise.all([
+      db.category.findMany({ orderBy: { sortOrder: "asc" } }),
+      db.asset.findMany({
+        where: {
+          ...(categorySlug ? { category: { slug: categorySlug } } : {}),
+          ...search,
         },
-      },
-    }),
-    db.kit.findMany({
-      orderBy: { name: "asc" },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        assets: {
-          orderBy: { sortOrder: "asc" },
-          select: { asset: { select: { id: true, name: true } } },
+        orderBy: [{ category: { sortOrder: "asc" } }, { name: "asc" }],
+        // Campo per campo, mai `include`: `location` e `adminNotes` non
+        // devono poter finire in una risposta pubblica per distrazione.
+        select: {
+          id: true,
+          name: true,
+          isBookable: true,
+          category: { select: { name: true, slug: true } },
+          photos: {
+            orderBy: { sortOrder: "asc" },
+            take: 1,
+            select: { thumbUrl: true },
+          },
         },
-      },
-    }),
-    getUser(request),
-    getCurrentAvailability(),
-  ]);
+      }),
+      db.kit.findMany({
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          assets: {
+            orderBy: { sortOrder: "asc" },
+            select: { asset: { select: { id: true, name: true } } },
+          },
+        },
+      }),
+      getUser(request),
+      getCurrentAvailability(),
+      db.asset.count(),
+    ]);
 
   const availability: Record<string, AssetAvailability> = Object.fromEntries(
     assets.map((asset) => [
@@ -78,65 +118,82 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   return {
     assets,
-    kits,
+    // I kit sono scorciatoie del catalogo intero: filtrarne uno a metà
+    // darebbe un «kit audio» senza le casse. Spariscono quando si filtra.
+    kits: categorySlug || query ? [] : kits,
     categories,
     availability,
+    totalAssets,
+    query,
     today: formatDay(todayUtc()),
     user: user ? { name: user.name } : null,
   };
 }
 
 export default function Catalogue({ loaderData }: Route.ComponentProps) {
-  const { assets, kits, categories, availability, today, user } = loaderData;
+  const { assets, kits, categories, availability, totalAssets, query, today, user } =
+    loaderData;
   const t = useT();
   const [searchParams] = useSearchParams();
   const cart = useCart();
 
   const activeCategory = searchParams.get("cat") ?? "";
+  const filtered = Boolean(activeCategory || query);
   const bookableIds = new Set(
     assets.filter((asset) => asset.isBookable).map((asset) => asset.id)
   );
 
   return (
     <>
-      <FilterBar categories={categories} activeCategory={activeCategory} />
+      <FilterBar
+        categories={categories}
+        activeCategory={activeCategory}
+        query={query}
+      />
 
-      <main className="mx-auto w-full max-w-6xl px-6 pb-24 pt-8">
-        <p className="font-mono text-xs uppercase tracking-widest text-faint">
-          {t("catalogue.showingAll", { count: assets.length })}
-        </p>
+      <main>
+        <PageShell className="pb-32 pt-8">
+          <p className="font-mono text-xs uppercase tracking-widest text-muted">
+            {filtered
+              ? t("catalogue.showingSome", {
+                  count: assets.length,
+                  total: totalAssets,
+                })
+              : t("catalogue.showingAll", { count: assets.length })}
+          </p>
 
-        {kits.length > 0 && !activeCategory && (
-          <section className="mt-8">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {kits.map((kit) => (
-                <KitCard
-                  key={kit.id}
-                  kit={kit}
-                  canAdd={(id) => bookableIds.has(id)}
-                  onAdd={cart.add}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+          {/* Una griglia sola per kit e oggetti: stessa larghezza di scheda,
+              stessa colonna sinistra, nessun salto fra le due sezioni.
+              `items-start` perché finché le foto sono poche una scheda con
+              foto è alta il triplo delle altre: senza, le vicine si
+              stiravano fino a diventare riquadri quasi vuoti. */}
+          <div className="mt-6 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {kits.map((kit) => (
+              <KitCard
+                key={kit.id}
+                kit={kit}
+                canAdd={(id) => bookableIds.has(id)}
+                onAdd={cart.add}
+              />
+            ))}
 
-        {assets.length === 0 ? (
-          <p className="mt-16 text-center text-muted">{t("catalogue.empty")}</p>
-        ) : (
-          <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {assets.map((asset) => (
               <AssetCard
                 key={asset.id}
                 asset={asset}
-                availability={availability[asset.id]}
+                availability={availability[asset.id]!}
+                today={today}
                 inCart={cart.has(asset.id)}
                 onAdd={() => cart.add({ assetId: asset.id, name: asset.name })}
                 onRemove={() => cart.remove(asset.id)}
               />
             ))}
-          </section>
-        )}
+          </div>
+
+          {assets.length === 0 && (
+            <p className="mt-16 text-center text-muted">{t("catalogue.empty")}</p>
+          )}
+        </PageShell>
       </main>
 
       <CartBar cart={cart} today={today} user={user} />
@@ -149,33 +206,73 @@ export default function Catalogue({ loaderData }: Route.ComponentProps) {
 function FilterBar({
   categories,
   activeCategory,
+  query,
 }: {
   categories: Array<{ id: string; name: string; slug: string }>;
   activeCategory: string;
+  query: string;
 }) {
   const t = useT();
+  const submit = useSubmit();
+  const formRef = useRef<HTMLFormElement>(null);
+  // Campo controllato, ma il valore di partenza arriva dal server: così
+  // tornando indietro col browser la casella mostra quello che sta filtrando.
+  const [value, setValue] = useState(query);
+  useEffect(() => setValue(query), [query]);
+
+  /* Si cerca mentre si scrive, con un respiro: senza il ritardo ogni tasto
+     sarebbe una richiesta al server. `replace` per non riempire la cronologia
+     di uno stato per lettera — il tasto «indietro» deve riportare al catalogo
+     intero, non a «SM5». */
+  useEffect(() => {
+    if (value === query) return;
+    const timer = setTimeout(() => {
+      if (formRef.current) {
+        void submit(formRef.current, { replace: true });
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   return (
     <div className="border-b border-rule bg-card">
-      <div className="mx-auto w-full max-w-6xl px-6 py-6">
+      <PageShell className="py-5 sm:py-6">
         <h1 className="font-serif text-3xl font-semibold tracking-tight">
           {t("catalogue.heading")}
         </h1>
 
-        <Form method="get" className="mt-5 flex flex-wrap items-end gap-3">
+        <form ref={formRef} method="get" className="mt-5 flex flex-wrap items-end gap-3">
+          <div className="flex min-w-40 flex-1 flex-col gap-1.5 sm:max-w-xs">
+            <label
+              htmlFor="q"
+              className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+            >
+              {t("catalogue.search")}
+            </label>
+            <input
+              id="q"
+              name="q"
+              type="search"
+              value={value}
+              placeholder={t("catalogue.searchPlaceholder")}
+              onChange={(event) => setValue(event.target.value)}
+              className="min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm"
+            />
+          </div>
+
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="cat"
-              className="font-mono text-[0.68rem] uppercase tracking-widest text-faint"
+              className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
             >
-              {t("catalogue.allCategories")}
+              {t("catalogue.category")}
             </label>
-            <select
+            <Select
               id="cat"
               name="cat"
               defaultValue={activeCategory}
-              onChange={(event) => event.currentTarget.form?.requestSubmit()}
-              className="rounded border border-rule bg-card px-3 py-2 text-sm focus:outline-2 focus:outline-offset-2 focus:outline-accent"
+              onChange={(event) => submit(event.currentTarget.form, { replace: true })}
             >
               <option value="">{t("catalogue.allCategories")}</option>
               {categories.map((category) => (
@@ -183,19 +280,29 @@ function FilterBar({
                   {category.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
-          {activeCategory && (
-            <a
-              href="/"
-              className="px-2 py-2 text-sm text-muted underline underline-offset-4 hover:text-ink"
+          {/* Senza JavaScript resta un modulo normale che si manda con Invio. */}
+          <noscript>
+            <button
+              type="submit"
+              className="min-h-11 rounded border border-accent px-4 text-sm font-medium text-accent"
+            >
+              {t("catalogue.search")}
+            </button>
+          </noscript>
+
+          {(activeCategory || query) && (
+            <Link
+              to="/"
+              className="inline-flex min-h-11 items-center px-1 text-sm text-muted underline underline-offset-4 hover:text-ink"
             >
               {t("catalogue.clearFilter")}
-            </a>
+            </Link>
           )}
-        </Form>
-      </div>
+        </form>
+      </PageShell>
     </div>
   );
 }
@@ -207,109 +314,113 @@ type AssetRow = Route.ComponentProps["loaderData"]["assets"][number];
 function AssetCard({
   asset,
   availability,
+  today,
   inCart,
   onAdd,
   onRemove,
 }: {
   asset: AssetRow;
   availability: AssetAvailability;
+  today: string;
   inCart: boolean;
   onAdd: () => void;
   onRemove: () => void;
 }) {
   const t = useT();
-  const state = availability.state;
   // Occupato *oggi* non vuol dire indisponibile: le date si scelgono dopo,
   // premendo «Richiedi», e lì si verifica il periodo scelto davvero.
   const canAdd = asset.isBookable;
+  const photo = asset.photos[0]?.thumbUrl;
 
   return (
-    <article className="flex flex-col overflow-hidden rounded border border-rule bg-card">
-      <Thumbnail name={asset.name} url={asset.photos[0]?.thumbUrl} />
+    <article className="relative flex flex-col overflow-hidden rounded border border-rule bg-card focus-within:border-accent hover:border-accent">
+      {photo && (
+        <img
+          src={photo}
+          alt=""
+          className="aspect-4/3 w-full bg-sunk object-cover"
+          loading="lazy"
+        />
+      )}
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        {asset.category && (
-          <span className="font-mono text-[0.66rem] uppercase tracking-widest text-faint">
-            {asset.category.name}
-          </span>
-        )}
+        <div className="flex items-start gap-3">
+          {/* Senza foto, un monogramma piccolo di fianco al titolo. Prima era
+              un rettangolo 4:3 grigio: l'elemento più grande della scheda per
+              l'informazione minore della pagina. */}
+          {!photo && (
+            <span
+              aria-hidden="true"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-sunk font-serif text-lg text-faint"
+            >
+              {initialsOf(asset.name)}
+            </span>
+          )}
 
-        <h3 className="text-[0.95rem] font-semibold leading-snug">
-          {asset.name}
-        </h3>
+          <div className="flex min-w-0 flex-col gap-1">
+            {asset.category && (
+              <span className="font-mono text-[0.66rem] uppercase tracking-widest text-muted">
+                {asset.category.name}
+              </span>
+            )}
+
+            <h2 className="text-[0.95rem] font-semibold leading-snug">
+              {/* Il collegamento copre tutta la scheda tramite lo pseudo
+                  elemento; i pulsanti sotto stanno sopra di lui con `z-10`,
+                  così restano cliccabili. */}
+              <Link
+                to={`/items/${asset.id}`}
+                className="after:absolute after:inset-0 after:content-['']"
+              >
+                {asset.name}
+              </Link>
+            </h2>
+          </div>
+        </div>
 
         <div className="mt-auto pt-2">
           {asset.isBookable ? (
             <StateBadge
-              state={state}
+              state={availability.state}
               until={availability.until}
               from={availability.from}
+              today={today}
             />
           ) : (
-            <span className="font-mono text-[0.7rem] uppercase tracking-wider text-faint">
-              {t("state.notBookable")}
-            </span>
+            <StateBadge state="NOT_BOOKABLE" today={today} />
           )}
         </div>
 
         {inCart ? (
-          <button
-            type="button"
+          <Button
+            variant="danger"
+            size="sm"
+            className="relative z-10 mt-3 w-full"
             onClick={onRemove}
-            className="mt-3 rounded border border-rule px-3 py-1.5 text-sm text-muted hover:border-out hover:text-out"
           >
             {t("cart.remove")}
-          </button>
+          </Button>
         ) : (
-          <button
-            type="button"
-            onClick={onAdd}
+          <Button
+            variant="secondary"
+            size="sm"
+            className="relative z-10 mt-3 w-full"
             disabled={!canAdd}
-            className="mt-3 rounded border border-accent px-3 py-1.5 text-sm font-medium text-accent enabled:hover:bg-accent-soft disabled:cursor-not-allowed disabled:border-rule disabled:text-faint"
+            onClick={onAdd}
           >
             {t("cart.add")}
-          </button>
+          </Button>
         )}
       </div>
     </article>
   );
 }
 
-/**
- * Finché non ci sono foto caricate, un monogramma. Meglio di un'icona grigia
- * uguale per tutti: dà comunque un appiglio visivo per distinguere le schede.
- */
-function Thumbnail({ name, url }: { name: string; url?: string }) {
-  if (url) {
-    return (
-      <img
-        src={url}
-        alt=""
-        className="aspect-4/3 w-full bg-sunk object-cover"
-        loading="lazy"
-      />
-    );
-  }
-
-  const initials = name
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase() ?? "")
-    .join("");
-
-  return (
-    <div
-      aria-hidden="true"
-      className="flex aspect-4/3 w-full items-center justify-center bg-sunk font-serif text-4xl text-faint"
-    >
-      {initials}
-    </div>
-  );
-}
-
 type KitRow = Route.ComponentProps["loaderData"]["kits"][number];
+
+/** Oltre questi, l'elenco del kit si accorcia: cinque righe di nomi sono più
+ * alte di tutto il resto della scheda messo insieme. */
+const KIT_PREVIEW = 4;
 
 /**
  * Un kit è una scorciatoia, non un tipo di prenotazione a sé: quando lo si
@@ -329,40 +440,55 @@ function KitCard({
   const t = useT();
   const members = kit.assets.map((link) => link.asset);
   const available = members.filter((member) => canAdd(member.id));
+  const shown = members.slice(0, KIT_PREVIEW);
+  const hidden = members.length - shown.length;
 
   return (
-    <article className="rounded border border-rule bg-card p-4">
+    <article className="flex flex-col rounded border border-rule bg-card p-4">
       <div className="flex items-center gap-2">
         <span className="rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-accent">
           {t("kit.badge")}
         </span>
-        <span className="font-mono text-[0.7rem] text-faint">
+        <span className="font-mono text-[0.7rem] text-muted">
           {t("kit.itemCount", { count: members.length })}
         </span>
       </div>
 
-      <h3 className="mt-2 font-serif text-lg font-semibold">{kit.name}</h3>
+      <h2 className="mt-2 font-serif text-lg font-semibold">{kit.name}</h2>
       {kit.description && (
         <p className="mt-1 text-sm text-muted">{kit.description}</p>
       )}
 
-      <ul className="mt-3 border-t border-rule pt-3 text-sm">
-        {members.map((member) => (
+      <ul className="mt-3 flex-1 border-t border-rule pt-3 text-sm">
+        {shown.map((member) => (
           <li
             key={member.id}
             className={
               canAdd(member.id)
                 ? "py-0.5"
-                : "py-0.5 text-faint line-through decoration-1"
+                : "py-0.5 text-muted line-through decoration-1"
             }
           >
-            {member.name}
+            {/* `inline-block py-1`: da riga di testo a bersaglio da toccare —
+                l'elenco dei pezzi di un kit è fatto di collegamenti, e a
+                venti pixel di altezza col pollice si sbaglia. */}
+            <Link
+              to={`/items/${member.id}`}
+              className="inline-block py-1 hover:text-accent"
+            >
+              {member.name}
+            </Link>
           </li>
         ))}
+        {hidden > 0 && (
+          <li className="py-0.5 text-muted">{t("kit.more", { count: hidden })}</li>
+        )}
       </ul>
 
-      <button
-        type="button"
+      <Button
+        variant="secondary"
+        size="sm"
+        className="mt-4 w-full"
         disabled={available.length === 0}
         onClick={() =>
           onAdd(
@@ -374,204 +500,9 @@ function KitCard({
             }))
           )
         }
-        className="mt-4 w-full rounded border border-accent px-3 py-1.5 text-sm font-medium text-accent enabled:hover:bg-accent-soft disabled:cursor-not-allowed disabled:border-rule disabled:text-faint"
       >
         {t("cart.add")}
-      </button>
+      </Button>
     </article>
-  );
-}
-
-/* ------------------------------------------------------------ carrello */
-
-function CartBar({
-  cart,
-  today,
-  user,
-}: {
-  cart: ReturnType<typeof useCart>;
-  today: string;
-  user: { name: string } | null;
-}) {
-  const t = useT();
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  if (!cart.ready || cart.entries.length === 0) return null;
-
-  return (
-    <div className="sticky bottom-0 border-t border-rule bg-card">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-4 px-6 py-4">
-        <div className="min-w-0">
-          <p className="font-mono text-[0.68rem] uppercase tracking-widest text-faint">
-            {t("cart.heading")}
-          </p>
-          <p className="truncate text-sm">
-            {cart.entries.map((entry) => entry.name).join(" · ")}
-          </p>
-        </div>
-
-        <div className="ml-auto flex items-center gap-3">
-          <button
-            type="button"
-            onClick={cart.clear}
-            className="text-sm text-muted underline underline-offset-4 hover:text-ink"
-          >
-            {t("cart.clear")}
-          </button>
-
-          {user ? (
-            <button
-              type="button"
-              onClick={() => setDialogOpen(true)}
-              className="rounded bg-accent px-4 py-2 text-sm font-medium text-white"
-            >
-              {t("cart.submit")} ({cart.entries.length})
-            </button>
-          ) : (
-            <Link
-              to="/signin?next=/"
-              className="rounded bg-accent px-4 py-2 text-sm font-medium text-white"
-            >
-              {t("cart.submit")} ({cart.entries.length})
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {dialogOpen && (
-        <RequestDialog
-          entries={cart.entries}
-          today={today}
-          onClose={() => setDialogOpen(false)}
-          onSuccess={() => {
-            cart.clear();
-            setDialogOpen(false);
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-/* --------------------------------------------------------- richiesta */
-
-function RequestDialog({
-  entries,
-  today,
-  onClose,
-  onSuccess,
-}: {
-  entries: CartEntry[];
-  today: string;
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
-  const t = useT();
-  const navigate = useNavigate();
-  const fetcher = useFetcher<typeof createRequestAction>();
-
-  const [from, setFrom] = useState(today);
-  const [to, setTo] = useState(today);
-  const [longer, setLonger] = useState(false);
-  const [purpose, setPurpose] = useState("");
-
-  const busy = fetcher.state !== "idle";
-
-  useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data) {
-      if (fetcher.data.ok) {
-        onSuccess();
-        navigate(`/requests/${fetcher.data.id}`);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetcher.state, fetcher.data]);
-
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
-
-  const result = fetcher.data && !fetcher.data.ok ? fetcher.data : null;
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-6"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t border border-rule bg-card p-5 sm:rounded">
-        <h2 className="font-serif text-xl font-semibold">
-          {t("request.heading")}
-        </h2>
-
-        <ul className="mt-3 max-h-24 overflow-y-auto text-sm text-muted">
-          {entries.map((entry) => (
-            <li key={entry.assetId}>{entry.name}</li>
-          ))}
-        </ul>
-
-        <fetcher.Form
-          method="post"
-          action="/requests"
-          className="mt-5 flex flex-col gap-4"
-        >
-          <input
-            type="hidden"
-            name="items"
-            value={JSON.stringify(
-              entries.map((entry) => ({
-                assetId: entry.assetId,
-                fromKitId: entry.fromKitId,
-              }))
-            )}
-          />
-
-          <DateRangeFields
-            today={today}
-            from={from}
-            to={to}
-            longer={longer}
-            purpose={purpose}
-            onFromChange={setFrom}
-            onToChange={setTo}
-            onLongerChange={setLonger}
-            onPurposeChange={setPurpose}
-          />
-
-          {result && (
-            <p role="alert" className="rounded bg-out-bg px-3 py-2 text-sm text-out">
-              {t(result.error)}
-              {result.conflicts && result.conflicts.length > 0 && (
-                <> — {result.conflicts.join(", ")}</>
-              )}
-            </p>
-          )}
-
-          <div className="flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-sm text-muted underline underline-offset-4 hover:text-ink"
-            >
-              {t("request.cancel")}
-            </button>
-            <button
-              type="submit"
-              disabled={busy}
-              className="rounded bg-accent px-4 py-2 text-sm font-medium text-white disabled:bg-sunk disabled:text-faint"
-            >
-              {t("request.submit")}
-            </button>
-          </div>
-        </fetcher.Form>
-      </div>
-    </div>
   );
 }
