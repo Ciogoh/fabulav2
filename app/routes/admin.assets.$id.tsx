@@ -1,9 +1,22 @@
 /**
  * Modifica di un oggetto: i campi, le foto che ci sono e quelle che si stanno
  * aggiungendo, tutto nello stesso salvataggio.
+ *
+ * In fondo alla pagina c'è **una sola** via d'uscita alla volta, scelta al
+ * posto dell'admin invece di mettergliene due davanti:
+ *
+ * - mai prestato → **elimina**, che lo toglie davvero, foto comprese;
+ * - con dei prestiti alle spalle → **archivia**, perché `RequestItem.asset` è
+ *   `onDelete: Restrict` e cancellarlo vorrebbe dire cancellare lo storico di
+ *   chi l'ha avuto;
+ * - già archiviato → **rimetti in catalogo**.
+ *
+ * Chi archivia sta dicendo «questa cosa non è più nostra»: venduta, persa,
+ * rotta per sempre. È diverso da «non prestabile», che è temporaneo e lascia
+ * l'oggetto in vetrina.
  */
 
-import { Form, useNavigation, useSearchParams } from "react-router";
+import { Form, redirect, useNavigation, useSearchParams } from "react-router";
 import type { Route } from "./+types/admin.assets.$id";
 import { PageShell } from "~/components/page";
 import { buttonClass } from "~/components/button";
@@ -31,8 +44,12 @@ async function loadAsset(id: string) {
       location: true,
       adminNotes: true,
       isBookable: true,
+      archivedAt: true,
       categoryId: true,
       photos: { orderBy: { sortOrder: "asc" }, select: { id: true, url: true, thumbUrl: true } },
+      // Quanti prestiti ha alle spalle: è questo numero, e non una spunta, a
+      // decidere se l'oggetto si può cancellare o solo archiviare.
+      _count: { select: { requestItems: true } },
     },
   });
   if (!asset) throw new Response("Not found", { status: 404 });
@@ -73,6 +90,38 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
     }
     return { ok: true as const, intent };
+  }
+
+  if (intent === "archive") {
+    /* Fuori dal catalogo e fuori dai kit, nello stesso colpo. Un kit che
+       continuasse a contenerlo mostrerebbe un pezzo che nel selettore non
+       esiste più, e al primo salvataggio lo perderebbe in silenzio. */
+    await db.$transaction([
+      db.asset.update({ where: { id: asset.id }, data: { archivedAt: new Date() } }),
+      db.kitAsset.deleteMany({ where: { assetId: asset.id } }),
+    ]);
+    return redirect("/admin/assets");
+  }
+
+  if (intent === "restore") {
+    await db.asset.update({ where: { id: asset.id }, data: { archivedAt: null } });
+    return { ok: true as const, intent };
+  }
+
+  if (intent === "delete") {
+    if (asset._count.requestItems > 0) {
+      // L'interfaccia non offre nemmeno il pulsante in questo caso, ma
+      // l'indirizzo resta raggiungibile con `curl`: la guardia sta qui.
+      return { ok: false as const, error: "assets.errorDeleteHasHistory" as TranslationKey };
+    }
+
+    // I file prima della riga: cancellata quella, gli indirizzi delle foto
+    // non si sanno più e resterebbero due file orfani sul disco per sempre.
+    for (const photo of asset.photos) {
+      await deleteAssetPhotoFiles(photo.url, photo.thumbUrl);
+    }
+    await db.asset.delete({ where: { id: asset.id } });
+    return redirect("/admin/assets");
   }
 
   if (intent === "deletePhoto") {
@@ -161,6 +210,12 @@ export default function EditAsset({ loaderData, actionData }: Route.ComponentPro
           {t("assets.editHeading")}
         </h1>
 
+        {asset.archivedAt && (
+          <p className="mt-4 rounded border border-rule bg-sunk px-3 py-2 text-sm text-muted">
+            {t("assets.archivedNote")}
+          </p>
+        )}
+
         <Form method="post" encType="multipart/form-data" className="mt-8 flex flex-col gap-4">
           <input type="hidden" name="intent" value="save" />
           <AssetFields
@@ -201,7 +256,73 @@ export default function EditAsset({ loaderData, actionData }: Route.ComponentPro
             {t(actionData.error)}
           </p>
         )}
+
+        <ExitZone
+          archived={Boolean(asset.archivedAt)}
+          loans={asset._count.requestItems}
+          busy={busy}
+        />
       </PageShell>
     </main>
+  );
+}
+
+/**
+ * La via d'uscita, una sola alla volta.
+ *
+ * Mettere «elimina» e «archivia» uno accanto all'altro obbligherebbe chi
+ * amministra a sapere che `RequestItem` ha un vincolo `Restrict` per capire
+ * quale dei due funziona. Il numero di prestiti lo sa già la pagina: sceglie
+ * lei, e la riga sotto al pulsante dice perché è quello e non l'altro.
+ *
+ * Ogni modulo sta fuori da quello dei campi: un `<form>` dentro a un altro
+ * non esiste, il lettore di HTML scarta quello interno e la pagina che arriva
+ * dal server smette di combaciare con quella che React ricostruisce. Vedi la
+ * nota in CLAUDE.md.
+ */
+function ExitZone({
+  archived,
+  loans,
+  busy,
+}: {
+  archived: boolean;
+  loans: number;
+  busy: boolean;
+}) {
+  const t = useT();
+
+  if (archived) {
+    return (
+      <Form method="post" className="mt-10 border-t border-rule pt-6">
+        <input type="hidden" name="intent" value="restore" />
+        <button type="submit" disabled={busy} className={buttonClass("secondary")}>
+          {t("assets.restore")}
+        </button>
+        <p className="mt-2 text-sm text-muted">{t("assets.restoreHint")}</p>
+      </Form>
+    );
+  }
+
+  const deletable = loans === 0;
+
+  return (
+    <Form
+      method="post"
+      className="mt-10 border-t border-rule pt-6"
+      onSubmit={(event) => {
+        const message = deletable
+          ? t("assets.confirmDelete")
+          : t("assets.confirmArchive");
+        if (!window.confirm(message)) event.preventDefault();
+      }}
+    >
+      <input type="hidden" name="intent" value={deletable ? "delete" : "archive"} />
+      <button type="submit" disabled={busy} className={buttonClass("danger")}>
+        {deletable ? t("assets.delete") : t("assets.archive")}
+      </button>
+      <p className="mt-2 max-w-prose text-sm text-muted">
+        {deletable ? t("assets.deleteHint") : t("assets.archiveHint", { count: loans })}
+      </p>
+    </Form>
   );
 }

@@ -49,9 +49,11 @@ parte difficile. Non riproporlo.
    apre la «richiesta speciale».
 2. Invio vero delle richieste (il carrello oggi non ha dove finire)
 3. Pannello admin: approvare, segnare ritiro e riconsegna. **Il catalogo
-   lato admin è fatto**: oggetti (con ricerca, filtro e gruppi per categoria),
-   categorie e kit, tutti e tre sotto le stesse tre schede. Una categoria si
-   crea anche dal menu a tendina della scheda di un oggetto, senza uscire.
+   lato admin è fatto**: oggetti (con ricerca, filtro, gruppi per categoria e
+   spostamento in blocco), categorie e kit, tutti e tre sotto le stesse tre
+   schede. Una categoria si crea anche dal menu a tendina della scheda di un
+   oggetto, senza uscire. Un oggetto si elimina se non è mai stato prestato e
+   si archivia se lo è stato (vedi la regola 1).
 4. Promemoria di riconsegna via email (il giorno prima della scadenza)
 5. ~~Caricamento delle foto~~ — **fatto**, con anteprima prima di spedire
 6. ~~Ottimizzazione per telefono~~ — **fatta.** Il `<nav>` non traboccava solo
@@ -93,6 +95,26 @@ zero (distruttivo).
 Libero, Prenotato e In uso si **calcolano** dalle prenotazioni attive
 (`app/lib/availability.server.ts`). Aggiungere un campo `stato` sull'oggetto
 crea un dato che prima o poi mentirà. Vale anche per lo stato della richiesta.
+
+**`Asset.archivedAt` non è un'eccezione a questa regola**, ed è utile capire
+perché. Non è uno stato di disponibilità: non si ricava da nessun'altra riga
+del database, è una decisione di chi amministra — «questa cosa non è più
+nostra», venduta, persa, rotta per sempre. Un campo qui non può mentire,
+perché non c'è nessuna verità altrove con cui possa andare fuori sincrono.
+
+Non va confuso con `isBookable`, che è temporaneo e lascia l'oggetto in
+vetrina: «in riparazione» si vede nel catalogo, «archiviato» no.
+
+Il filtro degli archiviati sta in **un posto solo per i tre calcoli**
+(`NOT_ARCHIVED` in `availability.server.ts`), e non è pignoleria: una di
+quelle query alimenta il feed iCal, che è pubblico per costruzione. Se il
+filtro vivesse nelle rotte, prima o poi una lo dimenticherebbe e il nome di un
+oggetto tolto dal catalogo continuerebbe a uscire da lì.
+
+**Archiviare toglie l'oggetto anche da tutti i kit.** Un kit che continuasse a
+contenerlo mostrerebbe un pezzo che nel selettore non esiste più, e al primo
+salvataggio lo perderebbe in silenzio. Rimettere in catalogo non lo rimette
+nei kit: quello si fa a mano, e la scheda lo dice.
 
 ### 2. Il ritiro sta sugli oggetti, non sulla richiesta
 

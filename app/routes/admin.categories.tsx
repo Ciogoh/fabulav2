@@ -47,11 +47,15 @@ export async function loader({ request }: Route.LoaderArgs) {
       id: true,
       name: true,
       slug: true,
-      _count: { select: { assets: true } },
+      // Conteggio filtrato: gli archiviati non stanno più nel catalogo,
+      // quindi non vanno contati accanto alla categoria che li raggruppa.
+      _count: { select: { assets: { where: { archivedAt: null } } } },
     },
   });
 
-  const orphans = await db.asset.count({ where: { categoryId: null } });
+  const orphans = await db.asset.count({
+    where: { categoryId: null, archivedAt: null },
+  });
 
   return { categories, orphans };
 }

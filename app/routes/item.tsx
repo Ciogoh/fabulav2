@@ -54,8 +54,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const today = todayUtc();
   const horizon = new Date(today.getTime() + HORIZON_DAYS * 86_400_000);
 
-  const asset = await db.asset.findUnique({
-    where: { id: params.id },
+  const asset = await db.asset.findFirst({
+    // `findFirst` e non `findUnique`: serve una condizione in più dell'id.
+    // Un oggetto archiviato non è nel catalogo, quindi la sua scheda non
+    // esiste — 404, non una pagina che invita a prenotare qualcosa che non
+    // c'è più.
+    where: { id: params.id, archivedAt: null },
     select: {
       id: true,
       name: true,

@@ -36,8 +36,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     : occupancy;
 
   const asset = assetId
-    ? await db.asset.findUnique({
-        where: { id: assetId },
+    ? await db.asset.findFirst({
+        where: { id: assetId, archivedAt: null },
         select: { name: true },
       })
     : null;

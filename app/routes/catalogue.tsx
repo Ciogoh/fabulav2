@@ -74,6 +74,9 @@ export async function loader({ request }: Route.LoaderArgs) {
       db.category.findMany({ orderBy: { sortOrder: "asc" } }),
       db.asset.findMany({
         where: {
+          // Archiviato vuol dire «non è più roba nostra»: fuori dal catalogo,
+          // fuori dal conteggio, fuori dai kit.
+          archivedAt: null,
           ...(categorySlug ? { category: { slug: categorySlug } } : {}),
           ...search,
         },
@@ -99,6 +102,7 @@ export async function loader({ request }: Route.LoaderArgs) {
           name: true,
           description: true,
           assets: {
+            where: { asset: { archivedAt: null } },
             orderBy: { sortOrder: "asc" },
             select: { asset: { select: { id: true, name: true } } },
           },
@@ -106,7 +110,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       }),
       getUser(request),
       getCurrentAvailability(),
-      db.asset.count(),
+      db.asset.count({ where: { archivedAt: null } }),
     ]);
 
   const availability: Record<string, AssetAvailability> = Object.fromEntries(

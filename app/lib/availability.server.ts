@@ -75,6 +75,19 @@ const BLOCKING = {
  * finisca: `inizioA <= fineB && fineA >= inizioB`. Gli estremi sono inclusi,
  * perché un prestito che finisce il 7 tiene l'oggetto per tutto il 7.
  */
+/**
+ * Gli oggetti archiviati non compaiono in nessuno dei tre calcoli.
+ *
+ * Sta qui e non in ogni singola rotta perché una di queste tre query alimenta
+ * il feed iCal, che è **pubblico per costruzione**: un `.ics` non può chiedere
+ * chi sei. Se il filtro vivesse nelle rotte, prima o poi una lo dimenticherebbe
+ * e il nome di un oggetto tolto dal catalogo continuerebbe a uscire da lì.
+ *
+ * Un oggetto si può archiviare mentre è ancora in prestito — se è andato
+ * perduto, indietro non torna — quindi il caso non è teorico.
+ */
+const NOT_ARCHIVED = { asset: { archivedAt: null } } as const;
+
 export async function getBusyAssetIds(
   start: Date,
   end: Date,
@@ -83,6 +96,7 @@ export async function getBusyAssetIds(
   const items = await db.requestItem.findMany({
     where: {
       ...BLOCKING,
+      ...NOT_ARCHIVED,
       // Rimodificare le date di una richiesta già approvata non deve farla
       // risultare in conflitto con sé stessa — i suoi stessi oggetti sono
       // "occupati" solo perché è lei ad occuparli.
@@ -115,6 +129,7 @@ export async function getCurrentAvailability(): Promise<
   const items = await db.requestItem.findMany({
     where: {
       ...BLOCKING,
+      ...NOT_ARCHIVED,
       request: {
         ...BLOCKING.request,
         // Quello che è già finito non interessa; quello che deve ancora
@@ -200,6 +215,7 @@ export async function getOccupancy(
   const items = await db.requestItem.findMany({
     where: {
       returnedAt: null,
+      ...NOT_ARCHIVED,
       request: {
         status: { in: [...statuses] },
         startDate: { lte: end },

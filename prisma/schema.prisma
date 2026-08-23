@@ -168,6 +168,20 @@ model Asset {
   /// Note interne: mai mostrate a chi non è admin.
   adminNotes String?
 
+  /// Quando è stato tolto dal catalogo.
+  ///
+  /// Un oggetto venduto, perso o rotto per sempre non sempre si può
+  /// cancellare: `RequestItem.asset` è `onDelete: Restrict`, quindi appena ha
+  /// un prestito alle spalle cancellarlo vorrebbe dire cancellare lo storico
+  /// di chi l'ha avuto. Si archivia: fuori dal catalogo, dentro allo storico.
+  ///
+  /// Non contraddice la regola «gli stati non si salvano mai»: quella parla
+  /// degli stati di disponibilità, che si calcolano dalle prenotazioni e che
+  /// quindi un campo potrebbe solo far mentire. «Archiviato» non si calcola
+  /// da niente — è una decisione di chi amministra, e non c'è nessun altro
+  /// posto nel database da cui la si possa dedurre.
+  archivedAt DateTime?
+
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 

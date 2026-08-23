@@ -51,6 +51,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const [assets, occupancy] = await Promise.all([
     db.asset.findMany({
+      where: { archivedAt: null },
       orderBy: [{ category: { sortOrder: "asc" } }, { name: "asc" }],
       select: {
         id: true,

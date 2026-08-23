@@ -111,8 +111,11 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const assetIds = items.map((item) => item.assetId);
+  /* Il carrello vive nel browser e può essere vecchio di settimane: un
+     oggetto archiviato nel frattempo va rifiutato qui, non solo nascosto nel
+     catalogo. */
   const assets = await db.asset.findMany({
-    where: { id: { in: assetIds } },
+    where: { id: { in: assetIds }, archivedAt: null },
     select: { id: true, name: true, isBookable: true },
   });
   const assetById = new Map(assets.map((asset) => [asset.id, asset]));

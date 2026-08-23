@@ -13,6 +13,7 @@ import type { KitAssetOption } from "~/components/kit-fields";
  */
 export async function assetOptions(): Promise<KitAssetOption[]> {
   const assets = await db.asset.findMany({
+    where: { archivedAt: null },
     orderBy: [{ category: { sortOrder: "asc" } }, { name: "asc" }],
     select: {
       id: true,
