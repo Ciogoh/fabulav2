@@ -612,6 +612,15 @@ chi darlo e fino a quando. Quattro file: `lib/qr.server.ts` genera il codice,
 `routes/admin.scan.tsx` lo legge, `routes/h.$code.tsx` traduce l'indirizzo
 corto dell'adesivo, `routes/admin.handover.$assetId.tsx` consegna.
 
+**Lo stesso adesivo ha due destinazioni, decise da chi lo inquadra.**
+`routes/h.$code.tsx` chiama `getUser` e smista: un **admin** finisce sulla
+consegna diretta, chiunque altro — anonimo o socio — finisce sulla scheda
+pubblica dell'oggetto (`/items/:id`), foto e descrizione comprese, senza che
+gli venga mai chiesto di accedere. Nessun `requireUser`/`requireAdmin` in
+questa rotta: entrambe le pagine di destinazione sono già protette per conto
+proprio, e bloccare qui vorrebbe dire mandare chi non è admin su un 404
+invece che sulla scheda, dopo che ha appena inquadrato un adesivo.
+
 **Quello che nasce è una `Request` normale**, già `APPROVED` con il suo
 `RequestItem` già `pickedUpAt` — lo stato in cui una richiesta ordinaria
 arriva dopo tre passaggi invece che dopo uno. È il motivo per cui questa
