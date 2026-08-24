@@ -31,9 +31,10 @@ export type HeaderUser = Person & {
   pendingCount?: number;
 };
 
-/** Alto abbastanza da centrarci il pollice, senza gonfiare la barra. */
+/** 44px: il minimo per un tocco affidabile, non i 36px che "ci stava il
+ * pollice" lasciava intendere — vedi ITEM più sotto per la stessa misura. */
 const LINK =
-  "inline-flex min-h-9 items-center rounded px-0.5 text-muted hover:text-ink aria-[current=page]:font-medium aria-[current=page]:text-ink";
+  "inline-flex min-h-11 items-center rounded px-0.5 text-muted hover:text-ink aria-[current=page]:font-medium aria-[current=page]:text-ink";
 
 export function SiteHeader({ user }: { user: HeaderUser | null }) {
   const t = useT();
@@ -102,12 +103,12 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
         </nav>
 
         <div className="ml-auto flex flex-wrap items-center gap-3">
-          <LanguageSwitch />
+          <LanguageMenu />
 
           {user ? (
             <ProfileMenu user={user} />
           ) : (
-            <ButtonLink to="/signin" variant="secondary" size="sm">
+            <ButtonLink to="/signin" variant="secondary" size="md">
               {t("nav.signIn")}
             </ButtonLink>
           )}
@@ -118,82 +119,168 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
 }
 
 /**
- * Le tre lingue, per iniziali.
- *
- * Era un menu a tendina largo quanto «Italiano» per una scelta che sta in due
- * lettere e che si fa una volta sola. Tre pulsanti occupano meno del menu
- * chiuso e tolgono un passaggio: prima bisognava aprirlo anche solo per
- * sapere quali lingue c'erano.
- *
- * Restano `<button type="submit">` dentro a una form, e non pulsanti con un
- * `onClick`: il browser manda solo il valore del pulsante premuto, quindi la
- * lingua si cambia anche senza JavaScript e l'`action` non cambia di una riga.
- *
- * La lingua attiva non si distingue solo per colore — è la stessa regola dei
- * pallini di stato: sotto ci passa una riga d'accento, che si vede anche
- * stampata in bianco e nero.
- *
- * **La lingua premuta si accende subito, senza aspettare il server.** Non è
- * una questione di velocità del server — l'`action` risponde in due
- * millisecondi — ma di silenzio: cambiare lingua ricarica ogni testo della
- * pagina, e finché non arriva tutto il pulsante restava spento come se la
- * pressione non fosse stata registrata, invitando a premere di nuovo.
- * `fetcher.formData` contiene già la lingua che sta viaggiando, quindi la
- * risposta è immediata e non c'è nessuno stato in più da tenere allineato.
+ * Apertura/chiusura condivisa fra i due menu dell'intestazione (lingua e
+ * profilo): hover solo da mouse vero, Escape, click fuori, fuoco che esce
+ * col Tab chiude. Estratta da qui perché prima viveva solo dentro
+ * `ProfileMenu` — vedi lì il perché di ogni pezzo, non ripetuto due volte.
  */
-function LanguageSwitch() {
-  const t = useT();
-  const lang = useLang();
-  const location = useLocation();
-  const fetcher = useFetcher();
-  const pending = fetcher.formData?.get("lang");
+function useDisclosure() {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  /* Aperto dal passaggio del mouse, non da una pressione. Serve al `onClick`
+     di chi usa questo hook: col mouse sopra, il menu è **già** aperto quando
+     arriva il click, e un semplice «apri/chiudi» lo richiuderebbe
+     nell'istante in cui lo si preme. Col dito e da tastiera il passaggio non
+     esiste, questo resta falso, e il click torna a essere un interruttore. */
+  const openedByHover = useRef(false);
 
-  return (
-    <fetcher.Form
-      method="post"
-      action="/language"
-      aria-label={t("nav.language")}
-      className="flex items-center gap-0.5"
-    >
-      {/* Torniamo esattamente dove eravamo, filtri di ricerca compresi. */}
-      <input
-        type="hidden"
-        name="redirectTo"
-        value={location.pathname + location.search}
-      />
+  useEffect(() => {
+    if (!open) return;
 
-      {LANGUAGES.map((code) => {
-        // Quella che sta viaggiando vince su quella confermata dal server.
-        const current = pending ? code === pending : code === lang;
-        return (
-          <button
-            key={code}
-            type="submit"
-            name="lang"
-            value={code}
-            aria-current={current ? "true" : undefined}
-            className={`inline-flex min-h-9 min-w-9 items-center justify-center rounded px-2 font-mono text-[0.7rem] uppercase tracking-widest ${
-              current
-                ? "font-medium text-ink underline decoration-accent decoration-2 underline-offset-4"
-                : "text-muted hover:text-ink"
-            }`}
-          >
-            {/* «EN» è un'abbreviazione: da sola, un lettore di schermo la
-                leggerebbe come una parola. Il nome per esteso viaggia
-                nascosto accanto, ed è quello che viene annunciato. */}
-            <span aria-hidden="true">{code}</span>
-            <span className="sr-only">{LANGUAGE_NAMES[code]}</span>
-          </button>
-        );
-      })}
-    </fetcher.Form>
-  );
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+
+    /* `pointerdown` e non `click`: chi preme fuori si aspetta che il menu sia
+       già sparito quando alza il dito, e il click che arriva dopo deve finire
+       su quello che ha premuto, non essere consumato per chiudere. */
+    function onPointerDown(event: PointerEvent) {
+      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [open]);
+
+  return { open, setOpen, wrapRef, triggerRef, openedByHover };
 }
 
 /** Una voce del menu: alta 44px, larga quanto il pannello. Un elenco di righe
  * alte venti pixel, in magazzino col pollice, si sbaglia. */
 const ITEM =
   "flex min-h-11 w-full items-center rounded px-3 text-left text-sm text-muted hover:bg-sunk hover:text-ink";
+
+/**
+ * La lingua, raccolta in un pulsante solo invece di tre sempre in vista.
+ *
+ * Erano tre `<button>` da 36×36px con 2px fra loro — sotto ai minimi di
+ * tocco comuni (44px Apple, 48px Google), e con quel poco spazio un vero
+ * rischio di premere quella sbagliata. Comprimerli ha senso perché la
+ * scelta **si salva** (cookie e, per chi ha un account, anche sul profilo —
+ * vedi `routes/language.tsx`): si tocca quasi solo la prima volta, non serve
+ * tenerla sempre visibile in tre pezzi.
+ *
+ * Stessa disclosure di `ProfileMenu` (`useDisclosure`), stesso
+ * `fetcher.Form` di prima per il submit: il browser manda solo il valore del
+ * pulsante premuto, quindi la lingua cambia anche senza JavaScript, e la
+ * lingua premuta si accende subito senza aspettare il server —
+ * `fetcher.formData` contiene già quella che sta viaggiando.
+ */
+function LanguageMenu() {
+  const t = useT();
+  const lang = useLang();
+  const location = useLocation();
+  const fetcher = useFetcher();
+  const pending = fetcher.formData?.get("lang");
+  // Quella che sta viaggiando vince su quella confermata dal server.
+  const active =
+    LANGUAGES.find((code) => (pending ? code === pending : code === lang)) ??
+    lang;
+  const { open, setOpen, wrapRef, triggerRef, openedByHover } =
+    useDisclosure();
+
+  return (
+    <div
+      ref={wrapRef}
+      className="relative"
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "mouse") return;
+        openedByHover.current = true;
+        setOpen(true);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== "mouse") return;
+        openedByHover.current = false;
+        setOpen(false);
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
+        className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded px-2 text-sm text-muted hover:text-ink aria-expanded:text-ink"
+      >
+        {/* «EN» è un'abbreviazione: da sola, un lettore di schermo la
+            leggerebbe come una parola. Il nome del controllo viaggia
+            nascosto accanto, ed è quello che viene annunciato. */}
+        <span
+          aria-hidden="true"
+          className="font-mono text-[0.7rem] uppercase tracking-widest"
+        >
+          {active}
+        </span>
+        <span className="sr-only">{t("nav.language")}</span>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`h-2.5 w-2.5 transition-transform ${open ? "rotate-180" : ""}`}
+        >
+          <path d="M2.5 4.5 6 8l3.5-3.5" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-20 pt-2">
+          <fetcher.Form
+            method="post"
+            action="/language"
+            aria-label={t("nav.language")}
+            className="min-w-36 rounded border border-rule bg-card p-1 shadow-lg"
+          >
+            {/* Torniamo esattamente dove eravamo, filtri di ricerca compresi. */}
+            <input
+              type="hidden"
+              name="redirectTo"
+              value={location.pathname + location.search}
+            />
+            {LANGUAGES.map((code) => (
+              <button
+                key={code}
+                type="submit"
+                name="lang"
+                value={code}
+                aria-current={code === active ? "true" : undefined}
+                onClick={() => setOpen(false)}
+                className={`${ITEM} ${code === active ? "font-medium text-ink" : ""}`}
+              >
+                {LANGUAGE_NAMES[code]}
+              </button>
+            ))}
+          </fetcher.Form>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * Il proprio nome apre un menu, non una pagina.
@@ -228,39 +315,8 @@ const ITEM =
 function ProfileMenu({ user }: { user: HeaderUser }) {
   const t = useT();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  /* Aperto dal passaggio del mouse, non da una pressione. Serve al `onClick`
-     qui sotto: col mouse sopra, il menu è **già** aperto quando arriva il
-     click, e un semplice «apri/chiudi» lo richiuderebbe nell'istante in cui
-     lo si preme. Col dito e da tastiera il passaggio non esiste, questo resta
-     falso, e il click torna a essere un interruttore. */
-  const openedByHover = useRef(false);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      setOpen(false);
-      triggerRef.current?.focus();
-    }
-
-    /* `pointerdown` e non `click`: chi preme fuori si aspetta che il menu sia
-       già sparito quando alza il dito, e il click che arriva dopo deve finire
-       su quello che ha premuto, non essere consumato per chiudere. */
-    function onPointerDown(event: PointerEvent) {
-      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-
-    document.addEventListener("keydown", onKeyDown);
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, [open]);
+  const { open, setOpen, wrapRef, triggerRef, openedByHover } =
+    useDisclosure();
 
   return (
     <div
@@ -290,7 +346,7 @@ function ProfileMenu({ user }: { user: HeaderUser }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
-        className="flex min-h-9 items-center gap-2 rounded px-1 text-sm text-muted hover:text-ink aria-expanded:text-ink"
+        className="flex min-h-11 items-center gap-2 rounded px-1 text-sm text-muted hover:text-ink aria-expanded:text-ink"
       >
         <Avatar person={user} size="sm" />
         <PersonName person={user} />
