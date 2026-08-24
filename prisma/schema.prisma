@@ -1,6 +1,7 @@
 // Fabula — schema dati
 //
-// Nove tabelle, come da specifica. Due principi guidano tutto lo schema:
+// Dieci tabelle nostre più le tre di Better Auth. Due principi guidano tutto
+// lo schema:
 //
 //  1. Gli stati visibili (Libero / Prenotato / In uso) NON sono campi salvati:
 //     si calcolano dalle prenotazioni attive, così non possono andare fuori
@@ -80,6 +81,7 @@ model User {
   decidedRequests Request[] @relation("DecidedBy")
   sessions        Session[]
   accounts        Account[]
+  adminActions    AdminAction[]
 }
 
 // ------------------------------------------------------- autenticazione
@@ -321,5 +323,45 @@ model Message {
   @@index([requestId])
 }
 
-// Le tabelle dell'autenticazione (sessioni, provider, codici OTP) le
-// aggiungerà la libreria di accesso quando la colleghiamo.
+// ------------------------------------------------ registro degli admin
+
+/// Chi ha fatto cosa, fra le azioni che toccano la fiducia o lo stato di un
+/// prestito. Nasce da un bisogno pratico prima che formale: gli admin sono
+/// volontari che si alternano, e «chi ha segnato questo ritiro?» era una
+/// domanda senza risposta.
+///
+/// Sono registrate solo le azioni che spostano qualcosa di irreversibile o
+/// che riguardano un'altra persona — decisioni su una richiesta, passaggi di
+/// mano, ruoli, reset di password, archiviazione. **Non** le modifiche di
+/// campo (rinominare un oggetto, cambiare una descrizione): sono reversibili
+/// e a basso rischio, e registrarle riempirebbe il registro di rumore prima
+/// ancora di sapere se serve.
+///
+/// `detail` è testo già pronto, scritto al momento dell'azione e mai più
+/// ricalcolato: il registro deve restare leggibile anche quando l'oggetto è
+/// stato archiviato o la richiesta cancellata. Un `targetId` che non punta
+/// più a niente è normale qui, e non è un difetto da correggere con una
+/// chiave esterna — che anzi cancellerebbe la riga proprio quando serve.
+model AdminAction {
+  id      String @id @default(cuid())
+  actorId String
+  actor   User   @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  /// Cosa è successo, in forma di chiave: `request.approve`,
+  /// `requestItem.pickup`, `member.roleChanged`, `asset.archived`…
+  /// Una stringa e non un enum: il registro è cronologia, e un enum
+  /// costringerebbe a una migrazione ogni volta che si registra un'azione
+  /// nuova. Le etichette tradotte stanno in `i18n/dictionaries.ts`.
+  action String
+
+  targetType String
+  targetId   String
+
+  /// La riga già scritta per esteso: «Proiettore Epson (20–25 ago)».
+  detail String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([createdAt])
+}

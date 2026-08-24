@@ -24,6 +24,7 @@ export default [
   route("admin/kits/new", "routes/admin.kits.new.tsx"),
   route("admin/kits/:id", "routes/admin.kits.$id.tsx"),
   route("admin/categories", "routes/admin.categories.tsx"),
+  route("admin/log", "routes/admin.log.tsx"),
   route("reset-password", "routes/reset-password.tsx"),
   route("uploads/*", "routes/uploads.tsx"),
   // Tutto l'accesso passa da un solo gestore di Better Auth.

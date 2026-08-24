@@ -15,6 +15,8 @@ import { Avatar, PersonName } from "~/components/person";
 import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { requireAdmin } from "~/lib/session.server";
+import { logAdminAction } from "~/lib/audit.server";
+import { fullLabelOf } from "~/lib/person";
 import { useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import { AdminBadge } from "~/components/admin-badge";
@@ -52,7 +54,17 @@ export async function action({ request }: Route.ActionArgs) {
 
   const target = await db.user.findUnique({
     where: { id: targetId },
-    select: { id: true, email: true, role: true },
+    // Nome e alias servono solo alla riga del registro, che deve restare
+    // leggibile anche se un domani questo account non c'è più.
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      name: true,
+      firstName: true,
+      lastName: true,
+      alias: true,
+    },
   });
   if (!target) {
     return { ok: false as const, error: "members.errorGeneric" as TranslationKey };
@@ -70,10 +82,17 @@ export async function action({ request }: Route.ActionArgs) {
       }
     }
 
-    await db.user.update({
-      where: { id: target.id },
-      data: { role: target.role === "ADMIN" ? "MEMBER" : "ADMIN" },
+    const nextRole = target.role === "ADMIN" ? "MEMBER" : "ADMIN";
+    await db.user.update({ where: { id: target.id }, data: { role: nextRole } });
+
+    await logAdminAction({
+      actorId: admin.id,
+      action: "member.roleChanged",
+      targetType: "User",
+      targetId: target.id,
+      detail: `${fullLabelOf(target)} — ${target.role} → ${nextRole}`,
     });
+
     return { ok: true as const, intent };
   }
 
@@ -89,6 +108,17 @@ export async function action({ request }: Route.ActionArgs) {
       console.error("Invio link di reset fallito:", error);
       return { ok: false as const, error: "members.errorGeneric" as TranslationKey };
     }
+
+    // Un link che permette di entrare nell'account di un altro: è
+    // esattamente il genere di azione per cui il registro esiste.
+    await logAdminAction({
+      actorId: admin.id,
+      action: "member.resetSent",
+      targetType: "User",
+      targetId: target.id,
+      detail: fullLabelOf(target),
+    });
+
     return { ok: true as const, intent };
   }
 

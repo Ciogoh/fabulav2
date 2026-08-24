@@ -32,6 +32,7 @@ const en = {
   "nav.adminQueue": "To approve",
   "nav.adminMembers": "Members",
   "nav.adminAssets": "Items",
+  "nav.adminLog": "Activity",
 
   "catalogue.heading": "Catalogue",
   "catalogue.clearFilter": "Clear",
@@ -336,6 +337,22 @@ const en = {
   "adminQueue.showAll": "Show all requests",
   "adminQueue.showPending": "Show only pending",
 
+  "log.heading": "Activity",
+  "log.intro":
+    "Decisions on requests, handovers, roles and archiving. Edits to an item's fields are not recorded.",
+  "log.empty": "Nothing recorded yet.",
+  "log.truncated": "Only the last {count} entries are shown.",
+  "log.action.request.approve": "approved a request",
+  "log.action.request.reject": "rejected a request",
+  "log.action.request.cancel": "cancelled a request",
+  "log.action.requestItem.pickup": "marked a pickup",
+  "log.action.requestItem.return": "marked a return",
+  "log.action.member.roleChanged": "changed a role",
+  "log.action.member.resetSent": "sent a password link",
+  "log.action.asset.archived": "archived an item",
+  "log.action.asset.deleted": "deleted an item",
+  "log.action.asset.handover": "handed an item over in person",
+
   "resetPassword.heading": "Choose a new password",
   "resetPassword.intro": "At least 10 characters.",
   "resetPassword.newPassword": "New password",
@@ -360,6 +377,7 @@ const it: Dictionary = {
   "nav.adminQueue": "Da approvare",
   "nav.adminMembers": "Soci",
   "nav.adminAssets": "Oggetti",
+  "nav.adminLog": "Registro",
 
   "catalogue.heading": "Catalogo",
   "catalogue.clearFilter": "Azzera",
@@ -658,6 +676,22 @@ const it: Dictionary = {
   "adminQueue.showAll": "Mostra tutte le richieste",
   "adminQueue.showPending": "Mostra solo quelle in attesa",
 
+  "log.heading": "Registro",
+  "log.intro":
+    "Decisioni sulle richieste, passaggi di mano, ruoli e archiviazione. Le modifiche ai campi di un oggetto non sono registrate.",
+  "log.empty": "Ancora niente.",
+  "log.truncated": "Sono mostrate solo le ultime {count} voci.",
+  "log.action.request.approve": "ha approvato una richiesta",
+  "log.action.request.reject": "ha rifiutato una richiesta",
+  "log.action.request.cancel": "ha annullato una richiesta",
+  "log.action.requestItem.pickup": "ha segnato un ritiro",
+  "log.action.requestItem.return": "ha segnato una riconsegna",
+  "log.action.member.roleChanged": "ha cambiato un ruolo",
+  "log.action.member.resetSent": "ha mandato un link per la password",
+  "log.action.asset.archived": "ha archiviato un oggetto",
+  "log.action.asset.deleted": "ha eliminato un oggetto",
+  "log.action.asset.handover": "ha consegnato un oggetto di persona",
+
   "resetPassword.heading": "Scegli una nuova password",
   "resetPassword.intro": "Almeno 10 caratteri.",
   "resetPassword.newPassword": "Nuova password",
@@ -679,6 +713,7 @@ const de: Dictionary = {
   "nav.adminQueue": "Zu genehmigen",
   "nav.adminMembers": "Mitglieder",
   "nav.adminAssets": "Gegenstände",
+  "nav.adminLog": "Protokoll",
 
   "catalogue.heading": "Katalog",
   "catalogue.clearFilter": "Zurücksetzen",
@@ -976,6 +1011,22 @@ const de: Dictionary = {
   "adminQueue.empty": "Nichts ausstehend.",
   "adminQueue.showAll": "Alle Anfragen zeigen",
   "adminQueue.showPending": "Nur ausstehende zeigen",
+
+  "log.heading": "Protokoll",
+  "log.intro":
+    "Entscheidungen zu Anfragen, Übergaben, Rollen und Archivierung. Änderungen an den Feldern eines Gegenstands werden nicht protokolliert.",
+  "log.empty": "Noch nichts protokolliert.",
+  "log.truncated": "Es werden nur die letzten {count} Einträge gezeigt.",
+  "log.action.request.approve": "hat eine Anfrage genehmigt",
+  "log.action.request.reject": "hat eine Anfrage abgelehnt",
+  "log.action.request.cancel": "hat eine Anfrage storniert",
+  "log.action.requestItem.pickup": "hat eine Abholung eingetragen",
+  "log.action.requestItem.return": "hat eine Rückgabe eingetragen",
+  "log.action.member.roleChanged": "hat eine Rolle geändert",
+  "log.action.member.resetSent": "hat einen Passwort-Link geschickt",
+  "log.action.asset.archived": "hat einen Gegenstand archiviert",
+  "log.action.asset.deleted": "hat einen Gegenstand gelöscht",
+  "log.action.asset.handover": "hat einen Gegenstand persönlich übergeben",
 
   "resetPassword.heading": "Neues Passwort wählen",
   "resetPassword.intro": "Mindestens 10 Zeichen.",

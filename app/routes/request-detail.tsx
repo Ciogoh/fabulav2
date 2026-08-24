@@ -27,6 +27,7 @@ import {
   todayUtc,
 } from "~/lib/availability.server";
 import { notifyRequesterCancelled, notifyRequesterDecision, sendReturnReminder } from "~/lib/notifications.server";
+import { logAdminAction } from "~/lib/audit.server";
 import { useFormatDay, useLang, useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import type { RequestStatus } from "~/generated/prisma/enums";
@@ -37,6 +38,24 @@ import { DateRangeFields } from "~/components/date-range-fields";
 
 export function meta({ matches }: Route.MetaArgs) {
   return [{ title: pageTitle(matches, "requests.detailHeading") }];
+}
+
+/**
+ * La riga che finirà nel registro degli admin: cosa e quando, per esteso.
+ *
+ * Il testo si scrive **adesso** e non si ricalcola mai più — è il punto del
+ * registro: fra sei mesi l'oggetto può essere archiviato e la richiesta
+ * cancellata, ma «ha approvato Proiettore Epson (2026-08-20 → 2026-08-25)»
+ * resta leggibile. Le date restano in ISO e non nel formato della lingua di
+ * chi ha premuto: il registro lo leggono altri, magari in un'altra lingua.
+ */
+function requestDetailLine(req: {
+  items: Array<{ asset: { name: string } }>;
+  startDate: Date;
+  endDate: Date;
+}): string {
+  const names = req.items.map((item) => item.asset.name).join(", ");
+  return `${names} (${formatDay(req.startDate)} → ${formatDay(req.endDate)})`;
 }
 
 async function loadAuthorized(userId: string, isAdminRole: boolean, id: string) {
@@ -234,6 +253,16 @@ export async function action({ request, params }: Route.ActionArgs) {
     await db.request.update({ where: { id: req.id }, data: { status: "CANCELLED" } });
 
     if (isAdmin && !isOwner) {
+      // Solo l'annullo *di un altro* finisce nel registro: chi ritira la
+      // propria richiesta non sta esercitando un permesso da admin.
+      await logAdminAction({
+        actorId: user.id,
+        action: "request.cancel",
+        targetType: "Request",
+        targetId: req.id,
+        detail: requestDetailLine(req),
+      });
+
       try {
         await notifyRequesterCancelled({
           to: req.user.email,
@@ -276,6 +305,15 @@ export async function action({ request, params }: Route.ActionArgs) {
         decidedById: admin.id,
       },
     });
+
+    await logAdminAction({
+      actorId: admin.id,
+      action: intent === "approve" ? "request.approve" : "request.reject",
+      targetType: "Request",
+      targetId: req.id,
+      detail: `${fullLabelOf(req.user)} — ${requestDetailLine(req)}`,
+    });
+
     try {
       await notifyRequesterDecision({
         to: req.user.email,
@@ -314,6 +352,18 @@ export async function action({ request, params }: Route.ActionArgs) {
       }
       await db.requestItem.update({ where: { id: itemId }, data: { returnedAt: new Date() } });
     }
+
+    // Il passaggio di mano è per singolo oggetto (regola 2), quindi anche la
+    // riga di registro lo è: «chi ha segnato quel ritiro» era la domanda
+    // senza risposta da cui nasce tutto questo.
+    await logAdminAction({
+      actorId: admin.id,
+      action: intent === "pickup" ? "requestItem.pickup" : "requestItem.return",
+      targetType: "RequestItem",
+      targetId: item.id,
+      detail: `${item.asset.name} — ${fullLabelOf(req.user)}`,
+    });
+
     return { ok: true as const, intent };
   }
 

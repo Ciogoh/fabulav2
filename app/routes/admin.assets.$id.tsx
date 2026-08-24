@@ -23,6 +23,7 @@ import { buttonClass } from "~/components/button";
 import { pageTitle } from "~/i18n/meta";
 import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
+import { logAdminAction } from "~/lib/audit.server";
 import { deleteAssetPhotoFiles, saveAssetPhoto } from "~/lib/uploads.server";
 import { useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
@@ -66,7 +67,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await requireAdmin(request);
+  const admin = await requireAdmin(request);
   const asset = await loadAsset(params.id);
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "save");
@@ -100,6 +101,15 @@ export async function action({ request, params }: Route.ActionArgs) {
       db.asset.update({ where: { id: asset.id }, data: { archivedAt: new Date() } }),
       db.kitAsset.deleteMany({ where: { assetId: asset.id } }),
     ]);
+
+    await logAdminAction({
+      actorId: admin.id,
+      action: "asset.archived",
+      targetType: "Asset",
+      targetId: asset.id,
+      detail: asset.name,
+    });
+
     return redirect("/admin/assets");
   }
 
@@ -121,6 +131,17 @@ export async function action({ request, params }: Route.ActionArgs) {
       await deleteAssetPhotoFiles(photo.url, photo.thumbUrl);
     }
     await db.asset.delete({ where: { id: asset.id } });
+
+    // Il nome nel registro è l'unica traccia che resta: la riga
+    // dell'oggetto non c'è più, e `targetId` punta al vuoto per costruzione.
+    await logAdminAction({
+      actorId: admin.id,
+      action: "asset.deleted",
+      targetType: "Asset",
+      targetId: asset.id,
+      detail: asset.name,
+    });
+
     return redirect("/admin/assets");
   }
 
