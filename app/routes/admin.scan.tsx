@@ -6,37 +6,28 @@
  * cortesia: chi sta alla scrivania con un oggetto in mano deve poterlo
  * consegnare senza tirare fuori il telefono.
  *
- * ## Perché il ciclo è scritto qui e non preso da una libreria
+ * Cinque cose non ovvie, tutte imparate dal modo in cui i browser trattano
+ * una fotocamera:
  *
- * Prima questa pagina usava `qr-scanner`, che fa tutto — fotocamera, ciclo,
- * decodifica — e lo fa bene. È stata tolta per una ragione sola: **il ciclo è
- * il posto dove si decide quanto lontano si riesce a leggere**, e da dentro
- * una libreria quel posto non si tocca. `qr-scanner` legge un quadrato
- * centrale ridotto a 400 pixel: un adesivo a mezzo metro lì dentro diventa una
- * manciata di pixel e non lo legge nessun decodificatore, per quanto buono
- * sia. Il ciclo qui sotto legge invece **due aree alternate** (vedi
- * `scanLoop`), ed è quello — non il decodificatore — a cambiare la distanza
- * utile.
- *
- * La decodifica vera sta in `lib/qr-engine.ts`: `BarcodeDetector` dove c'è
- * (Android: legge il sistema operativo, non JavaScript), `zxing-wasm` dove
- * non c'è, cioè su iPhone.
- *
- * ## Cinque cose non ovvie sui browser e le fotocamere
- *
- * 1. **`facingMode: { exact: "environment" }` fallisce sui portatili**, che
- *    non hanno una fotocamera posteriore: rispondono `OverconstrainedError`
- *    (verificato). Per questo `openCamera` prova una scaletta di vincoli e
- *    scende di pretesa a ogni fallimento, invece di chiedere una cosa sola.
- * 2. **`facingMode` non basta comunque a scegliere bene su Android**: dice
- *    «una di dietro», e quale sia è una lotteria fra principale, grandangolare
- *    e teleobiettivo. Vedi `pickRearCamera`.
- * 3. **Le etichette delle fotocamere esistono solo dopo il permesso.** Prima
- *    `enumerateDevices` le restituisce senza nome, quindi l'ordine è
- *    obbligato: apri una fotocamera qualsiasi, poi elenca, poi correggi.
- * 4. **La fotocamera si chiede una risoluzione alta.** È gratis in termini di
- *    codice e raddoppia la distanza utile: un QR che a 640 pixel è illeggibile
- *    a 1920 si legge benissimo.
+ * 1. **La fotocamera parte da sola all'apertura**, e il pulsante resta solo
+ *    come ritorno quando l'avvio fallisce. Su iOS il permesso viene chiesto
+ *    anche senza un tocco finché la scheda è in primo piano; nei browser
+ *    dentro ad altre app (WKWebView) può non bastare, ed è il caso che quel
+ *    pulsante di ripiego copre.
+ * 2. **`preferredCamera: "environment"` da solo non basta su un portatile.**
+ *    La libreria lo chiede come vincolo *esatto*, e un Mac senza fotocamera
+ *    posteriore risponde `OverconstrainedError` — provato. Va a finire bene
+ *    lo stesso perché `qr-scanner` riprova senza quel vincolo e si prende la
+ *    webcam che c'è; resta la preferenza giusta per il telefono, dove la
+ *    posteriore è quella con cui si inquadra qualcosa che non sei tu.
+ * 3. **Chi ha più di una fotocamera deve poter scegliere.** Sul portatile è
+ *    webcam interna contro webcam esterna, sul telefono è davanti contro
+ *    dietro: in tutti e due i casi il ripiego del punto 2 può prendere quella
+ *    sbagliata, e senza un modo di cambiarla non resta niente da fare.
+ * 4. **`qr-scanner` e non `BarcodeDetector`.** Quest'ultimo è nel browser e
+ *    non costerebbe niente, ma su iOS Safari non esiste affatto — e metà
+ *    dell'associazione gira con un iPhone. La libreria usa `BarcodeDetector`
+ *    dove c'è e un decoder proprio dove non c'è.
  * 5. **Serve HTTPS.** `getUserMedia` esiste solo in un contesto sicuro:
  *    `localhost` va bene, l'indirizzo IP del computer sulla rete di casa no.
  *    Per provarlo dal telefono in sviluppo si passa dal tunnel Cloudflare che
@@ -52,7 +43,7 @@
  * un sito qualsiasi — con l'aria di esserci arrivato da dentro Fabula.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import type { Route } from "./+types/admin.scan";
 import { PageShell } from "~/components/page";
@@ -61,7 +52,6 @@ import { Select } from "~/components/select";
 import { pageTitle } from "~/i18n/meta";
 import { requireAdmin } from "~/lib/session.server";
 import { useT } from "~/i18n/use-t";
-import type { QrEngine } from "~/lib/qr-engine";
 
 export function meta({ matches }: Route.MetaArgs) {
   return [{ title: pageTitle(matches, "scan.heading") }];
@@ -82,12 +72,6 @@ export async function loader({ request }: Route.LoaderArgs) {
  * non c'è. L'identificativo deve essere un cuid plausibile e nient'altro —
  * niente barre, niente punti, quindi niente modo di risalire da lì a un
  * percorso diverso.
- *
- * **Accetta due forme**: quella corta e maiuscola stampata sugli adesivi
- * (`/H/CMT3...`) e quella lunga di prima (`/admin/handover/cmt3...`), che
- * resta valida perché un adesivo già attaccato non si stacca da solo. In
- * tutti e due i casi il percorso viene **ricostruito** dall'identificativo
- * catturato, mai riusato com'era: così query e frammenti non passano.
  */
 export function handoverPathFrom(text: string, origin: string): string | null {
   let url: URL;
@@ -99,9 +83,13 @@ export function handoverPathFrom(text: string, origin: string): string | null {
 
   if (url.origin.toUpperCase() !== origin.toUpperCase()) return null;
 
+  // L'adesivo di oggi: corto e maiuscolo, per far entrare il QR nella
+  // modalità alfanumerica e guadagnare un quarto di dimensione per modulo.
   const short = /^\/H\/([A-Za-z0-9]{1,64})$/i.exec(url.pathname);
   if (short) return `/admin/handover/${short[1].toLowerCase()}`;
 
+  // La forma lunga di prima resta valida: un adesivo già attaccato non si
+  // stacca da solo.
   const long = /^\/admin\/handover\/([A-Za-z0-9_-]{1,64})$/.exec(url.pathname);
   return long ? `/admin/handover/${long[1]}` : null;
 }
@@ -152,7 +140,8 @@ const SECONDARY_REAR = /(ultra|tele|macro|depth|monochrom|mono\b|bokeh|infrared|
  * in cima perché l'ordine di enumerazione la mette per prima.
  *
  * Restituisce `null` quando non c'è niente di posteriore: su un portatile con
- * la sola webcam frontale non c'è scelta da fare.
+ * la sola webcam frontale non c'è scelta da fare, e cambiare fotocamera per
+ * forza vorrebbe solo dire riavviare lo stream per niente.
  */
 export function pickRearCamera(cameras: CameraChoice[]): string | null {
   const rear = cameras.filter((camera) => REAR.test(camera.label));
@@ -175,62 +164,92 @@ export function pickRearCamera(cameras: CameraChoice[]): string | null {
 }
 
 /**
- * Apre una fotocamera, scendendo di pretesa a ogni rifiuto.
+ * Le parti di `MediaStreamTrack` che i tipi del DOM non conoscono.
  *
- * La risoluzione si chiede **alta** perché è da lì che viene la distanza
- * utile: un adesivo a mezzo metro dentro a un fotogramma da 640 pixel occupa
- * venti pixel e non lo legge nessuno, dentro a uno da 1920 ne occupa sessanta
- * e si legge. `ideal` e non `min`: se il dispositivo non ce la fa, dà quello
- * che ha invece di rifiutare.
- *
- * L'ordine dei tentativi conta. `{ exact: "environment" }` è l'unico modo di
- * dire «voglio davvero quella di dietro» — senza `exact` il browser lo tratta
- * come un desiderio e su un telefono può darti la frontale — ma fallisce su
- * un portatile, che una posteriore non ce l'ha. Da qui la scaletta.
+ * `focusMode` non sta nello standard: c'è su Android Chrome, non su iOS
+ * Safari, dove `getCapabilities()` restituisce quasi tutto `undefined`.
+ * Dichiarato opzionale apposta, così ogni uso resta obbligato a controllare
+ * prima.
  */
-async function openCamera(deviceId?: string): Promise<MediaStream> {
-  const resolution = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+type CameraCapabilities = MediaTrackCapabilities & {
+  focusMode?: string[];
+};
 
-  const attempts: MediaTrackConstraints[] = deviceId
-    ? [{ ...resolution, deviceId: { exact: deviceId } }]
-    : [
-        { ...resolution, facingMode: { exact: "environment" } },
-        { ...resolution, facingMode: "environment" },
-        resolution,
-      ];
-
-  let lastError: unknown;
-  for (const video of attempts) {
-    try {
-      return await navigator.mediaDevices.getUserMedia({ video, audio: false });
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw lastError ?? new Error("Nessuna fotocamera disponibile.");
+function videoTrackOf(video: HTMLVideoElement | null): MediaStreamTrack | null {
+  const stream = video?.srcObject;
+  if (!(stream instanceof MediaStream)) return null;
+  return stream.getVideoTracks()[0] ?? null;
 }
+
+/**
+ * Le capacità della fotocamera, col cast confinato qui.
+ *
+ * `MediaStreamTrack.getCapabilities()` è tipizzato con lo standard, che di
+ * `focusMode` non sa niente: invece di allargare il tipo ovunque —
+ * dove poi verrebbe dimenticato che quei campi possono mancare — la bugia sta
+ * in questa riga sola, e chi chiama riceve tutto `undefined` finché non
+ * controlla. Un oggetto vuoto quando il browser non sa rispondere, così chi
+ * legge non deve gestire anche il caso «non c'è il metodo».
+ */
+function cameraCapabilities(track: MediaStreamTrack): CameraCapabilities {
+  return (track.getCapabilities?.() ?? {}) as CameraCapabilities;
+}
+
+/**
+ * Messa a fuoco continua, dove il telefono la sa fare.
+ *
+ * È il singolo accorgimento che cambia di più: un adesivo tenuto a venti
+ * centimetri, senza autofocus continuo, resta sfocato finché la fotocamera non
+ * decide da sola di rimettere a fuoco — e nel frattempo sembra che lo scanner
+ * non funzioni. Su iOS `getCapabilities()` non dice quasi niente e questa
+ * chiamata non fa nulla: nessun danno, il telefono mette a fuoco per conto suo.
+ */
+async function tuneCamera(video: HTMLVideoElement | null): Promise<void> {
+  const track = videoTrackOf(video);
+  if (!track || !cameraCapabilities(track).focusMode?.includes("continuous")) return;
+
+  try {
+    await track.applyConstraints({
+      advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet],
+    });
+  } catch {
+    // Un vincolo rifiutato non è un guasto: si scansiona lo stesso.
+  }
+}
+
+/**
+ * `document.featurePolicy` non sta nei tipi del DOM perché non è standard:
+ * c'è su Chrome ed Edge, non su Firefox né Safari. Si dichiara qui il minimo
+ * che ci serve — opzionale, così il controllo dell'esistenza resta
+ * obbligatorio e non ci si può dimenticare che altrove non c'è.
+ */
+type DocumentWithFeaturePolicy = Document & {
+  featurePolicy?: { allowsFeature(feature: string): boolean };
+};
 
 /**
  * Perché la fotocamera non è partita.
  *
- * Serve una domanda esplicita al browser perché l'errore di `getUserMedia`
- * non distingue abbastanza: permesso negato, assenza di fotocamera e
- * `Permissions-Policy` che ce la vieta hanno vie d'uscita completamente
- * diverse — una si risolve nelle impostazioni del browser, una non si risolve
- * affatto, e la terza si risolve solo sul server.
+ * Serve una domanda esplicita al browser perché **`qr-scanner` non lo dice**:
+ * prova una lista di vincoli in sequenza, inghiotte l'errore di ognuno in un
+ * `catch` vuoto e alla fine rilancia la stringa `"Camera not found."`. Il
+ * permesso negato e l'assenza di una fotocamera arrivano quindi identici, e
+ * sono i due casi con la via d'uscita più diversa: uno si risolve nelle
+ * impostazioni del browser, l'altro non si risolve affatto.
  *
  * `navigator.permissions` non conosce `camera` su Firefox e su Safari: lì la
  * domanda fallisce, si ripiega sul messaggio generico, e va bene così — un
  * messaggio meno preciso è meglio di uno sbagliato.
  */
 async function diagnoseCameraFailure(): Promise<Status> {
-  /* Prima di tutto: siamo noi a vietarcela? `Permissions-Policy` con
+  /* **Prima di tutto: siamo noi a vietarcela?** `Permissions-Policy` con
      `camera=()` significa «nessuna origine, noi compresi», e in quel caso il
      browser non chiede il permesso e non lo chiederà mai — darglielo a mano
-     non cambia niente. È successo davvero: `root.tsx` spegneva la fotocamera
-     da prima che ci fosse uno scanner. Va chiesto per primo perché
-     `permissions.query` in quel caso risponde «denied» come per un rifiuto
-     vero, e il consiglio da dare è l'opposto. */
+     nelle impostazioni non cambia niente, perché la decisione è già presa
+     dall'intestazione. È successo davvero: `root.tsx` spegneva la fotocamera
+     da quando esisteva, cioè da prima che ci fosse uno scanner.
+     Va chiesto per primo perché `permissions.query` in quel caso risponde
+     «denied» come per un rifiuto vero, e il consiglio da dare è l'opposto. */
   const doc = document as DocumentWithFeaturePolicy;
   if (doc.featurePolicy) {
     try {
@@ -246,7 +265,7 @@ async function diagnoseCameraFailure(): Promise<Status> {
     });
     if (status.state === "denied") return "denied";
   } catch {
-    // Il browser non sa rispondere: si prosegue.
+    // Il browser non sa rispondere: si prosegue col controllo qui sotto.
   }
 
   try {
@@ -259,224 +278,38 @@ async function diagnoseCameraFailure(): Promise<Status> {
   return "failed";
 }
 
-/**
- * `document.featurePolicy` non sta nei tipi del DOM perché non è standard:
- * c'è su Chrome ed Edge, non su Firefox né Safari. Si dichiara qui il minimo
- * che ci serve — opzionale, così il controllo dell'esistenza resta
- * obbligatorio e non ci si può dimenticare che altrove non c'è.
- */
-type DocumentWithFeaturePolicy = Document & {
-  featurePolicy?: { allowsFeature(feature: string): boolean };
-};
-
-/** Quanti fotogrammi al secondo si prova a leggere. */
-const SCANS_PER_SECOND = 10;
-/** Il lato massimo dell'immagine data al decodificatore nella passata larga. */
-const WIDE_PASS_SIZE = 720;
-/** Quanto della larghezza del fotogramma copre la passata ravvicinata. */
-const CLOSE_PASS_FRACTION = 0.45;
-
 export default function Scan() {
   const t = useT();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const engineRef = useRef<QrEngine | null>(null);
-  const runningRef = useRef(false);
-  const startedRef = useRef(false);
-
+  /* Il tipo vero è `QrScanner`, ma la libreria si carica solo nel browser e
+     importarla per il tipo la tirerebbe dentro al pacchetto del server. */
+  const scannerRef = useRef<{
+    stop: () => void;
+    destroy: () => void;
+    setCamera: (idOrFacingMode: string) => Promise<void>;
+  } | null>(null);
   const [status, setStatus] = useState<Status>("starting");
   const [rejected, setRejected] = useState(false);
   const [cameras, setCameras] = useState<CameraChoice[]>([]);
   const [activeCamera, setActiveCamera] = useState("");
+  /* Guardia contro il doppio avvio. In sviluppo React monta, smonta e rimonta
+     ogni componente per far emergere gli effetti non puliti: senza questa,
+     partirebbero due scanner sulla stessa fotocamera e il primo resterebbe
+     acceso senza che nessuno lo spenga. */
+  const startedRef = useRef(false);
 
-  /** Spegne la fotocamera. Se resta accesa, sul telefono resta acceso anche
-   * il puntino verde e la batteria se ne va senza che nessuno guardi niente. */
-  const stopCamera = useCallback(() => {
-    runningRef.current = false;
-    for (const track of streamRef.current?.getTracks() ?? []) track.stop();
-    streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
-  }, []);
-
-  /**
-   * Il ciclo di lettura, **due aree alternate**.
-   *
-   * È qui che si decide quanto lontano si riesce a leggere, ed è la ragione
-   * per cui questo ciclo è scritto a mano invece che preso da una libreria.
-   *
-   * - **Passata larga**: tutto il fotogramma, rimpicciolito a 720 pixel di
-   *   lato. Costa poco e trova qualunque codice vicino, ovunque sia
-   *   nell'inquadratura — non serve centrarlo.
-   * - **Passata ravvicinata**: il 45% centrale del fotogramma, ritagliato
-   *   **alla risoluzione vera della fotocamera**. È uno zoom digitale senza
-   *   toccare l'ottica: il codice lontano che nella passata larga era venti
-   *   pixel, qui ne è sessanta, e si legge.
-   *
-   * Alternandole si copre il vicino e il lontano senza chiedere niente a chi
-   * scansiona, e senza muovere lo zoom sotto le sue mani — che era il difetto
-   * della versione precedente: la fotocamera si allontanava da sola proprio
-   * mentre stavi centrando l'adesivo.
-   */
-  const scanLoop = useCallback(async () => {
-    const video = videoRef.current;
-    const decode = engineRef.current;
-    if (!video || !decode) return;
-
-    const canvas = document.createElement("canvas");
-    // `willReadFrequently` dice al browser di tenere il canvas in memoria
-    // normale invece che sulla scheda video: qui si legge ogni fotogramma, e
-    // senza, ogni `getImageData` costringe a un viaggio di ritorno dalla GPU.
-    const context = canvas.getContext("2d", { willReadFrequently: true });
-    if (!context) return;
-
-    let closePass = false;
-
-    while (runningRef.current) {
-      const started = performance.now();
-
-      const width = video.videoWidth;
-      const height = video.videoHeight;
-
-      if (width > 0 && height > 0) {
-        let sx = 0;
-        let sy = 0;
-        let sw = width;
-        let sh = height;
-        let dw = width;
-        let dh = height;
-
-        if (closePass) {
-          sw = Math.round(width * CLOSE_PASS_FRACTION);
-          sh = Math.round(height * CLOSE_PASS_FRACTION);
-          sx = Math.round((width - sw) / 2);
-          sy = Math.round((height - sh) / 2);
-          // Nessun ridimensionamento: è tutto il senso di questa passata.
-          dw = sw;
-          dh = sh;
-        } else {
-          const scale = Math.min(1, WIDE_PASS_SIZE / Math.max(width, height));
-          dw = Math.round(width * scale);
-          dh = Math.round(height * scale);
-        }
-
-        canvas.width = dw;
-        canvas.height = dh;
-        context.drawImage(video, sx, sy, sw, sh, 0, 0, dw, dh);
-
-        try {
-          const text = await decode(context.getImageData(0, 0, dw, dh));
-          if (text) {
-            const path = handoverPathFrom(text, window.location.origin);
-            if (path) {
-              stopCamera();
-              navigate(path);
-              return;
-            }
-            /* Un QR che non è dei nostri: si dice e si continua a inquadrare.
-               Fermarsi obbligherebbe a ricominciare ogni volta che entra
-               nell'inquadratura il codice a barre di una scatola. */
-            setRejected(true);
-          }
-        } catch (error) {
-          console.error("Lettura del fotogramma fallita:", error);
-        }
-      }
-
-      closePass = !closePass;
-
-      const elapsed = performance.now() - started;
-      const wait = Math.max(0, 1000 / SCANS_PER_SECOND - elapsed);
-      await new Promise((resolve) => setTimeout(resolve, wait));
-    }
-  }, [navigate, stopCamera]);
-
-  const attach = useCallback(
-    async (stream: MediaStream) => {
-      const video = videoRef.current;
-      if (!video) return;
-
-      streamRef.current = stream;
-      video.srcObject = stream;
-      await video.play();
-
-      /* Specchiata solo se è quella che guarda te: su una frontale un testo
-         non specchiato è disorientante, su una posteriore lo specchio è
-         semplicemente sbagliato. La lettura non ne risente in nessun caso —
-         il canvas disegna il fotogramma vero, non quello trasformato dal CSS. */
-      const facing = stream.getVideoTracks()[0]?.getSettings().facingMode;
-      video.style.transform = facing === "user" ? "scaleX(-1)" : "";
-
-      // Messa a fuoco continua dove il telefono la sa fare: è l'accorgimento
-      // che cambia di più da vicino. Senza, un adesivo a venti centimetri
-      // resta sfocato finché la fotocamera non ci ripensa da sola, e nel
-      // frattempo sembra che lo scanner sia rotto.
-      const track = stream.getVideoTracks()[0];
-      const capabilities = (track?.getCapabilities?.() ?? {}) as {
-        focusMode?: string[];
-      };
-      if (track && capabilities.focusMode?.includes("continuous")) {
-        await track
-          .applyConstraints({
-            advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet],
-          })
-          .catch(() => {});
-      }
-    },
-    []
-  );
-
-  const start = useCallback(async () => {
-    if (!videoRef.current || startedRef.current) return;
-    startedRef.current = true;
-    setStatus("starting");
-    setRejected(false);
-
-    try {
-      // Il motore in parallelo all'apertura della fotocamera: su iPhone si
-      // porta dietro un megabyte di WebAssembly, e non c'è ragione di
-      // aspettarlo prima di aver acceso la fotocamera.
-      const [{ createQrEngine }, stream] = await Promise.all([
-        import("~/lib/qr-engine"),
-        openCamera(),
-      ]);
-
-      await attach(stream);
-
-      /* Adesso che il permesso c'è, le etichette hanno un nome e si può
-         scegliere quella giusta. Prima erano tutte vuote. */
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const choices = devices
-          .filter((device) => device.kind === "videoinput")
-          .map((device) => ({ id: device.deviceId, label: device.label }));
-        setCameras(choices);
-
-        const best = pickRearCamera(choices);
-        const current = stream.getVideoTracks()[0]?.getSettings().deviceId;
-        if (best && best !== current) {
-          stopCamera();
-          await attach(await openCamera(best));
-        }
-        setActiveCamera(best ?? current ?? "");
-      } catch {
-        // Senza elenco si resta con la fotocamera che è partita: si scansiona
-        // lo stesso, manca solo la possibilità di cambiarla.
-      }
-
-      const engine = await createQrEngine();
-      engineRef.current = engine.decode;
-
-      setStatus("scanning");
-      runningRef.current = true;
-      void scanLoop();
-    } catch (error) {
-      console.error("Avvio della fotocamera fallito:", error);
+  // Spegnere la fotocamera quando si lascia la pagina non è un dettaglio: se
+  // resta accesa, sul telefono resta acceso anche il puntino verde e la
+  // batteria se ne va senza che nessuno stia guardando niente.
+  useEffect(() => {
+    return () => {
+      scannerRef.current?.stop();
+      scannerRef.current?.destroy();
+      scannerRef.current = null;
       startedRef.current = false;
-      stopCamera();
-      setStatus(await diagnoseCameraFailure());
-    }
-  }, [attach, scanLoop, stopCamera]);
+    };
+  }, []);
 
   /**
    * La fotocamera parte da sola all'apertura della pagina.
@@ -487,28 +320,108 @@ export default function Scan() {
    * fallisce — lì il gesto serve davvero, perché senza si riproverebbe da
    * solo all'infinito.
    *
-   * La guardia `startedRef` non è pignoleria: in sviluppo React monta,
-   * smonta e rimonta ogni componente per far emergere gli effetti non
-   * puliti, e senza partirebbero due fotocamere.
+   * Su iOS il permesso viene chiesto anche senza un tocco, purché la scheda
+   * sia quella in primo piano; nei browser dentro ad altre app (WKWebView)
+   * può non bastare, ed è esattamente il caso che il pulsante di ripiego
+   * copre.
    */
   useEffect(() => {
     void start();
-    return () => {
-      stopCamera();
+    // Una volta sola, all'apertura: `start` legge solo dei ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function start() {
+    if (!videoRef.current || startedRef.current) return;
+    startedRef.current = true;
+    setStatus("starting");
+    setRejected(false);
+
+    try {
+      // Import dinamico: `qr-scanner` tocca `document` appena viene caricata,
+      // e questa pagina viene disegnata anche sul server.
+      const { default: QrScanner } = await import("qr-scanner");
+
+      const scanner = new QrScanner(
+        videoRef.current,
+        (result) => {
+          const path = handoverPathFrom(result.data, window.location.origin);
+          if (!path) {
+            // Un QR che non è dei nostri: si dice e si continua a inquadrare,
+            // senza fermare la fotocamera. Fermarsi obbligherebbe a ripremere
+            // «Avvia» ogni volta che entra nell'inquadratura il codice a
+            // barre di una scatola.
+            setRejected(true);
+            return;
+          }
+
+          scanner.stop();
+          navigate(path);
+        },
+        {
+          // Il primo tentativo: «una di dietro». Quale sia di preciso lo si
+          // corregge subito dopo con `pickRearCamera`, quando le etichette
+          // esistono — vedi lì il perché.
+          preferredCamera: "environment",
+          highlightScanRegion: true,
+          /* Dieci al secondo e non cinque. Cinque vuol dire fino a due decimi
+             di ritardo fra l'aver inquadrato bene e l'essere letti, che si
+             sentono tutti; e il costo è più basso di quanto sembri, perché
+             dove c'è `BarcodeDetector` — Android Chrome — la libreria lo usa
+             al posto del suo decodificatore, e lì è il sistema operativo a
+             leggere il codice, non JavaScript. Oltre i dieci si scalda la
+             batteria senza guadagnare niente di percepibile. */
+          maxScansPerSecond: 10,
+        }
+      );
+
+      scannerRef.current = scanner;
+      await scanner.start();
+      setStatus("scanning");
+
+      /* L'elenco si chiede **dopo** l'avvio, non prima: finché il permesso non
+         è stato dato, `enumerateDevices` restituisce sì le fotocamere, ma con
+         l'etichetta vuota — una tendina con tre voci senza nome non serve a
+         nessuno. A permesso dato i nomi ci sono («FaceTime HD Camera»,
+         «Back Ultra Wide Camera»), ed è quello che rende la scelta possibile. */
+      try {
+        const found = await QrScanner.listCameras(true);
+        const choices = found.map((camera) => ({ id: camera.id, label: camera.label }));
+        setCameras(choices);
+
+        /* Ora che le etichette ci sono, si sceglie quella buona. `environment`
+           ha già dato *una* fotocamera di dietro, ma su Android quale sia è
+           una lotteria: se non è la principale, si cambia adesso. Il confronto
+           è sul `deviceId` di ciò che sta effettivamente scorrendo, non su
+           quello che abbiamo chiesto. */
+        const best = pickRearCamera(choices);
+        const current = videoTrackOf(videoRef.current)?.getSettings().deviceId;
+        if (best && best !== current) {
+          await scanner.setCamera(best);
+        }
+        setActiveCamera(best ?? current ?? "");
+      } catch {
+        // Senza elenco si resta con la fotocamera che è partita: si scansiona
+        // lo stesso, manca solo la possibilità di cambiarla.
+      }
+
+      await tuneCamera(videoRef.current);
+    } catch (error) {
+      console.error("Avvio della fotocamera fallito:", error);
       startedRef.current = false;
-    };
-  }, [start, stopCamera]);
+      setStatus(await diagnoseCameraFailure());
+    }
+  }
 
   async function switchCamera(id: string) {
     setActiveCamera(id);
     try {
-      stopCamera();
-      await attach(await openCamera(id));
-      runningRef.current = true;
-      void scanLoop();
+      await scannerRef.current?.setCamera(id);
+      // Lo stream è nuovo, quindi la messa a fuoco va richiesta di nuovo: le
+      // impostazioni non sopravvivono al cambio di fotocamera.
+      await tuneCamera(videoRef.current);
     } catch (error) {
       console.error("Cambio di fotocamera fallito:", error);
-      setStatus(await diagnoseCameraFailure());
     }
   }
 
@@ -520,16 +433,26 @@ export default function Scan() {
         </h1>
         <p className="mt-2 max-w-prose text-sm text-muted">{t("scan.intro")}</p>
 
+        {/* **`relative` non è decorazione.** `qr-scanner` aggiunge la cornice
+            gialla dell'area di scansione come figlio del genitore del video,
+            con `position: absolute`: senza un genitore posizionato, quella
+            cornice si àncora a un antenato qualsiasi e finisce fuori posto. */}
         <div className="relative mt-6 overflow-hidden rounded border border-rule bg-sunk">
           {/* **Il video non si nasconde mai con `display: none`.** Un video
-              nascosto così non disegna fotogrammi: il canvas che lo legge
-              riceve nero. Il messaggio di stato gli va quindi *sopra*, non al
-              posto suo.
+              nascosto così non disegna fotogrammi: il canvas che deve leggere
+              il QR riceve nero, e `offsetWidth`/`offsetHeight` — con cui la
+              libreria calcola l'area di scansione — valgono zero. La libreria
+              sistema da sola l'*attributo* `hidden`, ma contro una classe CSS
+              non può fare niente. Prima di questa correzione la fotocamera si
+              accendeva e non si vedeva niente, e nessun QR veniva mai letto.
+              Il messaggio di stato gli va quindi *sopra*, non al posto suo.
 
               `object-contain` e non `object-cover`: in uno scanner si deve
-              vedere tutto il fotogramma, perché tutto il fotogramma viene
-              letto. Con un ritaglio si finirebbe per allineare il QR con
-              quello che si vede invece che con quello che viene letto.
+              vedere **tutto** il fotogramma. Con un ritaglio, la cornice
+              gialla dell'area di lettura mostra un pezzo di immagine che
+              l'occhio non vede, e si finisce per allineare il QR con quello
+              che si vede invece che con quello che viene letto. Le bande nere
+              ai lati sono il prezzo, ed è quello che fa ogni mirino.
 
               `playsInline` o su iPhone il video parte a schermo intero, e chi
               scansiona perde di vista la pagina sotto. `muted` perché senza,
@@ -540,17 +463,6 @@ export default function Scan() {
             muted
             className="aspect-[4/3] w-full bg-black object-contain"
           />
-
-          {/* Il quadrato di mira. Non delimita l'area letta — il fotogramma
-              viene letto tutto — ma dice dove conviene mettere l'adesivo
-              perché entri anche nella passata ravvicinata, che è quella che
-              lo prende da lontano. */}
-          {status === "scanning" && (
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute left-1/2 top-1/2 h-[45%] w-[45%] -translate-x-1/2 -translate-y-1/2 rounded border-2 border-accent/70"
-            />
-          )}
 
           {status !== "scanning" && (
             <div className="absolute inset-0 flex items-center justify-center bg-sunk px-6 text-center text-sm text-muted">
@@ -584,10 +496,13 @@ export default function Scan() {
                 value={activeCamera}
                 onChange={(event) => void switchCamera(event.target.value)}
               >
+                {/* Senza `value` combaciante la tendina partirebbe vuota: la
+                    fotocamera scelta dal ripiego della libreria non ha un id
+                    che conosciamo finché non si sceglie a mano. */}
                 {!activeCamera && <option value="">{t("scan.cameraAuto")}</option>}
                 {cameras.map((camera) => (
                   <option key={camera.id} value={camera.id}>
-                    {camera.label || t("scan.cameraAuto")}
+                    {camera.label}
                   </option>
                 ))}
               </Select>
@@ -595,10 +510,13 @@ export default function Scan() {
           </div>
         )}
 
-        {/* Solo quando c'è qualcosa da riprovare: la fotocamera parte da sola,
-            quindi in condizioni normali questo pulsante non si vede mai.
-            Niente pulsante se non c'è nessuna fotocamera — lì non esiste un
-            «riprova» che possa andare a buon fine. */}
+        {/* Solo quando c'è qualcosa da riprovare. La fotocamera parte da sola
+            all'apertura, quindi in condizioni normali questo pulsante non si
+            vede mai: era un gesto in più su una schermata che ha un solo
+            scopo. Quando invece l'avvio è fallito il gesto serve davvero —
+            senza, si riproverebbe da solo all'infinito contro un permesso
+            negato. Niente pulsante se non c'è nessuna fotocamera: lì non
+            esiste un «riprova» che possa andare a buon fine. */}
         {(status === "denied" || status === "failed" || status === "blockedByPolicy") && (
           <button
             type="button"

@@ -348,7 +348,6 @@ const en = {
   "scan.heading": "Scan",
   "scan.intro":
     "Point a camera at an item's QR label to hand it over. Works with a phone or a laptop webcam.",
-  "scan.idle": "The camera is off.",
   "scan.starting": "Starting the camera…",
   "scan.retry": "Try again",
   "scan.camera": "Camera",
@@ -723,7 +722,6 @@ const it: Dictionary = {
   "scan.heading": "Scansiona",
   "scan.intro":
     "Inquadra l'etichetta QR di un oggetto per consegnarlo. Va col telefono e con la webcam del computer.",
-  "scan.idle": "La fotocamera è spenta.",
   "scan.starting": "Avvio della fotocamera…",
   "scan.retry": "Riprova",
   "scan.camera": "Fotocamera",
@@ -1095,7 +1093,6 @@ const de: Dictionary = {
   "scan.heading": "Scannen",
   "scan.intro":
     "Richte eine Kamera auf das QR-Etikett eines Gegenstands, um ihn zu übergeben. Geht mit dem Handy und mit der Webcam am Computer.",
-  "scan.idle": "Die Kamera ist aus.",
   "scan.starting": "Kamera wird gestartet…",
   "scan.retry": "Nochmal versuchen",
   "scan.camera": "Kamera",
