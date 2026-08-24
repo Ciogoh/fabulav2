@@ -30,6 +30,10 @@ export default [
   // leggero — gli adesivi già attaccati continuerebbero a puntare qui.
   route("admin/scan", "routes/admin.scan.tsx"),
   route("admin/handover/:assetId", "routes/admin.handover.$assetId.tsx"),
+  // L'indirizzo corto che sta dentro agli adesivi. Corto **per forza**: ogni
+  // carattere in meno è un modulo in meno nel QR, cioè un modulo più grande a
+  // parità di carta. Rimanda alla consegna qui sopra.
+  route("h/:code", "routes/h.$code.tsx"),
   route("reset-password", "routes/reset-password.tsx"),
   route("uploads/*", "routes/uploads.tsx"),
   // Tutto l'accesso passa da un solo gestore di Better Auth.

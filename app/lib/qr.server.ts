@@ -35,11 +35,36 @@ export function handoverUrl(assetId: string): string {
   return `${base.replace(/\/$/, "")}/admin/handover/${assetId}`;
 }
 
+/**
+ * L'indirizzo **corto e maiuscolo** che finisce davvero dentro all'adesivo.
+ *
+ * Due trucchi che insieme fanno moduli più grandi del 28% a parità di carta,
+ * e un modulo più grande è la differenza fra leggere a venti centimetri e
+ * leggere a quaranta:
+ *
+ * - **`/h/` invece di `/admin/handover/`**: tredici caratteri in meno.
+ * - **tutto maiuscolo**: il QR ha una modalità alfanumerica che sta in
+ *   undici bit ogni due caratteri, ma accetta solo `0-9 A-Z` e una manciata
+ *   di simboli. Una sola minuscola costringe l'intero codice alla modalità
+ *   byte, otto bit per carattere. I domini sono insensibili alle maiuscole
+ *   per definizione, e il nostro identificativo è un cuid — solo cifre e
+ *   lettere — quindi rimetterlo in minuscolo dall'altra parte è esatto.
+ *
+ * Misurato su un adesivo da 4 cm, con lo stesso identificativo:
+ * `/admin/handover/<cuid>` fa 37×37 moduli (1,08 mm l'uno), questo ne fa
+ * 29×29 (1,38 mm). Il vecchio indirizzo resta valido e raggiungibile: gli
+ * adesivi già stampati continuano a funzionare.
+ */
+export function shortHandoverUrl(assetId: string): string {
+  const base = (process.env.APP_URL ?? "http://localhost:5173").replace(/\/$/, "");
+  return `${base}/h/${assetId}`.toUpperCase();
+}
+
 export async function assetQrDataUrl(assetId: string): Promise<string> {
-  return QRCode.toDataURL(handoverUrl(assetId), {
+  return QRCode.toDataURL(shortHandoverUrl(assetId), {
     errorCorrectionLevel: "M",
     margin: 2,
-    // Abbastanza grande da restare nitido stampato a pochi centimetri.
     width: 512,
   });
 }
+
