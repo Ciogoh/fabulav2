@@ -353,6 +353,14 @@ l'accesso a tutti consumandoli. Better Auth stesso lo segnala nei log.
   è un difetto da correggere: un vincolo cancellerebbe in cascata proprio la
   riga che dice «questo oggetto è stato eliminato». `targetId` che punta al
   vuoto è normale, e `detail` è il testo che sopravvive.
+- **`AdminAction.actor` invece è `onDelete: Cascade`, e va cambiato il giorno
+  in cui si potrà cancellare un account.** Oggi non si può — `/admin/members`
+  fa solo ruolo e reset, e il plugin `deleteUser` di Better Auth è spento —
+  quindi il caso non esiste. Ma cancellare una persona cancellerebbe tutte le
+  sue righe di registro, cioè proprio la traccia di chi ha più motivo di
+  volerla sparire. Correzione minima quando servirà: `actorId` opzionale con
+  `SetNull`, e il nome dell'attore scritto dentro `detail` come si fa già per
+  il bersaglio.
 
 ---
 

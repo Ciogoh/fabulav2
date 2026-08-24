@@ -77,6 +77,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const [asset, people] = await Promise.all([
     loadAsset(params.assetId),
+    /* **Senza `image`, di proposito.** Questa pagina carica *tutti* gli
+       account in una volta perché il selettore filtra nel browser, e chi
+       entra con Microsoft ha in `image` la foto vera scritta in linea come
+       `data:image/jpeg;base64,…`, non un indirizzo (vedi il capitolo
+       sull'accesso). Con qualche centinaio di soci sarebbero megabyte di
+       risposta — su un telefono, in magazzino, sulla rete della sede.
+       `Avatar` ripiega da solo sulle iniziali, che qui bastano: accanto ci
+       sono già nome e indirizzo email. */
     db.user.findMany({
       orderBy: { name: "asc" },
       select: {
@@ -85,7 +93,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         firstName: true,
         lastName: true,
         alias: true,
-        image: true,
         email: true,
       },
     }),
