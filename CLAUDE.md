@@ -546,6 +546,19 @@ Quattro cose che si scoprono solo sbattendoci:
 - **La fotocamera parte da una pressione, mai da sola.** Su iOS
   `getUserMedia` chiamato al caricamento della pagina viene rifiutato senza
   nemmeno chiedere il permesso. Il pulsante «Avvia» non è una cortesia.
+- **Lo scanner vale anche da computer, con la webcam.** `preferredCamera:
+  "environment"` viene chiesto dalla libreria come vincolo *esatto*, e un Mac
+  senza fotocamera posteriore risponde `OverconstrainedError` — verificato.
+  Finisce bene lo stesso perché `qr-scanner` riprova senza quel vincolo, ma
+  quel ripiego può prendere la fotocamera sbagliata: da qui la tendina di
+  scelta, che compare solo con più di una. L'elenco si chiede **dopo**
+  l'avvio, perché prima del permesso le etichette arrivano vuote.
+- **`qr-scanner` non dice mai perché non è partita.** Prova una lista di
+  vincoli, inghiotte l'errore di ognuno in un `catch` vuoto e alla fine
+  rilancia la stringa `"Camera not found."`: permesso negato e assenza di
+  fotocamera arrivano identici, e sono i due casi con la via d'uscita più
+  diversa. Per questo `diagnoseCameraFailure` richiede a parte lo stato del
+  permesso — senza, a chi negava il permesso si finiva per consigliare HTTPS.
 - **`getUserMedia` esiste solo in un contesto sicuro.** `localhost` va bene,
   `192.168.x.x` no: **per provare dal telefono in sviluppo si passa dal
   tunnel Cloudflare**, non dall'indirizzo IP del computer. E il simulatore

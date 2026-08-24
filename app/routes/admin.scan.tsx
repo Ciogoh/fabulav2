@@ -1,19 +1,34 @@
 /**
  * Lo scanner: inquadra l'adesivo di un oggetto e ti porta alla sua consegna.
  *
- * Tre cose non ovvie, tutte imparate dal modo in cui i browser trattano una
- * fotocamera:
+ * **Funziona col telefono in magazzino e con la webcam di un portatile.** Il
+ * telefono è il caso per cui è nato, ma la webcam non è un ripiego di
+ * cortesia: chi sta alla scrivania con un oggetto in mano deve poterlo
+ * consegnare senza tirare fuori il telefono.
+ *
+ * Cinque cose non ovvie, tutte imparate dal modo in cui i browser trattano
+ * una fotocamera:
  *
  * 1. **La fotocamera parte da una pressione, non da sola.** Su iOS
  *    `getUserMedia` chiamato durante il caricamento della pagina viene
  *    rifiutato senza nemmeno chiedere il permesso: deve nascere da un gesto
  *    dell'utente. Da qui il pulsante «Avvia», che non è una cortesia ma
  *    l'unico modo perché funzioni.
- * 2. **`qr-scanner` e non `BarcodeDetector`.** Quest'ultimo è nel browser e
+ * 2. **`preferredCamera: "environment"` da solo non basta su un portatile.**
+ *    La libreria lo chiede come vincolo *esatto*, e un Mac senza fotocamera
+ *    posteriore risponde `OverconstrainedError` — provato. Va a finire bene
+ *    lo stesso perché `qr-scanner` riprova senza quel vincolo e si prende la
+ *    webcam che c'è; resta la preferenza giusta per il telefono, dove la
+ *    posteriore è quella con cui si inquadra qualcosa che non sei tu.
+ * 3. **Chi ha più di una fotocamera deve poter scegliere.** Sul portatile è
+ *    webcam interna contro webcam esterna, sul telefono è davanti contro
+ *    dietro: in tutti e due i casi il ripiego del punto 2 può prendere quella
+ *    sbagliata, e senza un modo di cambiarla non resta niente da fare.
+ * 4. **`qr-scanner` e non `BarcodeDetector`.** Quest'ultimo è nel browser e
  *    non costerebbe niente, ma su iOS Safari non esiste affatto — e metà
  *    dell'associazione gira con un iPhone. La libreria usa `BarcodeDetector`
  *    dove c'è e un decoder proprio dove non c'è.
- * 3. **Serve HTTPS.** `getUserMedia` esiste solo in un contesto sicuro:
+ * 5. **Serve HTTPS.** `getUserMedia` esiste solo in un contesto sicuro:
  *    `localhost` va bene, l'indirizzo IP del computer sulla rete di casa no.
  *    Per provarlo dal telefono in sviluppo si passa dal tunnel Cloudflare che
  *    il progetto usa già, non da `192.168.x.x`.
@@ -33,6 +48,7 @@ import { useNavigate } from "react-router";
 import type { Route } from "./+types/admin.scan";
 import { PageShell } from "~/components/page";
 import { buttonClass } from "~/components/button";
+import { Select } from "~/components/select";
 import { pageTitle } from "~/i18n/meta";
 import { requireAdmin } from "~/lib/session.server";
 import { useT } from "~/i18n/use-t";
@@ -71,7 +87,43 @@ export function handoverPathFrom(text: string, origin: string): string | null {
   return match ? `/admin/handover/${match[1]}` : null;
 }
 
-type Status = "idle" | "starting" | "scanning" | "denied" | "failed";
+type Status = "idle" | "starting" | "scanning" | "denied" | "noCamera" | "failed";
+
+type CameraChoice = { id: string; label: string };
+
+/**
+ * Perché la fotocamera non è partita.
+ *
+ * Serve una domanda esplicita al browser perché **`qr-scanner` non lo dice**:
+ * prova una lista di vincoli in sequenza, inghiotte l'errore di ognuno in un
+ * `catch` vuoto e alla fine rilancia la stringa `"Camera not found."`. Il
+ * permesso negato e l'assenza di una fotocamera arrivano quindi identici, e
+ * sono i due casi con la via d'uscita più diversa: uno si risolve nelle
+ * impostazioni del browser, l'altro non si risolve affatto.
+ *
+ * `navigator.permissions` non conosce `camera` su Firefox e su Safari: lì la
+ * domanda fallisce, si ripiega sul messaggio generico, e va bene così — un
+ * messaggio meno preciso è meglio di uno sbagliato.
+ */
+async function diagnoseCameraFailure(): Promise<Status> {
+  try {
+    const status = await navigator.permissions.query({
+      name: "camera" as PermissionName,
+    });
+    if (status.state === "denied") return "denied";
+  } catch {
+    // Il browser non sa rispondere: si prosegue col controllo qui sotto.
+  }
+
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    if (!devices.some((device) => device.kind === "videoinput")) return "noCamera";
+  } catch {
+    // Idem.
+  }
+
+  return "failed";
+}
 
 export default function Scan() {
   const t = useT();
@@ -79,9 +131,15 @@ export default function Scan() {
   const videoRef = useRef<HTMLVideoElement>(null);
   /* Il tipo vero è `QrScanner`, ma la libreria si carica solo nel browser e
      importarla per il tipo la tirerebbe dentro al pacchetto del server. */
-  const scannerRef = useRef<{ stop: () => void; destroy: () => void } | null>(null);
+  const scannerRef = useRef<{
+    stop: () => void;
+    destroy: () => void;
+    setCamera: (idOrFacingMode: string) => Promise<void>;
+  } | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [rejected, setRejected] = useState(false);
+  const [cameras, setCameras] = useState<CameraChoice[]>([]);
+  const [activeCamera, setActiveCamera] = useState("");
 
   // Spegnere la fotocamera quando si lascia la pagina non è un dettaglio: se
   // resta accesa, sul telefono resta acceso anche il puntino verde e la
@@ -132,15 +190,31 @@ export default function Scan() {
       scannerRef.current = scanner;
       await scanner.start();
       setStatus("scanning");
+
+      /* L'elenco si chiede **dopo** l'avvio, non prima: finché il permesso non
+         è stato dato, `enumerateDevices` restituisce sì le fotocamere, ma con
+         l'etichetta vuota — una tendina con tre voci senza nome non serve a
+         nessuno. A permesso dato i nomi ci sono («FaceTime HD Camera»,
+         «Back Ultra Wide Camera»), ed è quello che rende la scelta possibile. */
+      try {
+        const found = await QrScanner.listCameras(true);
+        setCameras(found.map((camera) => ({ id: camera.id, label: camera.label })));
+      } catch {
+        // Senza elenco si resta con la fotocamera che è partita: si scansiona
+        // lo stesso, manca solo la possibilità di cambiarla.
+      }
     } catch (error) {
-      // Il permesso negato è il caso di gran lunga più comune, e ha una via
-      // d'uscita diversa dagli altri guasti: non «riprova», ma «vai nelle
-      // impostazioni del browser».
-      const denied =
-        error instanceof Error &&
-        (error.name === "NotAllowedError" || /permission|denied/i.test(error.message));
-      setStatus(denied ? "denied" : "failed");
       console.error("Avvio della fotocamera fallito:", error);
+      setStatus(await diagnoseCameraFailure());
+    }
+  }
+
+  async function switchCamera(id: string) {
+    setActiveCamera(id);
+    try {
+      await scannerRef.current?.setCamera(id);
+    } catch (error) {
+      console.error("Cambio di fotocamera fallito:", error);
     }
   }
 
@@ -169,20 +243,53 @@ export default function Scan() {
             <div className="flex aspect-[4/3] items-center justify-center px-6 text-center text-sm text-muted">
               {status === "denied"
                 ? t("scan.denied")
-                : status === "failed"
-                  ? t("scan.failed")
-                  : status === "starting"
-                    ? t("scan.starting")
-                    : t("scan.idle")}
+                : status === "noCamera"
+                  ? t("scan.noCamera")
+                  : status === "failed"
+                    ? t("scan.failed")
+                    : status === "starting"
+                      ? t("scan.starting")
+                      : t("scan.idle")}
             </div>
           )}
         </div>
+
+        {/* La scelta della fotocamera compare solo quando ce n'è più di una:
+            una tendina con una voce sola è una domanda senza alternative. */}
+        {status === "scanning" && cameras.length > 1 && (
+          <div className="mt-4">
+            <label
+              htmlFor="camera"
+              className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+            >
+              {t("scan.camera")}
+            </label>
+            <div className="mt-1.5">
+              <Select
+                id="camera"
+                name="camera"
+                value={activeCamera}
+                onChange={(event) => void switchCamera(event.target.value)}
+              >
+                {/* Senza `value` combaciante la tendina partirebbe vuota: la
+                    fotocamera scelta dal ripiego della libreria non ha un id
+                    che conosciamo finché non si sceglie a mano. */}
+                {!activeCamera && <option value="">{t("scan.cameraAuto")}</option>}
+                {cameras.map((camera) => (
+                  <option key={camera.id} value={camera.id}>
+                    {camera.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+        )}
 
         {status !== "scanning" && (
           <button
             type="button"
             onClick={() => void start()}
-            disabled={status === "starting"}
+            disabled={status === "starting" || status === "noCamera"}
             className={buttonClass("primary", "md", "mt-4")}
           >
             {status === "idle" ? t("scan.start") : t("scan.retry")}

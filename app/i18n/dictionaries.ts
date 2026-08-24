@@ -346,14 +346,18 @@ const en = {
     "Print it and stick it on the item. Scanning it opens the handover page — with any camera, not just Fabula's.",
 
   "scan.heading": "Scan",
-  "scan.intro": "Point the camera at an item's QR label to hand it over.",
+  "scan.intro":
+    "Point a camera at an item's QR label to hand it over. Works with a phone or a laptop webcam.",
   "scan.idle": "The camera is off.",
   "scan.starting": "Starting the camera…",
   "scan.start": "Start the camera",
   "scan.retry": "Try again",
+  "scan.camera": "Camera",
+  "scan.cameraAuto": "Automatic",
   "scan.denied":
     "Fabula cannot use the camera. Allow it in your browser settings, then try again.",
-  "scan.failed": "The camera would not start. On a phone, Fabula must be open over HTTPS.",
+  "scan.noCamera": "No camera on this device.",
+  "scan.failed": "The camera would not start. Fabula must be open over HTTPS.",
   "scan.notOurs": "That QR code is not one of ours.",
 
   "handover.heading": "Hand over",
@@ -716,15 +720,18 @@ const it: Dictionary = {
     "Stampala e attaccala sull'oggetto. Scansionandola si apre la pagina di consegna — con qualsiasi fotocamera, non solo con quella di Fabula.",
 
   "scan.heading": "Scansiona",
-  "scan.intro": "Inquadra l'etichetta QR di un oggetto per consegnarlo.",
+  "scan.intro":
+    "Inquadra l'etichetta QR di un oggetto per consegnarlo. Va col telefono e con la webcam del computer.",
   "scan.idle": "La fotocamera è spenta.",
   "scan.starting": "Avvio della fotocamera…",
   "scan.start": "Avvia la fotocamera",
   "scan.retry": "Riprova",
+  "scan.camera": "Fotocamera",
+  "scan.cameraAuto": "Automatica",
   "scan.denied":
     "Fabula non può usare la fotocamera. Dalle il permesso nelle impostazioni del browser, poi riprova.",
-  "scan.failed":
-    "La fotocamera non è partita. Sul telefono, Fabula dev'essere aperta in HTTPS.",
+  "scan.noCamera": "Su questo dispositivo non c'è una fotocamera.",
+  "scan.failed": "La fotocamera non è partita. Fabula dev'essere aperta in HTTPS.",
   "scan.notOurs": "Quel codice QR non è dei nostri.",
 
   "handover.heading": "Consegna",
@@ -1084,15 +1091,18 @@ const de: Dictionary = {
     "Drucke es aus und klebe es auf den Gegenstand. Beim Scannen öffnet sich die Übergabeseite — mit jeder Kamera, nicht nur mit der von Fabula.",
 
   "scan.heading": "Scannen",
-  "scan.intro": "Richte die Kamera auf das QR-Etikett eines Gegenstands, um ihn zu übergeben.",
+  "scan.intro":
+    "Richte eine Kamera auf das QR-Etikett eines Gegenstands, um ihn zu übergeben. Geht mit dem Handy und mit der Webcam am Computer.",
   "scan.idle": "Die Kamera ist aus.",
   "scan.starting": "Kamera wird gestartet…",
   "scan.start": "Kamera starten",
   "scan.retry": "Nochmal versuchen",
+  "scan.camera": "Kamera",
+  "scan.cameraAuto": "Automatisch",
   "scan.denied":
     "Fabula darf die Kamera nicht benutzen. Erlaube es in den Browser-Einstellungen und versuche es nochmal.",
-  "scan.failed":
-    "Die Kamera ist nicht gestartet. Auf dem Handy muss Fabula über HTTPS geöffnet sein.",
+  "scan.noCamera": "Auf diesem Gerät gibt es keine Kamera.",
+  "scan.failed": "Die Kamera ist nicht gestartet. Fabula muss über HTTPS geöffnet sein.",
   "scan.notOurs": "Dieser QR-Code ist keiner von uns.",
 
   "handover.heading": "Übergabe",
