@@ -26,7 +26,8 @@ parte difficile. Non riproporlo.
 
 ## A che punto siamo
 
-**Funziona ed è stato verificato dal vivo, non solo compilato:**
+**Il ciclo intero funziona da capo a fondo — dal catalogo alla riconsegna —
+verificato dal vivo, non solo compilato:**
 
 - Catalogo pubblico senza account, dove il badge risponde a «lo prendo
   adesso?» — Libero o In uso — e la prenotazione in arrivo sta nella riga
@@ -40,34 +41,65 @@ parte difficile. Non riproporlo.
 - Intestazioni di sicurezza e limite di frequenza sull'accesso, provati
 - Profilo personale: foto, nome, cognome e alias, da `/account` (ci si arriva
   premendo il proprio nome in cima)
+- **Le date si scelgono al momento di richiedere, non in cima al catalogo**
+  (`components/date-range-fields.tsx`). Fino a `MAX_ORDINARY_SPAN_DAYS` (sette
+  giorni) senza altro; oltre, la spunta «richiesta speciale» chiede un motivo
+  e sale fino a `MAX_SPECIAL_SPAN_DAYS`. I due tetti stanno in
+  `availability.shared.ts` — vedi *Struttura*.
+- **Invio della richiesta** (`routes/requests.tsx`, azione POST): il carrello
+  manda a `/requests`, che ricontrolla disponibilità e prestabilità lato
+  server — il carrello vive nel browser e può essere vecchio di settimane, un
+  oggetto archiviato nel frattempo va rifiutato qui, non solo nascosto nel
+  catalogo. Un'email avvisa gli admin (`notifyAdminsNewRequest`); se
+  l'invio fallisce la richiesta resta comunque scritta.
+- **Dettaglio di una richiesta** (`routes/request-detail.tsx`), due pubblici
+  sullo stesso URL:
+  - chi l'ha fatta: modifica le date (una richiesta già **approvata torna in
+    `PENDING`** — l'approvazione manuale non ha scorciatoie), annulla (bloccato
+    appena un pezzo è stato ritirato), scrive nella chat
+  - admin: vede chi è davvero (nome ed email, non solo l'alias), approva o
+    rifiuta, segna ritiro e riconsegna **per singolo oggetto** (regola 2),
+    scrive una nota interna mai vista da chi ha chiesto, manda un promemoria a
+    mano
+  - la chat (`Message`) è aperta a entrambi: è lì che ci si accorda su un
+    ritiro, non solo un canale per l'admin
+- **Coda di approvazione** (`/admin/requests`): tutte le richieste in attesa,
+  più vecchie prima, con un badge sul numero nell'intestazione admin (mostrato
+  solo agli admin — un `db.request.count` in più a ogni pagina non lo paga chi
+  guarda il catalogo da anonimo). Nessuna azione qui dentro: ogni riga porta al
+  dettaglio.
+- **Promemoria di riconsegna**: automatico, uno spazzatore orario in-process
+  con guardia sul giorno già fatto (`lib/reminders.server.ts`, avviato dal
+  loader radice), più il pulsante a mano nel dettaglio. Tutte le email di una
+  richiesta — nuova, decisa, annullata, promemoria — vivono in un posto solo,
+  `lib/notifications.server.ts`.
+- **Pannello admin: oggetti, categorie e kit** (`/admin/assets`, tre schede),
+  con ricerca, filtro, gruppi per categoria e spostamento in blocco. Una
+  categoria si crea anche dal menu a tendina della scheda di un oggetto, senza
+  uscire. Un oggetto si elimina se non è mai stato prestato e si archivia se
+  lo è stato (regola 1).
+- **Soci** (`/admin/members`): promuovere o rimuovere un admin (non su se
+  stessi, mai l'ultimo admin rimasto) e mandare un link di reset password
+  (`/reset-password`) — è anche il modo in cui chi è entrato solo col codice
+  via email si aggiunge una password.
+- Caricamento delle foto, con anteprima prima di spedire, tipo vero validato
+  sui byte (non sull'estensione) e ridimensionamento in JPEG — oggetti e
+  avatar.
+- Ottimizzazione per telefono: il calendario sotto ai 640px è un elenco
+  oggetto per oggetto invece di una timeline, sopra la colonna dei nomi è
+  `sticky`, e il `<nav>` va a capo invece di far scorrere la pagina intera in
+  orizzontale.
 
-**Manca**, in quest'ordine di priorità:
+**Manca**, in ordine di priorità:
 
-1. **Le date si scelgono al momento di prenotare, non in cima al catalogo.**
-   Via i due campi data dall'alto: si sfogliano gli oggetti, e le date si
-   indicano premendo «Richiedi». **Massimo sette giorni**; oltre, una spunta
-   apre la «richiesta speciale».
-2. Invio vero delle richieste (il carrello oggi non ha dove finire)
-3. Pannello admin: approvare, segnare ritiro e riconsegna. **Il catalogo
-   lato admin è fatto**: oggetti (con ricerca, filtro, gruppi per categoria e
-   spostamento in blocco), categorie e kit, tutti e tre sotto le stesse tre
-   schede. Una categoria si crea anche dal menu a tendina della scheda di un
-   oggetto, senza uscire. Un oggetto si elimina se non è mai stato prestato e
-   si archivia se lo è stato (vedi la regola 1).
-4. Promemoria di riconsegna via email (il giorno prima della scadenza)
-5. ~~Caricamento delle foto~~ — **fatto**, con anteprima prima di spedire
-6. ~~Ottimizzazione per telefono~~ — **fatta.** Il `<nav>` non traboccava solo
-   sul calendario: era largo 466px dentro a uno schermo da 375, quindi *ogni*
-   pagina scorreva in orizzontale e il foglio della richiesta usciva storto.
-   Il calendario sotto ai 640px non è più una timeline ma un elenco oggetto
-   per oggetto; sopra, la colonna dei nomi è `sticky`.
-7. **Allineamento visivo a Material Matters** (vedi *Aspetto*) — resta il
-   pezzo grosso, ma adesso è quasi solo una sostituzione di valori.
-8. *Un giorno:* QR sugli oggetti
-
-Le prime cinque voci di questo elenco descrivono uno stato superato: dialogo
-delle date, invio delle richieste, pannello admin e foto funzionano. Chi passa
-di qui per primo le poti.
+1. **Allineamento visivo a Material Matters** (vedi *Aspetto*) — resta il
+   pezzo grosso, ma è quasi solo una sostituzione di valori: i token sono già
+   tutti in `app.css`.
+2. **Registro delle azioni admin.** Non esiste una tabella per questo: oggi
+   una decisione si ricostruisce solo da `decidedById`/`decidedAt` sulla
+   richiesta, e ritiro/riconsegna non hanno un «chi» per niente (vedi
+   *Sicurezza → Cosa resta aperto*).
+3. *Un giorno:* QR sugli oggetti.
 
 ---
 
@@ -295,10 +327,9 @@ l'accesso a tutti consumandoli. Better Auth stesso lo segnala nei log.
 - **Il limite di frequenza sta in memoria**, quindi si azzera a ogni riavvio e
   non si condivide fra processi. Con un processo solo va bene; se un giorno se
   ne mettono due, va spostato su database.
-- **Nessun registro delle azioni degli admin.** Quando arriva il pannello,
-  approvazioni e rifiuti andrebbero tracciati.
-- **Le foto non sono ancora caricabili**: quando lo saranno, validare il tipo
-  reale del file e non l'estensione, e ridimensionare al caricamento.
+- **Nessun registro delle azioni degli admin.** Approvazioni, rifiuti, ritiro
+  e riconsegna non hanno un «chi» tracciato oltre a `decidedById`/`decidedAt`
+  sulla richiesta stessa — chi ha segnato un ritiro non si sa più.
 
 ---
 
@@ -356,43 +387,75 @@ capriccio: vedi `components/button.tsx`.
 
 ```
 app/
-  routes/catalogue.tsx        il catalogo pubblico, con ricerca
-  routes/admin.assets.tsx     gli oggetti: ricerca, filtro e gruppi per categoria
-  routes/admin.categories.tsx le categorie: crea, rinomina, riordina, elimina
-  routes/admin.kits.tsx       i kit, con i pezzi in chiaro su ogni riga
-  routes/item.tsx             la scheda di un oggetto (pubblica)
-  routes/availability.tsx     sole risorse: «liberi in queste date?»
-  routes/calendar.tsx         la timeline oggetti × giorni, elenco sul telefono
-  routes/calendar[.]ics.tsx   il feed iCal pubblico
-  routes/account.tsx          il proprio profilo: foto, nome, alias
-  routes/signin.tsx           accesso
-  routes/welcome.tsx          il nome, chiesto una volta
-  routes/api.auth.$.tsx       gestore unico di Better Auth
-  components/button.tsx       l'unico pulsante
-  components/page.tsx         l'unico guscio di pagina
-  components/cart-bar.tsx     il carrello e il foglio della richiesta
-  components/state-badge.tsx  i quattro stati, mai solo colore
-  components/select.tsx       l'unico menu a tendina
-  components/photo-picker.tsx le foto: quelle che ci sono e quelle in arrivo
-  components/person.tsx       <PersonName> e <Avatar>
-  components/admin-tabs.tsx   oggetti · kit · categorie, le tre schede admin
-  components/kit-fields.tsx   il modulo di un kit e il selettore dei pezzi
-  components/date-range-fields.tsx  le date, condivise fra foglio e dettaglio
-  lib/availability.server.ts  il motore di disponibilità
-  lib/availability.shared.ts  i tetti di durata, anche per il browser
-  lib/person.ts               alias, nome per esteso, etichetta per gli admin
-  lib/categories.ts           slug e nome ripulito, anche per il browser
-  lib/categories.server.ts    la categoria creata dalla scheda di un oggetto
-  lib/kits.server.ts          gli oggetti da spuntare, e la riscrittura dei pezzi
-  lib/initials.ts             le iniziali per i segnaposto
-  lib/session.server.ts       getUser / requireUser / requireAdmin
-  lib/auth.server.ts          configurazione dell'accesso
-  lib/email.server.ts         Resend, con ripiego a terminale
-  lib/ical.server.ts          generazione iCalendar
-  i18n/                       tre lingue, tipizzate + i titoli delle pagine
-  app.css                     i token, con i rapporti di contrasto annotati
-  lib/uploads.server.ts       foto degli oggetti (due file) e avatar (uno)
-prisma/schema.prisma          nove tabelle + quattro di Better Auth
+  routes/ — pubblico
+    catalogue.tsx       il catalogo pubblico, con ricerca
+    item.tsx            la scheda di un oggetto (pubblica)
+    availability.tsx    sole risorse: «liberi in queste date?»
+    calendar.tsx        la timeline oggetti × giorni, elenco sul telefono
+    calendar[.]ics.tsx  il feed iCal pubblico
+    uploads.tsx         serve le foto caricate, pubblico apposta (vedi Sicurezza)
+
+  routes/ — accesso e profilo
+    signin.tsx          accesso: codice, password, Google, Microsoft
+    welcome.tsx         il nome, chiesto una volta al primo accesso
+    reset-password.tsx  imposta una password da un link — anche il primo utilizzo
+    account.tsx         il proprio profilo: foto, nome, alias, lingua
+    api.auth.$.tsx      gestore unico di Better Auth
+    language.tsx        cambio lingua (scrive il cookie)
+
+  routes/ — richieste (chi prende in prestito)
+    requests.tsx        «le mie richieste»: elenco (GET) + crea dal carrello (POST)
+    request-detail.tsx  il dettaglio: date, annulla, chat — e, per l'admin, approva/rifiuta,
+      ritiro/riconsegna per oggetto, nota, promemoria
+
+  routes/ — solo admin
+    admin.requests.tsx    la coda di approvazione
+    admin.members.tsx     i soci: ruolo e link di reset password
+    admin.assets.tsx      gli oggetti: ricerca, filtro, gruppi per categoria
+    admin.assets.$id.tsx  scheda di un oggetto: modifica, foto, archivia/elimina
+    admin.assets.new.tsx  nuovo oggetto
+    admin.categories.tsx  le categorie: crea, rinomina, riordina, elimina
+    admin.kits.tsx        i kit, con i pezzi in chiaro su ogni riga
+    admin.kits.$id.tsx    scheda di un kit
+    admin.kits.new.tsx    nuovo kit
+
+  components/
+    button.tsx             l'unico pulsante
+    page.tsx               l'unico guscio di pagina
+    select.tsx             l'unico menu a tendina
+    state-badge.tsx        i quattro stati, mai solo colore
+    admin-badge.tsx        l'etichetta ADMIN, ovunque serva
+    person.tsx             <PersonName> e <Avatar>
+    site-header.tsx        intestazione, menu profilo, cambio lingua
+    cart-bar.tsx           il carrello e il foglio della richiesta
+    date-range-fields.tsx  le date, condivise fra foglio e dettaglio
+    photo-picker.tsx       le foto: quelle che ci sono e quelle in arrivo
+    asset-fields.tsx       il modulo di un oggetto (nome, categoria, foto, note)
+    kit-fields.tsx         il modulo di un kit e il selettore dei pezzi
+    admin-tabs.tsx         oggetti · kit · categorie, le tre schede admin
+
+  lib/
+    availability.server.ts   il motore di disponibilità
+    availability.shared.ts   i tetti di durata, anche per il browser
+    session.server.ts        getUser / requireUser / requireAdmin
+    auth.server.ts           configurazione dell'accesso (Better Auth)
+    auth-client.ts           il client di Better Auth, lato browser
+    notifications.server.ts  tutte le email di una richiesta, in un posto solo
+    reminders.server.ts      lo spazzatore orario del promemoria automatico
+    email.server.ts          Resend, con ripiego a terminale
+    ical.server.ts           generazione iCalendar
+    uploads.server.ts        foto degli oggetti (due file) e avatar (uno)
+    person.ts                alias, nome per esteso, etichetta per gli admin
+    categories.ts            slug e nome ripulito, anche per il browser
+    categories.server.ts     la categoria creata dalla scheda di un oggetto
+    kits.server.ts           gli oggetti da spuntare, e la riscrittura dei pezzi
+    initials.ts              le iniziali per i segnaposto
+    use-cart.ts              il carrello, prima dell'invio
+
+  i18n/    tre lingue, tipizzate + i titoli delle pagine
+  app.css  i token, con i rapporti di contrasto annotati
+
+prisma/schema.prisma    nove tabelle nostre + tre di Better Auth (Session, Account, Verification)
 ```
 
 `availability.shared.ts` esiste per una ragione sola: `availability.server.ts`
@@ -474,6 +537,30 @@ architettura, e al limite non ci si arriva — ma la **disponibilità**: un MacB
 che va in sospensione è la piattaforma offline, e il tunnel non può farci
 niente.
 
+### Backup automatico
+
+`scripts/backup.sh` fa esattamente le due cose da salvare: dump compresso e
+datato del database, più la cartella foto, caricati su OneDrive via
+`rclone`. Girato ogni notte tiene 30 giorni di dump; le foto si copiano
+(`rclone copy`, mai `sync`) e non vengono mai cancellate lato OneDrive —
+così una cancellazione locale per errore non si propaga mai al backup.
+
+Lo script non contiene mai le credenziali dell'account OneDrive: si
+riferisce solo al nome di un remote rclone (`onedrive`). **Spostare il
+backup su un altro spazio OneDrive** — cambio di ateneo, account personale —
+significa solo `rclone config reconnect onedrive` (o ricreare quel remote
+con lo stesso nome): lo script resta invariato.
+
+**Oggi lo script esiste ma non è schedulato.** Per attivarlo (su questa
+macchina o dopo il trasferimento su Linux, lo script è identico):
+
+1. Una tantum: `rclone config` → New remote → Microsoft OneDrive → nome
+   `onedrive` → segue il flusso OAuth nel browser.
+2. Verifica manuale: `./scripts/backup.sh` una volta, poi controllare che
+   `onedrive:Fabula-backup/database/` e `.../uploads/` si siano popolate.
+3. Solo allora la crontab:
+   `0 3 * * * /percorso/fabula/scripts/backup.sh >> /percorso/fabula/data/backup.log 2>&1`
+
 ---
 
 ## Trappole già incontrate
@@ -519,6 +606,32 @@ niente.
   stampa un avviso a ogni installazione. È solo un elenco non aggiornato.
 - **`APP_URL` deve combaciare con la porta in uso**, o Better Auth rifiuta
   l'accesso con «Invalid origin». In sviluppo è la 5173.
+- **Il `Dockerfile` va tenuto allineato al gestore pacchetti reale.** È nato
+  con `npm ci` e un `package-lock.json` quando il progetto è passato a pnpm
+  nessuno lo ha aggiornato: il container `app` non si è mai più costruito,
+  fallendo silenziosamente ogni volta (nessuno se n'è accorto perché
+  `docker compose up -d` senza `--profile full` non prova nemmeno a
+  costruirlo). Ora usa pnpm via corepack, con `pnpm-workspace.yaml` copiato
+  anche negli stage con `--prod` (contiene gli `allowBuilds` per Prisma) e
+  il comando di avvio che chiama `react-router-serve` direttamente invece di
+  passare da `pnpm run start` — quel giro triggera un controllo automatico
+  delle dipendenze che, senza `pnpm-workspace.yaml` nell'immagine finale,
+  fallisce e mette il container in crash-loop.
+- **`docker compose up -d` da solo avvia solo `db`.** Il servizio `app` sta
+  dietro `profiles: ["full"]` apposta, per separare lo sviluppo (solo
+  database, col codice che gira fuori con `pnpm dev`) dalla produzione.
+  Serve `docker compose --profile full up -d` per avere anche l'app — è
+  facile dimenticarselo e restare con l'app ferma senza errori evidenti.
+- **La porta pubblica dell'app (`APP_PORT`) deve combaciare con il
+  "Service" configurato per l'hostname pubblico nel tunnel Cloudflare**
+  (Zero Trust → Networks → Tunnels → il tunnel → Configure). Sono due
+  configurazioni indipendenti — una nel `.env` locale, l'altra nella
+  dashboard Cloudflare — e nulla le tiene sincronizzate: se divergono,
+  Cloudflare risponde 502 anche con l'app perfettamente sana in locale.
+- **Docker Desktop deve avere «Start Docker Desktop when you log in»
+  attivo** (Settings → General). Senza, un riavvio del Mac non fa ripartire
+  nulla nonostante `restart: unless-stopped` sui container — Docker stesso
+  non è in esecuzione finché non lo si apre a mano.
 
 ---
 
@@ -528,6 +641,15 @@ niente.
   controintuitiva, il commento deve dire da quale problema nasce.
 - Ogni file si apre con un blocco che dice a cosa serve.
 - Mai `any` per comodità.
+- **Una rotta con più azioni POST le distingue con un campo nascosto
+  `intent`** (`<input type="hidden" name="intent" value="..." />`), letto in
+  cima all'`action` con `String(form.get("intent"))`. Vedi
+  `request-detail.tsx` (`message` / `editDates` / `cancel` / `note` /
+  `approve` / `reject` / `pickup` / `return` / `reminder`) o
+  `admin.members.tsx` (`toggleRole` / `sendReset`). Chi aggiunge un'azione
+  nuova a una rotta esistente segue questo schema invece di crearne una
+  parallela; chi legge un `action` cerca prima la lista degli `intent`
+  gestiti, che di solito sta tutta in cima alla funzione.
 - `"min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm"` è scritta a
   mano in otto punti fra `asset-fields.tsx`, il catalogo e le date. Prima o poi
   diventa `fieldClass()` accanto a `buttonClass()`: è lo stesso difetto che ha
