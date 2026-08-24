@@ -634,6 +634,29 @@ Quattro cose che si scoprono solo sbattendoci:
   pulsante di ripiego copre. Serve una guardia (`startedRef`) contro il doppio
   avvio: in sviluppo React monta e rimonta ogni componente, e senza partirebbero
   due scanner sulla stessa fotocamera.
+- **Se un giorno lo scanner risultasse lento, si guardano queste tre cose, in
+  quest'ordine** (misurate il 2026-08-24, prima di provare sul campo — quindi
+  ancora da confermare con l'uso vero):
+
+  1. **Cosa c'è scritto dentro al QR**, che è il guadagno più grosso e non
+     costa una dipendenza. Su un adesivo da 4 cm: l'indirizzo di oggi
+     (`/admin/handover/<cuid>`, 65 caratteri) fa 37×37 moduli, cioè 1,08 mm
+     l'uno; una rotta corta `/h/<cuid>` fa 33×33; un codice corto di otto
+     caratteri fa 29×29; **lo stesso codice tutto maiuscolo fa 25×25, cioè
+     moduli del 48% più grandi**, perché il QR ha una modalità alfanumerica
+     più densa che accetta solo maiuscole e i domini sono insensibili alle
+     maiuscole comunque. Un modulo più grande è la differenza fra leggere a 20
+     cm e a 40. **Va deciso prima di stampare gli adesivi**, non dopo.
+  2. **Su iPhone il decodificatore è quello lento, e non per colpa nostra.**
+     Safari non implementa `BarcodeDetector`, e siccome su iOS ogni browser è
+     obbligato a usare WebKit non lo implementa nessuno — nemmeno Chrome per
+     iPhone. Lì `qr-scanner` ripiega sul suo decodificatore JavaScript.
+     L'alternativa è `zxing-wasm` (ZXing-C++ in WebAssembly): circa 2× più
+     veloce e più tollerante su codici sfocati o storti.
+  3. **Su Android non c'è niente da guadagnare**: lì `BarcodeDetector` c'è, e
+     a leggere è il sistema operativo. Sopra ci sono solo i prodotti
+     commerciali a pagamento.
+
 - **Lo zoom automatico è una ricerca cieca, non un rilevamento.** Se dopo un
   paio di secondi non ha letto niente, sale di un gradino alla volta fino al
   doppio e poi riparte da capo. Telegram fa una cosa più furba — stima la
