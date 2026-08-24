@@ -59,9 +59,11 @@ Il ciclo intero funziona, dal catalogo alla riconsegna:
   archiviazione), categorie, kit, coda di approvazione, soci (ruolo e reset
   password), registro di chi ha fatto cosa.
 - **QR e consegna diretta**: ogni oggetto ha un'etichetta QR da stampare;
-  inquadrandola col telefono si sceglie a chi darlo e fino a quando, e il
-  prestito è registrato in un colpo — approvato e già ritirato. L'adesivo
-  funziona anche con la fotocamera di sistema del telefono.
+  inquadrandola col telefono o con la webcam si sceglie a chi darlo e fino a
+  quando, e il prestito è registrato in un colpo — approvato e già ritirato.
+  Lo scanner apre da solo la fotocamera giusta (la posteriore principale, non
+  la grandangolare), e l'adesivo funziona anche con la fotocamera di sistema
+  del telefono, senza passare da Fabula.
 - **Accesso**: codice via email (il modo principale — non c'è differenza fra
   registrarsi ed entrare), password, Google, Microsoft. Foto caricabili per
   oggetti e profilo, con validazione del tipo reale del file.

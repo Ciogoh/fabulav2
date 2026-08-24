@@ -55,7 +55,6 @@ const en = {
 
   "kit.badge": "Kit",
   "kit.itemCount": "{count} items",
-  "kit.contains": "Contains",
   "kit.more": "+{count} more",
 
   "item.backToCatalogue": "Catalogue",
@@ -65,10 +64,8 @@ const en = {
   "item.photoAlt": "Photo of {name}",
 
   "cart.add": "Add",
-  "cart.added": "Added",
   "cart.remove": "Remove",
   "cart.heading": "Your request",
-  "cart.empty": "Nothing selected yet.",
   "cart.itemCount": "{count} selected",
   "cart.clear": "Clear",
   "cart.submit": "Request",
@@ -106,7 +103,6 @@ const en = {
 
   "welcome.heading": "One last thing",
   "welcome.intro": "Your name for the admins, who hand the things over in person. Add an alias if you would rather be called something else.",
-  "welcome.name": "Your name",
   "welcome.passwordIntro": "You can always sign in with a code — that never goes away. If you'd rather use a password sometimes, set one below; from then on you choose either one, every time you sign in. Leave both fields blank to skip this.",
   "welcome.password": "Password (optional)",
   "welcome.confirmPassword": "Confirm password",
@@ -128,7 +124,6 @@ const en = {
   "calendar.showBusy": "Only items with bookings",
   "calendar.showingCount": "{count} of {total} items",
   "calendar.showingAllCount": "All {total} items",
-  "calendar.listView": "Item by item",
   "calendar.timelineHint": "Scroll sideways for later days.",
   "calendar.empty": "Nothing booked in this period.",
   "calendar.subscribe": "Add to your calendar",
@@ -234,7 +229,6 @@ const en = {
   "assets.makeAvailable": "Mark available",
   "assets.makeUnavailable": "Mark unavailable",
   "assets.photos": "Photos",
-  "assets.addPhoto": "Add photos",
   "assets.removePhoto": "Remove",
   "assets.photoDrop": "Drag photos here, or click to choose them",
   "assets.photoAddMore": "Drag more here, or click to choose them",
@@ -252,7 +246,6 @@ const en = {
   "assets.errorName": "Give it a name, at least 2 characters.",
   "assets.errorPhotoTooBig": "One photo was too big (max 5 MB) and was skipped.",
   "assets.errorPhotoType": "One file was not a photo Fabula could read, and was skipped.",
-  "assets.errorGeneric": "Something went wrong. Try again.",
 
   "assets.searchPlaceholder": "Search by name or category…",
   "assets.filterAll": "All",
@@ -435,7 +428,6 @@ const it: Dictionary = {
 
   "kit.badge": "Kit",
   "kit.itemCount": "{count} oggetti",
-  "kit.contains": "Contiene",
   "kit.more": "+altri {count}",
 
   "item.backToCatalogue": "Catalogo",
@@ -445,10 +437,8 @@ const it: Dictionary = {
   "item.photoAlt": "Foto di {name}",
 
   "cart.add": "Aggiungi",
-  "cart.added": "Aggiunto",
   "cart.remove": "Togli",
   "cart.heading": "La tua richiesta",
-  "cart.empty": "Non hai ancora scelto niente.",
   "cart.itemCount": "{count} selezionati",
   "cart.clear": "Svuota",
   "cart.submit": "Richiedi",
@@ -480,7 +470,6 @@ const it: Dictionary = {
 
   "welcome.heading": "Un'ultima cosa",
   "welcome.intro": "Il tuo nome per gli admin, che consegnano gli oggetti di persona. Se preferisci farti chiamare in altro modo, aggiungi un alias.",
-  "welcome.name": "Il tuo nome",
   "welcome.passwordIntro": "Puoi sempre entrare con un codice: quello non sparisce mai. Se preferisci usare a volte una password, impostala qui sotto: da questo momento scegli tu, ogni volta, quale usare. Lascia vuoti entrambi i campi per saltare questo passaggio.",
   "welcome.password": "Password (facoltativa)",
   "welcome.confirmPassword": "Conferma password",
@@ -502,7 +491,6 @@ const it: Dictionary = {
   "calendar.showBusy": "Solo oggetti con prenotazioni",
   "calendar.showingCount": "{count} oggetti su {total}",
   "calendar.showingAllCount": "Tutti i {total} oggetti",
-  "calendar.listView": "Oggetto per oggetto",
   "calendar.timelineHint": "Scorri di lato per i giorni successivi.",
   "calendar.empty": "Niente di prenotato in questo periodo.",
   "calendar.subscribe": "Aggiungi al tuo calendario",
@@ -608,7 +596,6 @@ const it: Dictionary = {
   "assets.makeAvailable": "Segna disponibile",
   "assets.makeUnavailable": "Segna non disponibile",
   "assets.photos": "Foto",
-  "assets.addPhoto": "Aggiungi foto",
   "assets.removePhoto": "Rimuovi",
   "assets.photoDrop": "Trascina qui le foto, o premi per sceglierle",
   "assets.photoAddMore": "Trascina qui le altre, o premi per sceglierle",
@@ -626,7 +613,6 @@ const it: Dictionary = {
   "assets.errorName": "Dagli un nome, almeno 2 caratteri.",
   "assets.errorPhotoTooBig": "Una foto era troppo grande (massimo 5 MB) ed è stata saltata.",
   "assets.errorPhotoType": "Un file non era una foto leggibile da Fabula, ed è stato saltato.",
-  "assets.errorGeneric": "Qualcosa è andato storto. Riprova.",
 
   "assets.searchPlaceholder": "Cerca per nome o categoria…",
   "assets.filterAll": "Tutti",
@@ -806,7 +792,6 @@ const de: Dictionary = {
 
   "kit.badge": "Set",
   "kit.itemCount": "{count} Gegenstände",
-  "kit.contains": "Enthält",
   "kit.more": "+{count} weitere",
 
   "item.backToCatalogue": "Katalog",
@@ -816,10 +801,8 @@ const de: Dictionary = {
   "item.photoAlt": "Foto von {name}",
 
   "cart.add": "Hinzufügen",
-  "cart.added": "Hinzugefügt",
   "cart.remove": "Entfernen",
   "cart.heading": "Deine Anfrage",
-  "cart.empty": "Noch nichts ausgewählt.",
   "cart.itemCount": "{count} ausgewählt",
   "cart.clear": "Leeren",
   "cart.submit": "Anfragen",
@@ -851,7 +834,6 @@ const de: Dictionary = {
 
   "welcome.heading": "Noch eine Sache",
   "welcome.intro": "Dein Name für die Admins, die die Sachen persönlich übergeben. Wenn du lieber anders genannt wirst, füge einen Alias hinzu.",
-  "welcome.name": "Dein Name",
   "welcome.passwordIntro": "Du kannst dich immer mit einem Code anmelden — das bleibt so. Wenn du lieber manchmal ein Passwort benutzen möchtest, lege eines fest: danach entscheidest du jedes Mal, welches du nutzt. Lass beide Felder leer, um das zu überspringen.",
   "welcome.password": "Passwort (optional)",
   "welcome.confirmPassword": "Passwort bestätigen",
@@ -872,7 +854,6 @@ const de: Dictionary = {
   "calendar.showAll": "Alle Gegenstände zeigen",
   "calendar.showingCount": "{count} von {total} Gegenständen",
   "calendar.showingAllCount": "Alle {total} Gegenstände",
-  "calendar.listView": "Gegenstand für Gegenstand",
   "calendar.timelineHint": "Seitlich scrollen für spätere Tage.",
   "calendar.showBusy": "Nur Gegenstände mit Buchungen",
   "calendar.empty": "In diesem Zeitraum ist nichts gebucht.",
@@ -979,7 +960,6 @@ const de: Dictionary = {
   "assets.makeAvailable": "Als verfügbar markieren",
   "assets.makeUnavailable": "Als nicht verfügbar markieren",
   "assets.photos": "Fotos",
-  "assets.addPhoto": "Fotos hinzufügen",
   "assets.removePhoto": "Entfernen",
   "assets.photoDrop": "Fotos hierher ziehen oder zum Auswählen klicken",
   "assets.photoAddMore": "Weitere hierher ziehen oder zum Auswählen klicken",
@@ -997,7 +977,6 @@ const de: Dictionary = {
   "assets.errorName": "Gib einen Namen an, mindestens 2 Zeichen.",
   "assets.errorPhotoTooBig": "Ein Foto war zu groß (max. 5 MB) und wurde übersprungen.",
   "assets.errorPhotoType": "Eine Datei war kein Foto, das Fabula lesen konnte, und wurde übersprungen.",
-  "assets.errorGeneric": "Etwas ist schiefgelaufen. Versuche es erneut.",
 
   "assets.searchPlaceholder": "Nach Name oder Kategorie suchen…",
   "assets.filterAll": "Alle",

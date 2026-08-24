@@ -505,6 +505,7 @@ app/
     calendar.tsx        la timeline oggetti × giorni, elenco sul telefono
     calendar[.]ics.tsx  il feed iCal pubblico
     uploads.tsx         serve le foto caricate, pubblico apposta (vedi Sicurezza)
+    h.$code.tsx         l'indirizzo corto stampato sugli adesivi: rimanda alla consegna
 
   routes/ — accesso e profilo
     signin.tsx          accesso: codice, password, Google, Microsoft
@@ -552,6 +553,7 @@ app/
   lib/
     availability.server.ts   il motore di disponibilità
     availability.shared.ts   i tetti di durata, anche per il browser
+    db.server.ts             il client Prisma, uno solo per tutta l'applicazione
     session.server.ts        getUser / requireUser / requireAdmin
     auth.server.ts           configurazione dell'accesso (Better Auth)
     auth-client.ts           il client di Better Auth, lato browser
@@ -569,6 +571,7 @@ app/
     kits.server.ts           gli oggetti da spuntare, e la riscrittura dei pezzi
     initials.ts              le iniziali per i segnaposto
     use-cart.ts              il carrello, prima dell'invio
+    version.ts               versionLabel(): versione, build e data in un posto solo
 
   i18n/    tre lingue, tipizzate + i titoli delle pagine
   app.css  i token, con i rapporti di contrasto annotati
@@ -584,8 +587,9 @@ servono da entrambe le parti e devono restare **lo stesso numero**.
 ### Il QR e la consegna diretta
 
 Si stampa un adesivo per oggetto, lo si inquadra col telefono, si sceglie a
-chi darlo e fino a quando. Tre file: `lib/qr.server.ts` genera,
-`routes/admin.scan.tsx` legge, `routes/admin.handover.$assetId.tsx` consegna.
+chi darlo e fino a quando. Quattro file: `lib/qr.server.ts` genera il codice,
+`routes/admin.scan.tsx` lo legge, `routes/h.$code.tsx` traduce l'indirizzo
+corto dell'adesivo, `routes/admin.handover.$assetId.tsx` consegna.
 
 **Quello che nasce è una `Request` normale**, già `APPROVED` con il suo
 `RequestItem` già `pickedUpAt` — lo stato in cui una richiesta ordinaria
@@ -610,18 +614,22 @@ casa, e un QR può contenere qualunque indirizzo. Vale la stessa regola dei
 redirect che arrivano dall'utente: `handoverPathFrom` accetta solo un
 indirizzo di *questa* origine col percorso atteso, e **ricostruisce** il
 percorso dall'identificativo catturato invece di riusare quello letto — così
-query e frammenti non passano. Se tocchi quella funzione, ricontrolla i casi:
-altro host, `../`, schema `javascript:`, id con una barra dentro.
+query e frammenti non passano. Accetta **due forme**: quella corta e maiuscola
+stampata oggi (`/H/CMT3…`) e quella lunga di prima
+(`/admin/handover/cmt3…`), che resta valida perché un adesivo già attaccato
+non si stacca da solo. Se tocchi quella funzione, ricontrolla i casi: altro
+host, `../`, schema `javascript:`, id con una barra dentro, e la coppia
+maiuscolo/minuscolo.
 
-Quattro cose che si scoprono solo sbattendoci:
+Le cose che si scoprono solo sbattendoci:
 
 - **Il QR contiene un indirizzo intero, non l'id nudo.** Costa una trentina di
   caratteri e in cambio l'adesivo funziona anche con la fotocamera di sistema
   del telefono, che di un `cmf3x9k2p0000` non saprebbe che fare.
 - **L'indirizzo viene da `APP_URL`**, non dall'origine della richiesta: un
   adesivo è per sempre, e generarli mentre si lavora su `localhost` vorrebbe
-  dire stampare etichette morte. Di conseguenza **la rotta
-  `/admin/handover/:assetId` non si rinomina a cuor leggero**: gli adesivi già
+  dire stampare etichette morte. Di conseguenza **né `/h/:code` né
+  `/admin/handover/:assetId` si rinominano a cuor leggero**: gli adesivi già
   attaccati continuerebbero a puntare lì.
 - **`facingMode: "environment"` non basta a prendere la fotocamera giusta.**
   Chiede «una di dietro», e su Android il browser ne consegna spesso una
@@ -644,38 +652,60 @@ Quattro cose che si scoprono solo sbattendoci:
   pulsante di ripiego copre. Serve una guardia (`startedRef`) contro il doppio
   avvio: in sviluppo React monta e rimonta ogni componente, e senza partirebbero
   due scanner sulla stessa fotocamera.
-- **Se un giorno lo scanner risultasse lento, si guardano queste tre cose, in
-  quest'ordine** (misurate il 2026-08-24, prima di provare sul campo — quindi
-  ancora da confermare con l'uso vero):
+- **L'adesivo è corto e maiuscolo apposta, e questo è già fatto.** Dentro al
+  QR non c'è `/admin/handover/<cuid>` ma `HTTPS://…/H/<CUID>`
+  (`shortHandoverUrl` in `qr.server.ts`), e la rotta `h.$code.tsx` rimette in
+  minuscolo e rimanda alla consegna. Due trucchi che si sommano: tredici
+  caratteri in meno, e il maiuscolo che fa entrare il codice nella **modalità
+  alfanumerica** del QR — undici bit ogni due caratteri invece di otto per
+  carattere. Una sola minuscola butterebbe tutto in modalità byte.
+  Misurato su un adesivo da 4 cm: da 37×37 a **29×29 moduli**, cioè da 1,08 a
+  1,38 mm per modulo, +28%. Un modulo più grande è la differenza fra leggere a
+  venti centimetri e a quaranta.
+  Si potrebbe scendere ancora a 25×25 con un codice di otto caratteri al posto
+  del cuid, ma quello vuole una colonna nuova e la sua unicità da garantire:
+  non è stato fatto, e va deciso **prima** di stampare gli adesivi.
 
-  1. **Cosa c'è scritto dentro al QR**, che è il guadagno più grosso e non
-     costa una dipendenza. Su un adesivo da 4 cm: l'indirizzo di oggi
-     (`/admin/handover/<cuid>`, 65 caratteri) fa 37×37 moduli, cioè 1,08 mm
-     l'uno; una rotta corta `/h/<cuid>` fa 33×33; un codice corto di otto
-     caratteri fa 29×29; **lo stesso codice tutto maiuscolo fa 25×25, cioè
-     moduli del 48% più grandi**, perché il QR ha una modalità alfanumerica
-     più densa che accetta solo maiuscole e i domini sono insensibili alle
-     maiuscole comunque. Un modulo più grande è la differenza fra leggere a 20
-     cm e a 40. **Va deciso prima di stampare gli adesivi**, non dopo.
-  2. **Su iPhone il decodificatore è quello lento, e non per colpa nostra.**
+- **Se un giorno lo scanner risultasse lento, restano due cose da guardare.**
+
+  1. **Su iPhone il decodificatore è quello lento, e non per colpa nostra.**
      Safari non implementa `BarcodeDetector`, e siccome su iOS ogni browser è
      obbligato a usare WebKit non lo implementa nessuno — nemmeno Chrome per
      iPhone. Lì `qr-scanner` ripiega sul suo decodificatore JavaScript.
      L'alternativa è `zxing-wasm` (ZXing-C++ in WebAssembly): circa 2× più
-     veloce e più tollerante su codici sfocati o storti.
-  3. **Su Android non c'è niente da guadagnare**: lì `BarcodeDetector` c'è, e
+     veloce e più tollerante su codici sfocati o storti. Verificato che legge
+     il nostro QR anche disegnato a 80 pixel. **Va però fatto restando dentro
+     a un worker** — vedi la trappola del ciclo scritto a mano qui sotto.
+  2. **Su Android non c'è niente da guadagnare**: lì `BarcodeDetector` c'è, e
      a leggere è il sistema operativo. Sopra ci sono solo i prodotti
      commerciali a pagamento.
 
-- **Lo zoom automatico è una ricerca cieca, non un rilevamento.** Se dopo un
-  paio di secondi non ha letto niente, sale di un gradino alla volta fino al
-  doppio e poi riparte da capo. Telegram fa una cosa più furba — stima la
-  distanza del codice — ma per farlo bisogna sapere *dove* è il QR prima di
-  averlo letto, e il decodificatore in un browser non lo racconta. Su iOS
-  `zoom` non esiste fra le capacità e l'effetto esce subito: nessun danno.
-  Insieme allo zoom c'è `focusMode: "continuous"`, che è l'accorgimento che
-  cambia di più — senza, un adesivo vicino resta sfocato e sembra che lo
-  scanner sia rotto.
+- **`focusMode: "continuous"` è l'accorgimento che cambia di più.** Senza, un
+  adesivo a venti centimetri resta sfocato finché la fotocamera non ci ripensa
+  da sola, e nel frattempo sembra che lo scanner sia rotto. Su iOS
+  `getCapabilities()` non dice quasi niente e la chiamata non fa nulla:
+  nessun danno, il telefono mette a fuoco per conto suo.
+
+- **Due strade già provate e scartate, per non rifarle.**
+
+  **Lo zoom automatico** — salire di zoom da soli quando non si legge niente —
+  è stato scritto, provato e tolto. Non funziona come sembra: allontana
+  l'inquadratura proprio mentre chi scansiona sta centrando l'adesivo. Per
+  fare quello che fa Telegram bisognerebbe sapere *dove* è il QR prima di
+  averlo letto, e nessun decodificatore raggiungibile da un browser lo
+  racconta. Se torna la tentazione, la risposta è no.
+
+  **Riscrivere il ciclo a mano** — fotocamera, cattura dei fotogrammi e
+  decodifica scritti qui invece che presi da `qr-scanner`, per poter leggere
+  aree più grandi — è stato fatto e annullato dopo la prova sul campo. Sulla
+  carta era meglio: `qr-scanner` legge un quadrato centrale ridotto a 400
+  pixel, e un ciclo proprio permette di leggere tutto il fotogramma e un
+  ritaglio centrale a risoluzione piena. **Nella pratica era peggio**, e il
+  motivo è uno solo: `qr-scanner` decodifica in un *web worker*, il ciclo
+  scritto a mano lo faceva sul thread principale. Su un telefono si vede —
+  l'anteprima scatta e tutto sembra più lento, anche quando la lettura non lo
+  è. Chi ci riprova deve partire da lì: **il decodificatore va in un worker**,
+  altrimenti non c'è area di lettura che tenga.
 - **Lo scanner vale anche da computer, con la webcam.** `preferredCamera:
   "environment"` viene chiesto dalla libreria come vincolo *esatto*, e un Mac
   senza fotocamera posteriore risponde `OverconstrainedError` — verificato.
