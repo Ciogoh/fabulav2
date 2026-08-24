@@ -52,7 +52,24 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
 
   const [step, setStep] = useState<Step>({ name: "email" });
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  /**
+   * **Un ritorno fallito da Google o dallo Scientific Network arriva qui, non
+   * sul catalogo.** Better Auth, quando il giro va storto, rimanda
+   * all'`errorCallbackURL` con `?error=` — e senza dichiararlo quell'indirizzo
+   * era la pagina iniziale, che di quel parametro non sa niente: il giro
+   * finiva su `/?error=invalid_code`, muto. Chi provava vedeva l'accesso
+   * «non funzionare» senza una parola, e la ragione vera restava solo nei log
+   * del server (successo davvero: il server non era riuscito a raggiungere
+   * `login.microsoftonline.com` per scambiare il codice).
+   *
+   * Il testo è uno solo per tutte le cause. `invalid_code` significa allo
+   * stesso modo «rete caduta», «segreto scaduto» e «codice già speso»:
+   * distinguerle a schermo non si può, e la via d'uscita — il codice via
+   * email — è comunque la stessa.
+   */
+  const [error, setError] = useState<string | null>(() =>
+    searchParams.get("error") ? t("signin.socialFailed") : null
+  );
 
   // Solo percorsi interni: un `next` arbitrario preso dall'indirizzo è un
   // open redirect e serve a portare la gente su siti altrui dopo l'accesso.
@@ -91,6 +108,10 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
       provider,
       callbackURL: next,
       newUserCallbackURL: `/welcome?next=${encodeURIComponent(next)}`,
+      // Se il ritorno fallisce si torna qui, dove c'è il messaggio e ci sono
+      // gli altri modi di entrare — non sul catalogo con un parametro che
+      // nessuno legge. Vedi il commento su `error`.
+      errorCallbackURL: "/signin",
     });
   }
 

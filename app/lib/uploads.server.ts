@@ -16,10 +16,10 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import sharp from "sharp";
 import { isUploadedAvatar } from "~/lib/person";
+import { MAX_UPLOAD_BYTES } from "~/lib/uploads.shared";
 
 export const UPLOAD_ROOT = path.join(process.cwd(), "data", "uploads");
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAIN_MAX_DIMENSION = 1600;
 const THUMB_MAX_DIMENSION = 480;
 const JPEG_QUALITY = 82;
@@ -58,7 +58,7 @@ export async function saveAssetPhoto(
   assetId: string,
   file: File
 ): Promise<UploadResult> {
-  if (file.size > MAX_FILE_SIZE) return { ok: false, error: "tooBig" };
+  if (file.size > MAX_UPLOAD_BYTES) return { ok: false, error: "tooBig" };
 
   const buffer = Buffer.from(await file.arrayBuffer());
   if (!looksLikeImage(buffer)) return { ok: false, error: "invalidType" };
@@ -123,7 +123,7 @@ export async function saveAvatar(
   userId: string,
   file: File
 ): Promise<{ ok: true; url: string } | { ok: false; error: "tooBig" | "invalidType" }> {
-  if (file.size > MAX_FILE_SIZE) return { ok: false, error: "tooBig" };
+  if (file.size > MAX_UPLOAD_BYTES) return { ok: false, error: "tooBig" };
 
   const buffer = Buffer.from(await file.arrayBuffer());
   if (!looksLikeImage(buffer)) return { ok: false, error: "invalidType" };

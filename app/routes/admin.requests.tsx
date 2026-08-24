@@ -11,7 +11,7 @@ import { Link } from "react-router";
 import type { Route } from "./+types/admin.requests";
 import { PageShell } from "~/components/page";
 import { pageTitle } from "~/i18n/meta";
-import { Avatar, PersonName } from "~/components/person";
+import { PersonInline } from "~/components/person";
 import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
 import { REQUEST_STATUS_LABELS } from "~/lib/request-status";
@@ -106,10 +106,11 @@ export default function AdminRequests({ loaderData }: Route.ComponentProps) {
                       {t(REQUEST_STATUS_LABELS[r.status])}
                     </span>
                   </div>
-                  <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                    <span>{t("requests.admin.requestedBy")}</span>
-                    <Avatar person={r.holder} size="sm" />
-                    <PersonName person={r.holder} className="font-medium" />
+                  {/* Una frase sola e non tre riquadri affiancati: da
+                      telefono il `flex flex-wrap` staccava l'avatar dal nome a
+                      fine riga. */}
+                  <p className="mt-2 text-sm">
+                    {t("requests.admin.requestedBy")} <PersonInline person={r.holder} />{" "}
                     <span className="text-muted">({r.holderEmail})</span>
                   </p>
                   <p className="mt-1 text-sm text-muted">{r.itemNames.join(" · ")}</p>

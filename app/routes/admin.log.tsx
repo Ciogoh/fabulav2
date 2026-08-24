@@ -106,30 +106,53 @@ export default function AdminLog({ loaderData }: Route.ComponentProps) {
         ) : (
           <ul className="mt-6 flex flex-col divide-y divide-rule border-t border-rule">
             {entries.map((entry) => (
-              <li key={entry.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-3">
-                <span className="flex items-center gap-2">
-                  <Avatar person={entry.actor} size="sm" />
-                  <PersonName person={entry.actor} className="font-medium" />
-                </span>
+              <li key={entry.id} className="flex items-start gap-3 py-3 text-sm/7">
+                {/* Una riga, una misura, una interlinea — e l'avatar alto
+                    esattamente come lei.
 
-                <span className="text-sm">
+                    `text-sm/7` dà 14px di testo su 28px di linea, cioè `h-7`,
+                    che è l'altezza dell'avatar `sm`: con `items-start` i tre
+                    pezzi partono dallo stesso bordo e la prima linea di testo
+                    sta in mezzo alla stessa scatola in cui sta l'avatar.
+                    Niente `pt-1` a occhio da ritoccare quando cambia una
+                    misura, e niente `items-baseline`, che qui non funzionerebbe
+                    comunque (vedi `PersonInline` in `components/person.tsx`).
+
+                    La misura sta sulla riga e non sui pezzi: prima il nome era
+                    l'unico a non avere `text-sm`, ereditava i 16px del
+                    documento e restava più grande di tutto il resto. */}
+                <Avatar person={entry.actor} size="sm" />
+
+                {/* Chi, cosa e su cosa stanno in **un solo blocco di testo che
+                    va a capo da solo**, non in tre riquadri affiancati. Erano
+                    tre elementi di un `flex flex-wrap`: sotto ai 640px la riga
+                    si spezzava in tre — nome e azione sfalsati, la data da
+                    sola in fondo. Come testo in linea l'andata a capo cade fra
+                    due parole e la riga resta una frase: «Tizio ha fatto
+                    questo · su quello». */}
+                <p className="min-w-0 flex-1">
+                  <PersonName person={entry.actor} className="font-medium" />{" "}
                   {KNOWN_ACTIONS.has(entry.action)
                     ? t(`log.action.${entry.action}` as TranslationKey)
                     : entry.action}
-                </span>
-
-                {entry.detail && (
-                  <span className="w-full text-sm text-muted sm:w-auto">
-                    — {entry.detail}
-                  </span>
-                )}
+                  {/* Il punto in mezzo e non un trattone: i dettagli si
+                      scrivono già con « — » dentro («Giulia Ferrari — MEMBER →
+                      ADMIN»), e due trattoni di fila non fanno più capire dove
+                      finisce l'azione e comincia il dettaglio. */}
+                  {entry.detail && (
+                    <span className="text-muted"> · {entry.detail}</span>
+                  )}
+                </p>
 
                 {/* L'orario in fondo e non in testa: la domanda è «chi ha
                     fatto cosa», e la data serve solo dopo aver trovato la
-                    riga giusta. */}
+                    riga giusta. Il `/7` è la stessa interlinea della riga,
+                    ripetuta perché una misura scritta a mano si porta dietro
+                    la sua: senza, l'orario tornerebbe a galleggiare mezzo
+                    carattere più in alto dell'azione. */}
                 <time
                   dateTime={entry.createdAt}
-                  className="ml-auto shrink-0 font-mono text-[0.62rem] text-muted"
+                  className="shrink-0 font-mono text-[0.7rem]/7 text-muted"
                 >
                   {new Date(entry.createdAt).toLocaleString(lang, {
                     day: "numeric",
@@ -152,7 +175,7 @@ export default function AdminLog({ loaderData }: Route.ComponentProps) {
             insieme a un'altra: «ma il server ha già la correzione?».
             Senza etichetta: «Versione:» andrebbe tradotto in tre lingue per
             non dire niente in più. Vedi `lib/version.ts`. */}
-        <p className="mt-10 border-t border-rule pt-4 font-mono text-[0.62rem] text-muted">
+        <p className="mt-10 border-t border-rule pt-4 font-mono text-[0.7rem] text-muted">
           {versionLabel()}
         </p>
       </PageShell>

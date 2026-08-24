@@ -15,6 +15,7 @@ I nomi dei file cominciano con la data in cui il piano è stato scritto.
 | [Intestazione mobile](2026-08-24-intestazione-mobile.md) — bersagli di tocco da 44px e menu lingua raccolto in un pulsante | ✅ fatto |
 | [Registro admin, storico dell'oggetto, QR e consegna diretta](2026-08-24-registro-storico-qr.md) — tre passi in un piano solo | ✅ fatto |
 | [Numero di versione e archivio dei piani](2026-08-24-versione-e-archivio-piani.md) — `0.5.0 · build 27`, il CHANGELOG, e questa cartella | 🔄 in corso |
+| [La foto del profilo si cambia premendo la foto](2026-08-24-foto-profilo-premibile.md) — l'invito era il «Scegli file» del browser, cioè nessun invito | ✅ fatto |
 | [PWA installabile e notifiche al posto delle email](2026-08-24-pwa-notifiche.md) — il guscio, il motore push, la scelta del canale nel profilo | ⏳ da fare, **dopo il rebrand** |
 
 ## Come si aggiunge un piano

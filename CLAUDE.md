@@ -40,7 +40,9 @@ verificato dal vivo, non solo compilato:**
 - Calendario a righe-oggetto per colonne-giorno, con esportazione iCal pubblica
 - Intestazioni di sicurezza e limite di frequenza sull'accesso, provati
 - Profilo personale: foto, nome, cognome e alias, da `/account` (ci si arriva
-  premendo il proprio nome in cima)
+  premendo il proprio nome in cima). **La foto si cambia premendo la foto** —
+  bollino della fotocamera sempre visibile, anteprima immediata, controllo di
+  misura e formato prima di spedire (`AvatarPicker`, in fondo a `account.tsx`)
 - **Le date si scelgono al momento di richiedere, non in cima al catalogo**
   (`components/date-range-fields.tsx`). Fino a `MAX_ORDINARY_SPAN_DAYS` (sette
   giorni) senza altro; oltre, la spunta «richiesta speciale» chiede un motivo
@@ -139,7 +141,7 @@ Tre pezzi della stessa storia: **il piano dice cosa vogliamo fare, il
 ### La riga
 
 ```
-Fabula 0.5.0 · build 27 · 2026-08-24
+Fabula 0.5.1 · build 35 · 2026-08-24
 ```
 
 Si vede in fondo a `/admin/log` e nella schermata di errore — dove sapere quale
@@ -151,7 +153,7 @@ I tre valori fanno **mestieri diversi**, ed è per questo che sono tre:
 
 | | da dove | chi lo alza |
 | --- | --- | --- |
-| `0.5.0` | `package.json` | a mano, quando finisce un pezzo di lavoro |
+| `0.5.1` | `package.json` | a mano, quando finisce un pezzo di lavoro |
 | `build 27` | `git rev-list --count HEAD` | da solo, a ogni commit |
 | `2026-08-24` | la data di costruzione | da sola |
 
@@ -312,6 +314,25 @@ pulsante primario andava corretto in dodici punti.
   disegnato da noi si vede che viene da un altro mondo: `Select` la sostituisce
   con la nostra e lascia nativo l'elenco che si apre, l'unica versione che
   funziona col dito, da tastiera e con un lettore di schermo.
+- Avatar e nome insieme si prendono da `PersonInline`
+  (`components/person.tsx`), e **la misura del testo si dichiara sulla riga,
+  non sui pezzi**. Lo stesso sfasamento è tornato tre volte — registro, chat,
+  coda di approvazione — sempre per due motivi che si sommavano. Il primo: un
+  `<span className="flex items-center gap-2">` intorno ad avatar e nome. Un
+  contenitore flex prende come propria linea di base quella del suo primo
+  elemento, e la linea di base di un'immagine è il suo bordo inferiore: dentro
+  a una riga con `items-baseline` il nome finiva sette pixel più in alto di
+  tutto il resto. Il secondo: `text-sm` scritto sui fratelli ma non sul nome,
+  che ereditava i 16px del documento e restava il più grande della riga.
+  `PersonInline` non è un flex e non dichiara nessuna misura, quindi va bene
+  in una frase come dentro a un `items-baseline`.
+
+  Quando invece l'avatar sta in una colonna sua — il registro — l'allineamento
+  si scrive con le misure e non a occhio: `text-sm/7` è una linea di 28px, cioè
+  esattamente `h-7`, l'altezza dell'avatar `sm`. Con `items-start` i pezzi
+  cadono al posto giusto da soli, e non resta nessun `pt-1.5` da ritoccare la
+  prossima volta che cambia una misura.
+
 - Lo stato di un oggetto passa sempre da `StateBadge`. Il colore non è mai
   l'unico portatore: parola e, quando c'è, data.
 

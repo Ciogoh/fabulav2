@@ -15,8 +15,8 @@
  *    `DataTransfer`, quindi ciò che si vede è esattamente ciò che parte. Il
  *    modulo resta un modulo normale, e senza JavaScript si comporta come prima.
  * 2. **Il controllo si fa qui, prima di spedire.** Misura e formati sono gli
- *    stessi numeri di `uploads.server.ts`: un file scartato lo dice subito,
- *    col suo nome, invece di sparire per strada.
+ *    stessi numeri del server, presi da `lib/uploads.shared.ts`: un file
+ *    scartato lo dice subito, col suo nome, invece di sparire per strada.
  * 3. **La prima foto è quella del catalogo.** `sortOrder` esisteva già ma non
  *    lo scriveva nessuno — tutte a zero, e la copertina era quella che
  *    capitava. Ora si vede quale è, e si può cambiarla.
@@ -36,11 +36,11 @@ import { useEffect, useRef, useState } from "react";
 import { useFetcher, useNavigation } from "react-router";
 import { useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
-
-/** Gli stessi limiti di `uploads.server.ts`. Due copie che divergono vorrebbero
- * dire un file accettato qui e rifiutato là: un'attesa per niente. */
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
+import {
+  ACCEPTED_IMAGE_ACCEPT,
+  ACCEPTED_IMAGE_TYPES,
+  MAX_UPLOAD_BYTES,
+} from "~/lib/uploads.shared";
 
 export type ExistingPhoto = { id: string; url: string; thumbUrl: string };
 
@@ -53,8 +53,8 @@ type Rejected = { key: string; name: string; reason: TranslationKey };
 const keyOf = (file: File) => `${file.name}:${file.size}:${file.lastModified}`;
 
 function check(file: File): TranslationKey | null {
-  if (!ACCEPTED.includes(file.type)) return "assets.photoBadType";
-  if (file.size > MAX_FILE_SIZE) return "assets.photoTooBig";
+  if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) return "assets.photoBadType";
+  if (file.size > MAX_UPLOAD_BYTES) return "assets.photoTooBig";
   return null;
 }
 
@@ -251,7 +251,7 @@ function PhotoPicker({ name = "photos" }: { name?: string }) {
           id={name}
           name={name}
           type="file"
-          accept={ACCEPTED.join(",")}
+          accept={ACCEPTED_IMAGE_ACCEPT}
           multiple
           onChange={(event) => add(event.target.files ?? [])}
           className="peer sr-only"

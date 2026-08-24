@@ -26,7 +26,7 @@ import { requireAdmin } from "~/lib/session.server";
 import { logAdminAction } from "~/lib/audit.server";
 import { deleteAssetPhotoFiles, saveAssetPhoto } from "~/lib/uploads.server";
 import { useFormatDay, useT } from "~/i18n/use-t";
-import { Avatar, PersonName } from "~/components/person";
+import { PersonInline } from "~/components/person";
 import { REQUEST_STATUS_LABELS } from "~/lib/request-status";
 import { assetQrDataUrl } from "~/lib/qr.server";
 import type { TranslationKey } from "~/i18n/dictionaries";
@@ -426,10 +426,7 @@ function AssetHistory({
                   {formatDayLabel(entry.startDate)} — {formatDayLabel(entry.endDate)}
                 </span>
 
-                <span className="flex items-center gap-2">
-                  <Avatar person={entry.holder} size="sm" />
-                  <PersonName person={entry.holder} />
-                </span>
+                <PersonInline person={entry.holder} />
 
                 {/* Lo stato del passaggio di mano vince su quello della
                     richiesta quando c'è: «riconsegnato» dice più di

@@ -33,7 +33,7 @@ import { useFormatDay, useLang, useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import type { RequestStatus } from "~/generated/prisma/enums";
 import { AdminBadge } from "~/components/admin-badge";
-import { Avatar, PersonName } from "~/components/person";
+import { PersonInline, PersonName } from "~/components/person";
 import { fullLabelOf, type Person } from "~/lib/person";
 import { DateRangeFields } from "~/components/date-range-fields";
 
@@ -775,13 +775,23 @@ function ChatSection({ id, messages }: { id: string; messages: ChatMessage[] }) 
               message.isMine ? "ml-auto bg-accent-soft" : "bg-card"
             }`}
           >
+            {/* `items-baseline` funziona solo perché avatar e nome sono un
+                pezzo di testo in linea e non un flex annidato: un flex prende
+                come linea di base il bordo inferiore della propria immagine, e
+                l'intestazione tornerebbe sfasata (vedi `PersonInline`). */}
             <div className="flex items-baseline justify-between gap-3">
-              <span className="flex items-center gap-2">
-                <Avatar person={message.author} size="sm" />
-                <PersonName person={message.author} className="font-medium" />
-                {message.authorIsAdmin && <AdminBadge />}
+              <span>
+                <PersonInline person={message.author} />
+                {/* Il margine al posto dello spazio scritto: uno spazio è un
+                    punto dove andare a capo, e in una bolla stretta il
+                    cartellino finiva da solo sulla riga sotto. */}
+                {message.authorIsAdmin && (
+                  <span className="ml-2 align-middle">
+                    <AdminBadge />
+                  </span>
+                )}
               </span>
-              <span className="font-mono text-[0.62rem] text-muted">
+              <span className="shrink-0 font-mono text-[0.62rem] text-muted">
                 {new Date(message.createdAt).toLocaleString(lang, {
                   day: "numeric",
                   month: "short",

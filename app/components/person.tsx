@@ -41,6 +41,46 @@ export function PersonName({
   );
 }
 
+/**
+ * Avatar e nome insieme, dentro a una frase.
+ *
+ * Esiste per uno sfasamento tornato tre volte, sempre scritto allo stesso
+ * modo: `<span className="flex items-center gap-2">` intorno ad avatar e
+ * nome. Un contenitore flex prende come propria linea di base quella del suo
+ * primo elemento — l'immagine — e la linea di base di un'immagine è il suo
+ * bordo inferiore. Dentro a una riga allineata con `items-baseline` il nome
+ * finiva così sette pixel più in alto di tutto il resto: si vedeva nel
+ * registro e nella chat di una richiesta.
+ *
+ * Qui non c'è nessun flex. L'avatar è un elemento in linea allineato a metà
+ * del testo, quindi la linea di base della riga resta quella del nome, come
+ * per qualunque altra parola — e la riga si comporta bene sia dentro a un
+ * `flex items-baseline` sia dentro a un paragrafo. Fra avatar e nome non c'è
+ * spazio scritto (il margine lo mette `ml-2`): senza uno spazio non c'è punto
+ * dove andare a capo, e i due non si separano mai a fine riga.
+ *
+ * L'altra metà della regola sta in chi chiama: **la misura del testo si
+ * dichiara sulla riga, non sui pezzi**. Qui dentro non c'è nessun `text-sm`
+ * apposta — se lo dichiarasse, un contenitore a `text-base` si ritroverebbe
+ * il nome più piccolo del resto della frase. Il difetto opposto è quello che
+ * si vedeva nel registro: la riga non dichiarava niente, il nome ereditava i
+ * 16px del documento e i fratelli stavano a 14.
+ */
+export function PersonInline({
+  person,
+  className,
+}: {
+  person: Person;
+  className?: string;
+}) {
+  return (
+    <span className={className}>
+      <Avatar person={person} size="sm" />
+      <PersonName person={person} className="ml-2 font-medium" />
+    </span>
+  );
+}
+
 const SIZES = {
   sm: "h-7 w-7 text-[0.6rem]",
   md: "h-9 w-9 text-[0.7rem]",
@@ -64,7 +104,11 @@ export function Avatar({
   size?: keyof typeof SIZES;
   alt?: string;
 }) {
-  const shape = `${SIZES[size]} shrink-0 rounded-full object-cover`;
+  // `align-middle`: quando l'avatar sta dentro a una frase (vedi
+  // `PersonInline`) senza questo appoggerebbe il bordo inferiore sulla linea
+  // di base del testo, spingendo in giù tutta la riga. Dentro a un flex non
+  // cambia niente.
+  const shape = `${SIZES[size]} shrink-0 rounded-full object-cover align-middle`;
 
   if (person.image) {
     return (
@@ -84,7 +128,7 @@ export function Avatar({
   return (
     <span
       aria-hidden={alt ? undefined : true}
-      className={`${shape} flex items-center justify-center border border-rule bg-sunk font-mono font-medium tracking-wider text-muted`}
+      className={`${shape} inline-flex items-center justify-center border border-rule bg-sunk font-mono font-medium tracking-wider text-muted`}
     >
       {initialsOf(displayNameOf(person))}
     </span>

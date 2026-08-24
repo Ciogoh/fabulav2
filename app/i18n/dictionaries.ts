@@ -100,6 +100,10 @@ const en = {
   "signin.badCode": "Wrong or expired code.",
   "signin.tooManyRequests": "Too many tries in a short time. Wait a minute and try again.",
   "signin.badPassword": "Wrong email or password.",
+  // Vale per Google e per lo Scientific Network: il ritorno dal loro sito
+  // può fallire per mille ragioni (rete, segreto scaduto, permesso negato) e
+  // nessuna si può raccontare a chi guarda. La via d'uscita sì: il codice.
+  "signin.socialFailed": "Sign-in did not go through. Try again, or ask for a code by email.",
 
   "welcome.heading": "One last thing",
   "welcome.intro": "Your name for the admins, who hand the things over in person. Add an alias if you would rather be called something else.",
@@ -171,6 +175,8 @@ const en = {
   "account.intro": "The photo and the name other people see on your requests and in the chat.",
   "account.photo": "Photo",
   "account.photoAlt": "Your profile photo",
+  "account.photoChange": "Change photo",
+  "account.photoAdd": "Add a photo",
   "account.photoHint": "JPEG, PNG or WebP, up to 5 MB. It gets cropped to a square.",
   "account.removePhoto": "Remove photo",
   "account.firstName": "First name",
@@ -467,6 +473,7 @@ const it: Dictionary = {
   "signin.badCode": "Codice sbagliato o scaduto.",
   "signin.tooManyRequests": "Troppi tentativi in poco tempo. Aspetta un minuto e riprova.",
   "signin.badPassword": "Email o password sbagliate.",
+  "signin.socialFailed": "L'accesso non è andato a buon fine. Riprova, oppure chiedi un codice via email.",
 
   "welcome.heading": "Un'ultima cosa",
   "welcome.intro": "Il tuo nome per gli admin, che consegnano gli oggetti di persona. Se preferisci farti chiamare in altro modo, aggiungi un alias.",
@@ -538,6 +545,8 @@ const it: Dictionary = {
   "account.intro": "La foto e il nome che gli altri vedono sulle tue richieste e in chat.",
   "account.photo": "Foto",
   "account.photoAlt": "La tua foto del profilo",
+  "account.photoChange": "Cambia foto",
+  "account.photoAdd": "Aggiungi una foto",
   "account.photoHint": "JPEG, PNG o WebP, fino a 5 MB. Viene ritagliata quadrata.",
   "account.removePhoto": "Togli la foto",
   "account.firstName": "Nome",
@@ -831,6 +840,7 @@ const de: Dictionary = {
   "signin.badCode": "Code falsch oder abgelaufen.",
   "signin.tooManyRequests": "Zu viele Versuche in kurzer Zeit. Warte eine Minute und versuche es erneut.",
   "signin.badPassword": "E-Mail oder Passwort falsch.",
+  "signin.socialFailed": "Die Anmeldung hat nicht geklappt. Versuch es nochmal oder hol dir einen Code per E-Mail.",
 
   "welcome.heading": "Noch eine Sache",
   "welcome.intro": "Dein Name für die Admins, die die Sachen persönlich übergeben. Wenn du lieber anders genannt wirst, füge einen Alias hinzu.",
@@ -902,6 +912,8 @@ const de: Dictionary = {
   "account.intro": "Das Foto und der Name, die andere auf deinen Anfragen und im Chat sehen.",
   "account.photo": "Foto",
   "account.photoAlt": "Dein Profilfoto",
+  "account.photoChange": "Foto ändern",
+  "account.photoAdd": "Foto hinzufügen",
   "account.photoHint": "JPEG, PNG oder WebP, bis 5 MB. Es wird quadratisch zugeschnitten.",
   "account.removePhoto": "Foto entfernen",
   "account.firstName": "Vorname",

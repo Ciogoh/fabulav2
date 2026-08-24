@@ -14,6 +14,33 @@ e la PWA con le notifiche.
 
 ---
 
+## 0.5.1 — 24 agosto 2026
+
+### Cambiato
+
+- **La foto del profilo si cambia premendo la foto.** Accanto all'avatar
+  c'era un `<input type="file"` nudo: l'unica cosa premibile era il «Scegli
+  file» disegnato dal browser, testo grigio piccolo di un altro mondo
+  rispetto al resto dell'interfaccia — mentre la foto, che è ciò che tutti
+  provano a premere, era un'immagine morta. Ora il cerchio è il bersaglio,
+  con un bollino della fotocamera **sempre visibile** (sul telefono il
+  passaggio del mouse non esiste, e un invito che compare solo col mouse è di
+  nuovo un invito invisibile), il velo con la scritta per chi il mouse ce
+  l'ha, e accanto un pulsante vero — preso da `components/button.tsx` come
+  tutti gli altri. Senza foto il cerchio è tratteggiato e il pulsante dice
+  «Aggiungi una foto».
+- **La foto scelta si vede subito**, prima ancora che parta: l'anteprima
+  locale sta al posto dell'avatar e il caricamento si annuncia sul cerchio,
+  non in una riga di testo lontana dall'elemento che cambia.
+- **Misura e formato si controllano prima di spedire.** Un JPEG da 12 MB non
+  sale più per intero solo per farsi rifiutare in fondo: da un telefono in 3G
+  era la differenza fra un secondo e un minuto buttato. I due limiti stavano
+  scritti in due posti con un commento che chiedeva di tenerli allineati a
+  mano; ora sono uno solo, `app/lib/uploads.shared.ts`, letto dal server,
+  dalle foto degli oggetti e da quella del profilo.
+
+---
+
 ## 0.5.0 — 24 agosto 2026
 
 La prima versione numerata. Non è un rilascio: è la fotografia di dove siamo
