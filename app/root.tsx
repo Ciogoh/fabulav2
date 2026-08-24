@@ -16,6 +16,7 @@ import { SiteHeader } from "~/components/site-header";
 import { getUser } from "~/lib/session.server";
 import { db } from "~/lib/db.server";
 import { startReminderScheduler } from "~/lib/reminders.server";
+import { todayUtc } from "~/lib/availability.server";
 import { PageShell } from "~/components/page";
 import { ButtonLink } from "~/components/button";
 import { versionLabel } from "~/lib/version";
@@ -48,6 +49,21 @@ export async function loader({ request }: Route.LoaderArgs) {
     ? await db.request.count({ where: { status: "PENDING" } })
     : undefined;
 
+  // Un oggetto è in ritardo quando è stato ritirato, non è ancora tornato e
+  // il periodo della richiesta è già finito. Gli oggetti archiviati restano
+  // fuori: sono già stati scritti come persi, non c'è più niente da
+  // sollecitare.
+  const overdueCount = isAdmin
+    ? await db.requestItem.count({
+        where: {
+          pickedUpAt: { not: null },
+          returnedAt: null,
+          asset: { archivedAt: null },
+          request: { status: "APPROVED", endDate: { lt: todayUtc() } },
+        },
+      })
+    : undefined;
+
   return {
     // La preferenza salvata sul profilo vince sul cookie: chi entra da un
     // computer nuovo ritrova la sua lingua senza doverla riscegliere.
@@ -61,6 +77,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       email: user.email,
       isAdmin,
       pendingCount,
+      overdueCount,
     },
   };
 }

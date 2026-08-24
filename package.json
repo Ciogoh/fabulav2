@@ -3,11 +3,16 @@
   "version": "0.5.1",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
+    "setup": "bash scripts/setup.sh",
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
+    "test": "vitest run",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "db:migrate": "prisma migrate dev",
@@ -42,6 +47,7 @@
     "tailwindcss": "^4.2.2",
     "tsx": "^4.23.12",
     "typescript": "^5.9.3",
-    "vite": "^8.0.3"
+    "vite": "^8.0.3",
+    "vitest": "^4.1.11"
   }
 }

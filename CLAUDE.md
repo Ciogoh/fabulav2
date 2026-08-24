@@ -70,6 +70,16 @@ verificato dal vivo, non solo compilato:**
   solo agli admin — un `db.request.count` in più a ogni pagina non lo paga chi
   guarda il catalogo da anonimo). Nessuna azione qui dentro: ogni riga porta al
   dettaglio.
+- **In ritardo** (`/admin/overdue`): stesso schema della coda di approvazione,
+  ma per gli oggetti già ritirati e non ancora tornati oltre la fine del
+  periodo. «In ritardo» è per oggetto e non per richiesta — una riconsegna
+  parziale (regola 2) può lasciarne in ritardo solo alcuni. Prima di questa
+  pagina l'unico modo di saperlo era il promemoria automatico via email
+  (`lib/reminders.server.ts`) o aprire ogni richiesta una per una; qui si vede
+  tutto insieme, più vecchie prima, col badge rosso nell'intestazione — stesso
+  `--out` del badge «in uso», perché un oggetto in ritardo è un caso di quello
+  stato, non un colore nuovo. Gli oggetti archiviati non contano: sono già
+  scritti come persi, non c'è più niente da sollecitare.
 - **Promemoria di riconsegna**: automatico, uno spazzatore orario in-process
   con guardia sul giorno già fatto (`lib/reminders.server.ts`, avviato dal
   loader radice), più il pulsante a mano nel dettaglio. Tutte le email di una
@@ -119,17 +129,35 @@ ragionamenti dietro a ogni passo in [`docs/piani/`](./docs/piani/).
 ## Comandi
 
 ```bash
-pnpm install
-cp .env.example .env      # poi riempi i valori
-pnpm db:up                # PostgreSQL nel container
-pnpm db:migrate           # crea/applica le migrazioni
-pnpm db:seed              # dati di esempio
+pnpm setup                # da zero: installa, .env, SESSION_SECRET, db, migrazioni, seed
 pnpm dev                  # http://localhost:5173
 pnpm typecheck            # tipi + traduzioni mancanti
+pnpm test                 # Vitest, solo funzioni pure — vedi sotto
 ```
+
+`pnpm setup` (`scripts/setup.sh`) è la somma di `pnpm install` + `cp
+.env.example .env` (con `SESSION_SECRET` generata al volo) + `pnpm db:up` +
+`pnpm db:migrate` + `pnpm db:seed` — vedi "Partire da zero" in README.md per i
+comandi singoli. Rieseguibile: se il `.env` esiste già salta il seed, che
+altrimenti cancellerebbe i dati presenti.
 
 `pnpm db:studio` per sfogliare il database, `pnpm db:reset` per ripartire da
 zero (distruttivo).
+
+### Test
+
+Vitest (`vitest.config.ts`), su funzioni pure soltanto: `lib/person.ts`,
+`lib/availability.shared.ts`, `pickRearCamera`/`handoverPathFrom` in
+`routes/admin.scan.tsx`. Niente database, niente rendering — l'obiettivo è
+coprire la logica che è facile rompere per sbaglio (parsing di nomi arrivati
+da fuori, il confronto d'origine sul QR), non fare integration test.
+
+**`vitest.setup.ts` carica il `.env`** (`import "dotenv/config"`, stesso
+schema di `prisma/seed.ts`), perché importare `admin.scan.tsx` tira dentro a
+cascata `session.server.ts` → `db.server.ts`, che rifiuta di partire senza
+`DATABASE_URL` anche se nessun test esegue una query vera. Chi aggiunge un
+test su un file che importa un modulo `.server.ts` eredita questo vincolo:
+serve un `.env` locale, come per `pnpm dev`.
 
 ---
 

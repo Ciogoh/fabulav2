@@ -18,15 +18,26 @@ lavorare su questo progetto, tenuta aggiornata a ogni cambiamento.
 Servono Node 20+, pnpm e Docker.
 
 ```bash
+pnpm setup    # installa, crea .env, genera SESSION_SECRET, avvia il database,
+              # applica le migrazioni e carica i dati di esempio
+pnpm dev      # http://localhost:5173
+```
+
+`pnpm setup` (`scripts/setup.sh`) è rieseguibile senza pericolo: se il `.env`
+esiste già non lo tocca e salta il seed, che altrimenti cancellerebbe i dati
+presenti. I passi equivalenti a mano, utili per capire cosa fa o per rifarne
+uno solo:
+
+```bash
 pnpm install
 cp .env.example .env      # poi riempi i valori
 pnpm db:up                # PostgreSQL nel container
 pnpm db:migrate           # crea le tabelle
 pnpm db:seed              # dati di esempio
-pnpm dev                  # http://localhost:5173
 ```
 
-Per `SESSION_SECRET` genera una chiave con `openssl rand -base64 32`.
+Per `SESSION_SECRET` genera una chiave con `openssl rand -base64 32`
+(`pnpm setup` lo fa da solo).
 
 ## Comandi
 

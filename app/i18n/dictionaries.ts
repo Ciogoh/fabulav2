@@ -30,6 +30,7 @@ const en = {
   "nav.signIn": "Sign in",
   "nav.language": "Language",
   "nav.adminQueue": "To approve",
+  "nav.adminOverdue": "Overdue",
   "nav.adminMembers": "Members",
   "nav.adminAssets": "Items",
   "nav.adminScan": "Scan",
@@ -337,6 +338,11 @@ const en = {
   "adminQueue.showAll": "Show all requests",
   "adminQueue.showPending": "Show only pending",
 
+  "overdue.heading": "Overdue",
+  "overdue.empty": "Nothing overdue.",
+  "overdue.dueOn": "Due {date}",
+  "overdue.daysLate": "{count} days late",
+
   "assets.historyHeading": "Loan history",
   "assets.historyEmpty": "Never lent out.",
   "assets.qrHeading": "QR label",
@@ -409,6 +415,7 @@ const it: Dictionary = {
   "nav.signIn": "Entra",
   "nav.language": "Lingua",
   "nav.adminQueue": "Da approvare",
+  "nav.adminOverdue": "In ritardo",
   "nav.adminMembers": "Soci",
   "nav.adminAssets": "Oggetti",
   "nav.adminScan": "Scansiona",
@@ -707,6 +714,11 @@ const it: Dictionary = {
   "adminQueue.showAll": "Mostra tutte le richieste",
   "adminQueue.showPending": "Mostra solo quelle in attesa",
 
+  "overdue.heading": "In ritardo",
+  "overdue.empty": "Niente in ritardo.",
+  "overdue.dueOn": "Scadenza {date}",
+  "overdue.daysLate": "In ritardo da {count} giorni",
+
   "assets.historyHeading": "Storico dei prestiti",
   "assets.historyEmpty": "Mai prestato.",
   "assets.qrHeading": "Etichetta QR",
@@ -776,6 +788,7 @@ const de: Dictionary = {
   "nav.signIn": "Anmelden",
   "nav.language": "Sprache",
   "nav.adminQueue": "Zu genehmigen",
+  "nav.adminOverdue": "Überfällig",
   "nav.adminMembers": "Mitglieder",
   "nav.adminAssets": "Gegenstände",
   "nav.adminScan": "Scannen",
@@ -1073,6 +1086,11 @@ const de: Dictionary = {
   "adminQueue.empty": "Nichts ausstehend.",
   "adminQueue.showAll": "Alle Anfragen zeigen",
   "adminQueue.showPending": "Nur ausstehende zeigen",
+
+  "overdue.heading": "Überfällig",
+  "overdue.empty": "Nichts überfällig.",
+  "overdue.dueOn": "Fällig {date}",
+  "overdue.daysLate": "{count} Tage überfällig",
 
   "assets.historyHeading": "Ausleihverlauf",
   "assets.historyEmpty": "Nie verliehen.",

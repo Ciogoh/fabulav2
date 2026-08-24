@@ -29,6 +29,7 @@ export type HeaderUser = Person & {
   email: string;
   isAdmin: boolean;
   pendingCount?: number;
+  overdueCount?: number;
 };
 
 /** 44px: il minimo per un tocco affidabile, non i 36px che "ci stava il
@@ -83,6 +84,18 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
                 {Boolean(user.pendingCount) && (
                   <span className="ml-1.5 rounded-full bg-accent-soft px-1.5 py-0.5 font-mono text-[0.65rem] font-medium text-accent">
                     {user.pendingCount}
+                  </span>
+                )}
+              </NavLink>
+              <NavLink to="/admin/overdue" className={LINK}>
+                {t("nav.adminOverdue")}
+                {/* `--out`, non `--accent-soft` come la coda di approvazione:
+                    una richiesta in attesa è normale amministrazione, un
+                    oggetto in ritardo è un problema — stesso colore del
+                    badge «in uso» rosso, di cui questo è un caso. */}
+                {Boolean(user.overdueCount) && (
+                  <span className="ml-1.5 rounded-full bg-out-bg px-1.5 py-0.5 font-mono text-[0.65rem] font-medium text-out">
+                    {user.overdueCount}
                   </span>
                 )}
               </NavLink>

@@ -17,6 +17,7 @@ export default [
   route("requests/:id", "routes/request-detail.tsx"),
   route("admin/members", "routes/admin.members.tsx"),
   route("admin/requests", "routes/admin.requests.tsx"),
+  route("admin/overdue", "routes/admin.overdue.tsx"),
   route("admin/assets", "routes/admin.assets.tsx"),
   route("admin/assets/new", "routes/admin.assets.new.tsx"),
   route("admin/assets/:id", "routes/admin.assets.$id.tsx"),
