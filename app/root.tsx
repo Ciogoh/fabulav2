@@ -18,6 +18,7 @@ import { db } from "~/lib/db.server";
 import { startReminderScheduler } from "~/lib/reminders.server";
 import { PageShell } from "~/components/page";
 import { ButtonLink } from "~/components/button";
+import { versionLabel } from "~/lib/version";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -171,6 +172,11 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
               <code>{stack}</code>
             </pre>
           )}
+
+          {/* Quando qualcosa si rompe, sapere quale copia l'ha fatto vale più
+              che in qualunque altra schermata: è la prima domanda di chi
+              riceve una segnalazione. */}
+          <p className="mt-10 font-mono text-[0.62rem] text-muted">{versionLabel()}</p>
         </PageShell>
       </main>
     </LangProvider>

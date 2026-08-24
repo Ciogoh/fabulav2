@@ -106,7 +106,11 @@ verificato dal vivo, non solo compilato:**
    pezzo grosso, ma è quasi solo una sostituzione di valori: i token sono già
    tutti in `app.css`.
 2. **PWA installabile**, con le notifiche al posto delle sole email. Deciso
-   come passo successivo, non ancora cominciato.
+   come passo successivo, non ancora cominciato — il piano è già scritto per
+   intero in [`docs/piani/2026-08-24-pwa-notifiche.md`](./docs/piani/2026-08-24-pwa-notifiche.md).
+
+La storia di come ci siamo arrivati sta in [`CHANGELOG.md`](./CHANGELOG.md), i
+ragionamenti dietro a ogni passo in [`docs/piani/`](./docs/piani/).
 
 ---
 
@@ -124,6 +128,72 @@ pnpm typecheck            # tipi + traduzioni mancanti
 
 `pnpm db:studio` per sfogliare il database, `pnpm db:reset` per ripartire da
 zero (distruttivo).
+
+---
+
+## Versione, changelog e piani
+
+Tre pezzi della stessa storia: **il piano dice cosa vogliamo fare, il
+`CHANGELOG.md` dice cosa è uscito, la versione dice quando.**
+
+### La riga
+
+```
+Fabula 0.5.0 · build 27 · 2026-08-24
+```
+
+Si vede in fondo a `/admin/log` e nella schermata di errore — dove sapere quale
+copia si è rotta è la prima domanda di chi riceve una segnalazione. Il piè di
+pagina vero non esiste ancora: quando arriverà col rebrand, spostarla è una
+riga, perché `versionLabel()` (`lib/version.ts`) è un posto solo.
+
+I tre valori fanno **mestieri diversi**, ed è per questo che sono tre:
+
+| | da dove | chi lo alza |
+| --- | --- | --- |
+| `0.5.0` | `package.json` | a mano, quando finisce un pezzo di lavoro |
+| `build 27` | `git rev-list --count HEAD` | da solo, a ogni commit |
+| `2026-08-24` | la data di costruzione | da sola |
+
+`build` risponde a «**cosa sta girando davvero?**» ed è un'impronta digitale:
+sale anche per un refuso, e non misura niente. La versione risponde a «**quanto
+è cresciuta?**» ed è un giudizio. Chi prova a farne fare uno solo a entrambi
+ottiene un contatore che non racconta niente.
+
+I valori arrivano dal `define` di `vite.config.ts`, ognuno con il suo ripiego a
+`"?"`: **la costruzione non deve mai fallire per colpa del numero di versione**.
+Per questo `.dockerignore` **non** esclude più `.git` e il `Dockerfile`
+installa `git` nello stadio di costruzione — vedi i commenti in quei due file,
+compreso il perché non è in contraddizione con l'esclusione del `.env`.
+
+### Cosa significano i numeri qui
+
+Il semver da libreria non si applica: Fabula ha un'installazione sola e nessuno
+che dipenda da lei. MAJOR non vuol dire «rottura di compatibilità».
+
+- **MINOR** (0.5 → 0.6): una capacità nuova che si vede usando — la PWA, il
+  registro admin, il QR.
+- **PATCH** (0.5.0 → 0.5.1): correzioni e rifiniture.
+- **MAJOR**: **la 1.0.0 è la consegna ai soci.** Dopo, solo ciò che obbliga
+  qualcuno a cambiare abitudine.
+
+### Il rito, quando un piano è finito
+
+1. si alza il MINOR in `package.json`;
+2. si scrive la sezione nel `CHANGELOG.md` — il **perché**, non solo il cosa;
+3. si segna ✅ il piano in `docs/piani/README.md`;
+4. `git tag v0.6.0`, da cui `git describe` dà gratis «v0.6.0-3-gae38553».
+
+### I piani
+
+Stanno in [`docs/piani/`](./docs/piani/), dentro al repo: versionati, nel
+backup, leggibili da chiunque apra il progetto.
+
+**Claude Code però li scrive in `~/.claude/plans/`**, fuori di qui e con un
+nome generato a caso (`rosy-seeking-kazoo.md`). Alla fine di una sessione di
+pianificazione il file va spostato in `docs/piani/` e rinominato
+`AAAA-MM-GG-argomento.md`, con la riga nell'indice. È un gesto manuale: non
+c'è un modo di far scrivere Claude Code direttamente lì.
 
 ---
 
@@ -543,9 +613,36 @@ Quattro cose che si scoprono solo sbattendoci:
   dire stampare etichette morte. Di conseguenza **la rotta
   `/admin/handover/:assetId` non si rinomina a cuor leggero**: gli adesivi già
   attaccati continuerebbero a puntare lì.
-- **La fotocamera parte da una pressione, mai da sola.** Su iOS
-  `getUserMedia` chiamato al caricamento della pagina viene rifiutato senza
-  nemmeno chiedere il permesso. Il pulsante «Avvia» non è una cortesia.
+- **`facingMode: "environment"` non basta a prendere la fotocamera giusta.**
+  Chiede «una di dietro», e su Android il browser ne consegna spesso una
+  qualsiasi — capita la grandangolare, che a venti centimetri da un adesivo
+  restituisce un quadratino illeggibile. Le etichette Android hanno la forma
+  `camera2 0, facing back`, e **quel numero è l'ordine deciso dal
+  produttore**: lo zero è la principale, quella che si apre nell'app
+  Fotocamera. `pickRearCamera` (in `admin.scan.tsx`, funzione pura e coperta
+  da casi di prova) scarta le posteriori che si dichiarano ultra, tele, macro,
+  profondità o monocromatiche e fra le altre prende l'indice più basso. Su
+  iPhone non ci sono indici e vale il solo filtro sui nomi — attenzione che
+  «wide» da solo **non** va scartato, o si butta via «Back Dual Wide Camera»,
+  che è proprio la principale.
+  Le etichette esistono **solo dopo** che il permesso è stato dato, quindi
+  l'ordine obbligato è: parti con `environment`, poi elenca, poi correggi.
+- **La fotocamera parte da sola all'apertura della pagina**, e il pulsante
+  resta solo come ritorno quando l'avvio fallisce. Su iOS il permesso viene
+  chiesto anche senza un tocco finché la scheda è in primo piano; nei browser
+  dentro ad altre app (WKWebView) può non bastare, ed è il caso che il
+  pulsante di ripiego copre. Serve una guardia (`startedRef`) contro il doppio
+  avvio: in sviluppo React monta e rimonta ogni componente, e senza partirebbero
+  due scanner sulla stessa fotocamera.
+- **Lo zoom automatico è una ricerca cieca, non un rilevamento.** Se dopo un
+  paio di secondi non ha letto niente, sale di un gradino alla volta fino al
+  doppio e poi riparte da capo. Telegram fa una cosa più furba — stima la
+  distanza del codice — ma per farlo bisogna sapere *dove* è il QR prima di
+  averlo letto, e il decodificatore in un browser non lo racconta. Su iOS
+  `zoom` non esiste fra le capacità e l'effetto esce subito: nessun danno.
+  Insieme allo zoom c'è `focusMode: "continuous"`, che è l'accorgimento che
+  cambia di più — senza, un adesivo vicino resta sfocato e sembra che lo
+  scanner sia rotto.
 - **Lo scanner vale anche da computer, con la webcam.** `preferredCamera:
   "environment"` viene chiesto dalla libreria come vincolo *esatto*, e un Mac
   senza fotocamera posteriore risponde `OverconstrainedError` — verificato.

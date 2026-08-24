@@ -98,6 +98,127 @@ type Status =
 
 type CameraChoice = { id: string; label: string };
 
+/** Posteriore. `environment` compare su qualche browser al posto di «back». */
+const REAR = /\b(back|rear|environment|posteriore|rück)/i;
+
+/**
+ * Le fotocamere posteriori che **non** sono quella principale.
+ *
+ * Un telefono moderno ne espone tre o quattro dietro, e solo una è quella
+ * buona per leggere un codice: la grandangolare spinge il soggetto lontano e
+ * legge male da vicino, il teleobiettivo non mette a fuoco a venti
+ * centimetri, e le camere di profondità o monocromatiche non servono affatto.
+ * `wide` da solo non entra nell'elenco: su iPhone la principale si chiama
+ * «Back Dual Wide Camera», e scartarla vorrebbe dire scartare proprio quella
+ * giusta.
+ */
+const SECONDARY_REAR = /(ultra|tele|macro|depth|monochrom|mono\b|bokeh|infrared|\bir\b)/i;
+
+/**
+ * Quale fotocamera posteriore usare, scelta dalle etichette.
+ *
+ * **`facingMode: "environment"` non basta**, ed è il motivo per cui questa
+ * funzione esiste: chiede «una di dietro», e su Android il browser ne
+ * consegna spesso una qualsiasi — capita la grandangolare, che a venti
+ * centimetri da un adesivo restituisce un quadratino illeggibile.
+ *
+ * Su Android le etichette hanno la forma `camera2 0, facing back`, e **quel
+ * numero è l'ordine deciso dal produttore**: lo zero è la fotocamera
+ * principale, quella che si apre quando apri l'app Fotocamera. Le altre
+ * posteriori (di solito la 2) sono grandangolare, teleobiettivo o profondità.
+ * Si prende quindi la posteriore con l'indice più basso fra quelle che non
+ * sembrano secondarie.
+ *
+ * Su iPhone il formato è un altro — «Back Camera», «Back Ultra Wide Camera» —
+ * e lì non c'è nessun indice: vale il filtro sui nomi, e «Back Camera» resta
+ * in cima perché l'ordine di enumerazione la mette per prima.
+ *
+ * Restituisce `null` quando non c'è niente di posteriore: su un portatile con
+ * la sola webcam frontale non c'è scelta da fare, e cambiare fotocamera per
+ * forza vorrebbe solo dire riavviare lo stream per niente.
+ */
+export function pickRearCamera(cameras: CameraChoice[]): string | null {
+  const rear = cameras.filter((camera) => REAR.test(camera.label));
+  if (rear.length === 0) return null;
+
+  // Se togliendo le secondarie non resta niente, meglio una grandangolare che
+  // niente: vuol dire che le etichette non seguono nessuno schema noto.
+  const primary = rear.filter((camera) => !SECONDARY_REAR.test(camera.label));
+  const pool = primary.length > 0 ? primary : rear;
+
+  const numbered = pool
+    .map((camera) => ({
+      camera,
+      index: Number(/camera2\s+(\d+)/i.exec(camera.label)?.[1] ?? Number.NaN),
+    }))
+    .filter((entry) => Number.isFinite(entry.index))
+    .sort((a, b) => a.index - b.index);
+
+  return (numbered[0]?.camera ?? pool[0]).id;
+}
+
+/**
+ * Le parti di `MediaStreamTrack` che i tipi del DOM non conoscono.
+ *
+ * `zoom` e `focusMode` non stanno nello standard: ci sono su Android Chrome,
+ * non su iOS Safari, dove `getCapabilities()` restituisce quasi tutto
+ * `undefined`. Dichiarati opzionali apposta, così ogni uso resta obbligato a
+ * controllare prima.
+ */
+type CameraCapabilities = MediaTrackCapabilities & {
+  zoom?: { min: number; max: number; step: number };
+  focusMode?: string[];
+};
+
+function videoTrackOf(video: HTMLVideoElement | null): MediaStreamTrack | null {
+  const stream = video?.srcObject;
+  if (!(stream instanceof MediaStream)) return null;
+  return stream.getVideoTracks()[0] ?? null;
+}
+
+/**
+ * Le capacità della fotocamera, col cast confinato qui.
+ *
+ * `MediaStreamTrack.getCapabilities()` è tipizzato con lo standard, che di
+ * `zoom` e `focusMode` non sa niente: invece di allargare il tipo ovunque —
+ * dove poi verrebbe dimenticato che quei campi possono mancare — la bugia sta
+ * in questa riga sola, e chi chiama riceve tutto `undefined` finché non
+ * controlla. Un oggetto vuoto quando il browser non sa rispondere, così chi
+ * legge non deve gestire anche il caso «non c'è il metodo».
+ */
+function cameraCapabilities(track: MediaStreamTrack): CameraCapabilities {
+  return (track.getCapabilities?.() ?? {}) as CameraCapabilities;
+}
+
+/**
+ * Messa a fuoco continua, dove il telefono la sa fare.
+ *
+ * È il singolo accorgimento che cambia di più: un adesivo tenuto a venti
+ * centimetri, senza autofocus continuo, resta sfocato finché la fotocamera non
+ * decide da sola di rimettere a fuoco — e nel frattempo sembra che lo scanner
+ * non funzioni. Su iOS `getCapabilities()` non dice quasi niente e questa
+ * chiamata non fa nulla: nessun danno, il telefono mette a fuoco per conto suo.
+ */
+async function tuneCamera(video: HTMLVideoElement | null): Promise<void> {
+  const track = videoTrackOf(video);
+  if (!track || !cameraCapabilities(track).focusMode?.includes("continuous")) return;
+
+  try {
+    await track.applyConstraints({
+      advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet],
+    });
+  } catch {
+    // Un vincolo rifiutato non è un guasto: si scansiona lo stesso.
+  }
+}
+
+/** Quanto si aspetta prima di cominciare ad avvicinarsi da soli. */
+const ZOOM_HUNT_AFTER_MS = 2500;
+/** Ogni quanto si sale di un gradino mentre si cerca. */
+const ZOOM_STEP_MS = 1200;
+/** Il tetto: oltre il doppio si perde inquadratura più di quanto si guadagni. */
+const ZOOM_CEILING = 2;
+
 /**
  * `document.featurePolicy` non sta nei tipi del DOM perché non è standard:
  * c'è su Chrome ed Edge, non su Firefox né Safari. Si dichiara qui il minimo
@@ -170,10 +291,15 @@ export default function Scan() {
     destroy: () => void;
     setCamera: (idOrFacingMode: string) => Promise<void>;
   } | null>(null);
-  const [status, setStatus] = useState<Status>("idle");
+  const [status, setStatus] = useState<Status>("starting");
   const [rejected, setRejected] = useState(false);
   const [cameras, setCameras] = useState<CameraChoice[]>([]);
   const [activeCamera, setActiveCamera] = useState("");
+  /* Guardia contro il doppio avvio. In sviluppo React monta, smonta e rimonta
+     ogni componente per far emergere gli effetti non puliti: senza questa,
+     partirebbero due scanner sulla stessa fotocamera e il primo resterebbe
+     acceso senza che nessuno lo spenga. */
+  const startedRef = useRef(false);
 
   // Spegnere la fotocamera quando si lascia la pagina non è un dettaglio: se
   // resta accesa, sul telefono resta acceso anche il puntino verde e la
@@ -183,11 +309,93 @@ export default function Scan() {
       scannerRef.current?.stop();
       scannerRef.current?.destroy();
       scannerRef.current = null;
+      startedRef.current = false;
     };
   }, []);
 
+  /**
+   * La fotocamera parte da sola all'apertura della pagina.
+   *
+   * Il pulsante «Avvia» era un gesto in più su una schermata che ha un solo
+   * scopo: chi arriva qui vuole scansionare, e la pagina si raggiunge già
+   * premendo «Scansiona» nel menu. Resta come via di ritorno quando l'avvio
+   * fallisce — lì il gesto serve davvero, perché senza si riproverebbe da
+   * solo all'infinito.
+   *
+   * Su iOS il permesso viene chiesto anche senza un tocco, purché la scheda
+   * sia quella in primo piano; nei browser dentro ad altre app (WKWebView)
+   * può non bastare, ed è esattamente il caso che il pulsante di ripiego
+   * copre.
+   */
+  useEffect(() => {
+    void start();
+    // Una volta sola, all'apertura: `start` legge solo dei ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * Se non trova niente, si avvicina da solo.
+   *
+   * L'idea è quella dello scanner di Telegram: un adesivo piccolo, o
+   * inquadrato da un metro, occupa troppi pochi pixel perché il decodificatore
+   * lo veda, e l'unico rimedio è avvicinare — con le mani o con lo zoom.
+   * Qui si aspettano un paio di secondi (il tempo di inquadrare come si deve)
+   * e poi si sale di un gradino alla volta fino al doppio; arrivati in cima si
+   * torna all'inizio e si ricomincia, perché lo zoom sbagliato è un problema
+   * tanto quanto la distanza.
+   *
+   * **Non è un vero rilevamento come quello di Telegram**, che stima la
+   * distanza del codice e zooma di conseguenza: quello richiede di sapere
+   * *dove* è il QR prima di averlo letto, cosa che il decodificatore in un
+   * browser non racconta. Questa è una ricerca cieca, ma copre lo stesso caso
+   * — il codice che si vede e non si legge — senza chiedere niente a chi
+   * scansiona.
+   *
+   * Si ferma da sola quando il decodificatore trova qualcosa: a quel punto la
+   * pagina cambia. Su iOS `zoom` non esiste e questo effetto esce subito.
+   */
+  useEffect(() => {
+    if (status !== "scanning") return;
+
+    const track = videoTrackOf(videoRef.current);
+    const zoom = track ? cameraCapabilities(track).zoom : undefined;
+    if (!track || !zoom || zoom.max <= zoom.min) return;
+
+    const ceiling = Math.min(zoom.max, zoom.min * ZOOM_CEILING);
+    const step = Math.max(zoom.step || 0.1, (ceiling - zoom.min) / 4);
+    let current = zoom.min;
+
+    let timer: ReturnType<typeof setInterval> | undefined;
+
+    // I primi secondi si sta fermi: chi inquadra ha bisogno di un attimo per
+    // centrare l'adesivo, e uno zoom che parte subito glielo sposta via
+    // mentre lo sta cercando.
+    const delay = setTimeout(() => {
+      timer = setInterval(() => {
+        current = current + step > ceiling ? zoom.min : current + step;
+        void track
+          .applyConstraints({ advanced: [{ zoom: current } as MediaTrackConstraintSet] })
+          .catch(() => {
+            // Se il telefono rifiuta lo zoom, tanto vale smettere di chiederlo.
+            if (timer) clearInterval(timer);
+          });
+      }, ZOOM_STEP_MS);
+    }, ZOOM_HUNT_AFTER_MS);
+
+    return () => {
+      clearTimeout(delay);
+      if (timer) clearInterval(timer);
+      // Si riparte sempre da fermo: lo zoom lasciato a metà si porterebbe
+      // dietro alla prossima apertura della pagina.
+      void track
+        .applyConstraints({ advanced: [{ zoom: zoom.min } as MediaTrackConstraintSet] })
+        .catch(() => {});
+    };
+  }, [status]);
+
   async function start() {
-    if (!videoRef.current) return;
+    if (!videoRef.current || startedRef.current) return;
+    startedRef.current = true;
     setStatus("starting");
     setRejected(false);
 
@@ -213,11 +421,19 @@ export default function Scan() {
           navigate(path);
         },
         {
-          // La fotocamera di dietro, quella con cui si inquadra qualcosa che
-          // non sei tu.
+          // Il primo tentativo: «una di dietro». Quale sia di preciso lo si
+          // corregge subito dopo con `pickRearCamera`, quando le etichette
+          // esistono — vedi lì il perché.
           preferredCamera: "environment",
           highlightScanRegion: true,
-          maxScansPerSecond: 5,
+          /* Dieci al secondo e non cinque. Cinque vuol dire fino a due decimi
+             di ritardo fra l'aver inquadrato bene e l'essere letti, che si
+             sentono tutti; e il costo è più basso di quanto sembri, perché
+             dove c'è `BarcodeDetector` — Android Chrome — la libreria lo usa
+             al posto del suo decodificatore, e lì è il sistema operativo a
+             leggere il codice, non JavaScript. Oltre i dieci si scalda la
+             batteria senza guadagnare niente di percepibile. */
+          maxScansPerSecond: 10,
         }
       );
 
@@ -232,13 +448,29 @@ export default function Scan() {
          «Back Ultra Wide Camera»), ed è quello che rende la scelta possibile. */
       try {
         const found = await QrScanner.listCameras(true);
-        setCameras(found.map((camera) => ({ id: camera.id, label: camera.label })));
+        const choices = found.map((camera) => ({ id: camera.id, label: camera.label }));
+        setCameras(choices);
+
+        /* Ora che le etichette ci sono, si sceglie quella buona. `environment`
+           ha già dato *una* fotocamera di dietro, ma su Android quale sia è
+           una lotteria: se non è la principale, si cambia adesso. Il confronto
+           è sul `deviceId` di ciò che sta effettivamente scorrendo, non su
+           quello che abbiamo chiesto. */
+        const best = pickRearCamera(choices);
+        const current = videoTrackOf(videoRef.current)?.getSettings().deviceId;
+        if (best && best !== current) {
+          await scanner.setCamera(best);
+        }
+        setActiveCamera(best ?? current ?? "");
       } catch {
         // Senza elenco si resta con la fotocamera che è partita: si scansiona
         // lo stesso, manca solo la possibilità di cambiarla.
       }
+
+      await tuneCamera(videoRef.current);
     } catch (error) {
       console.error("Avvio della fotocamera fallito:", error);
+      startedRef.current = false;
       setStatus(await diagnoseCameraFailure());
     }
   }
@@ -247,6 +479,9 @@ export default function Scan() {
     setActiveCamera(id);
     try {
       await scannerRef.current?.setCamera(id);
+      // Lo stream è nuovo, quindi la messa a fuoco va richiesta di nuovo: le
+      // impostazioni non sopravvivono al cambio di fotocamera.
+      await tuneCamera(videoRef.current);
     } catch (error) {
       console.error("Cambio di fotocamera fallito:", error);
     }
@@ -339,14 +574,20 @@ export default function Scan() {
           </div>
         )}
 
-        {status !== "scanning" && (
+        {/* Solo quando c'è qualcosa da riprovare. La fotocamera parte da sola
+            all'apertura, quindi in condizioni normali questo pulsante non si
+            vede mai: era un gesto in più su una schermata che ha un solo
+            scopo. Quando invece l'avvio è fallito il gesto serve davvero —
+            senza, si riproverebbe da solo all'infinito contro un permesso
+            negato. Niente pulsante se non c'è nessuna fotocamera: lì non
+            esiste un «riprova» che possa andare a buon fine. */}
+        {(status === "denied" || status === "failed" || status === "blockedByPolicy") && (
           <button
             type="button"
             onClick={() => void start()}
-            disabled={status === "starting" || status === "noCamera"}
             className={buttonClass("primary", "md", "mt-4")}
           >
-            {status === "idle" ? t("scan.start") : t("scan.retry")}
+            {t("scan.retry")}
           </button>
         )}
 

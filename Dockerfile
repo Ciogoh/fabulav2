@@ -31,6 +31,13 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
 FROM base AS build-env
+# `git` serve solo a leggere il numero di commit per la riga di versione (vedi
+# `versionStamp` in `vite.config.ts`). Sta **qui e non in `base`**: l'immagine
+# finale parte da `base`, quindi installarlo lì lo spedirebbe in produzione per
+# niente. Questo stadio invece viene buttato via — ne sopravvivono solo
+# `build/`. Prima di ogni `COPY`, così resta nella cache e non si riscarica.
+RUN apk add --no-cache git
+
 # I manifesti servono anche qui, e non per scrupolo: `pnpm exec` fa scattare
 # un controllo automatico delle dipendenze, e senza `package.json` accanto a
 # `node_modules` quel controllo conclude che non è installato niente e prova a

@@ -1,9 +1,55 @@
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
+/**
+ * I tre valori della riga di versione, letti una volta sola qui e incollati
+ * nel codice come stringhe letterali (vedi `app/lib/version.ts`).
+ *
+ * Ognuno ha il suo ripiego, e non è pignoleria: **la costruzione non deve mai
+ * fallire per colpa del numero di versione**. È decorazione, non una
+ * funzione — se git non risponde si legge `build ?` e si va avanti.
+ *
+ * Perché `git` funziona anche dentro al container: `.dockerignore` non
+ * esclude più `.git` (pesa 2,3 MB su un contesto di 5,7) e il `Dockerfile`
+ * installa `git` nello stadio di costruzione, che viene poi buttato via.
+ * Prima si passava tutto come argomento di costruzione, cioè un gesto da
+ * ricordare a ogni rilascio — ed è il genere di gesto che si dimentica.
+ */
+function versionStamp() {
+  let version = "?";
+  try {
+    version = JSON.parse(readFileSync("./package.json", "utf8")).version ?? "?";
+  } catch {
+    // Non può succedere, ma se succede la costruzione continua.
+  }
+
+  let build = "?";
+  try {
+    build = execSync("git rev-list --count HEAD", {
+      // Senza questo, quando git fallisce il suo errore finisce nel terminale
+      // e sembra un guasto della costruzione, che invece prosegue benissimo.
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    // Niente cartella .git (o niente git installato): `build ?`.
+  }
+
+  return {
+    __APP_VERSION__: JSON.stringify(version),
+    __BUILD_NUMBER__: JSON.stringify(build),
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
+  };
+}
+
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter()],
+  define: versionStamp(),
   resolve: {
     tsconfigPaths: true,
   },

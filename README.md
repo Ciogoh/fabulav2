@@ -124,3 +124,22 @@ invece di essere spedito. Si può provare tutto senza configurare niente.
 
 Ogni action che scrive deve cominciare con `requireUser` o `requireAdmin`
 (`app/lib/session.server.ts`). Nascondere un pulsante non protegge niente.
+
+## Versione e storia
+
+In fondo a `/admin/log` c'è la riga che dice quale copia sta girando:
+
+```
+Fabula 0.5.0 · build 27 · 2026-08-24
+```
+
+`0.5.0` è deciso a mano e dice quanto è cresciuta la piattaforma — **la 1.0.0
+è il giorno della consegna ai soci**. `build 27` è il numero di commit e sale
+da solo: serve a rispondere a «ma il server ha già la correzione?».
+
+- [`CHANGELOG.md`](./CHANGELOG.md) — cosa è cambiato a ogni versione, e perché.
+- [`docs/piani/`](./docs/piani/) — i piani scritti prima di toccare il codice.
+  Il codice dice com'è fatto, il piano dice perché è fatto così.
+
+Il rito per alzare la versione sta nel capitolo *Versione* di
+[`CLAUDE.md`](./CLAUDE.md).

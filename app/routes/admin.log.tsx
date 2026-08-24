@@ -20,6 +20,7 @@ import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
 import { useLang, useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
+import { versionLabel } from "~/lib/version";
 
 const LIMIT = 100;
 
@@ -145,6 +146,15 @@ export default function AdminLog({ loaderData }: Route.ComponentProps) {
         {truncated && (
           <p className="mt-6 text-sm text-muted">{t("log.truncated", { count: LIMIT })}</p>
         )}
+
+        {/* Che copia di Fabula sta girando. Sta qui perché questa è già la
+            pagina del «cosa è successo», e perché la domanda arriva sempre
+            insieme a un'altra: «ma il server ha già la correzione?».
+            Senza etichetta: «Versione:» andrebbe tradotto in tre lingue per
+            non dire niente in più. Vedi `lib/version.ts`. */}
+        <p className="mt-10 border-t border-rule pt-4 font-mono text-[0.62rem] text-muted">
+          {versionLabel()}
+        </p>
       </PageShell>
     </main>
   );

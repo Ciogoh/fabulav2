@@ -25,8 +25,25 @@ app/generated
 build
 .react-router
 
+# `.git` **non** è escluso, ed è una scelta.
+#
+# La riga di versione mostra `build 27`, cioè il numero di commit, e quel
+# numero lo sa solo git: escludendo `.git` dentro al container non c'è niente
+# da leggere e bisognerebbe passare il valore come argomento di costruzione a
+# ogni rilascio — cioè un gesto da ricordare, che è il genere di gesto che si
+# dimentica. Costa 2,3 MB su un contesto di 5,7.
+#
+# Non è in contraddizione con l'esclusione del `.env` qui sopra: quello
+# contiene segreti vivi che in git non ci sono, quindi lo strato intermedio
+# era davvero un posto nuovo dove finivano. `.git` è il repo stesso, e resta
+# sulla macchina che sta costruendo, che il repo ce l'ha già. Nell'immagine
+# finale non arriva comunque: l'ultimo stadio copia solo `build` e
+# `node_modules`.
+#
+# Vale finché nella storia non finisce un segreto. Se succede, il problema è
+# il commit — ma allora questa riga va rimessa.
+
 # Non servono a `vite build`.
-.git
 .gitignore
 .claude
 .agents
