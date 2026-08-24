@@ -57,14 +57,22 @@ Il ciclo intero funziona, dal catalogo alla riconsegna:
   promemoria — che parte anche da solo, un giorno prima della scadenza.
 - **Pannello admin**: oggetti (ricerca, filtro, gruppi per categoria,
   archiviazione), categorie, kit, coda di approvazione, soci (ruolo e reset
-  password).
+  password), registro di chi ha fatto cosa.
+- **QR e consegna diretta**: ogni oggetto ha un'etichetta QR da stampare;
+  inquadrandola col telefono si sceglie a chi darlo e fino a quando, e il
+  prestito è registrato in un colpo — approvato e già ritirato. L'adesivo
+  funziona anche con la fotocamera di sistema del telefono.
 - **Accesso**: codice via email (il modo principale — non c'è differenza fra
   registrarsi ed entrare), password, Google, Microsoft. Foto caricabili per
   oggetti e profilo, con validazione del tipo reale del file.
 
 Manca ancora l'allineamento visivo al sito dell'associazione (monocromatico,
-accento rosso, carattere Mattone, invece della palette blu attuale) e un
-registro delle azioni degli admin. Dettagli in `CLAUDE.md`.
+accento rosso, carattere Mattone, invece della palette blu attuale), e come
+passo successivo la PWA installabile. Dettagli in `CLAUDE.md`.
+
+> **Per provare lo scanner dal telefono serve HTTPS**: la fotocamera nel
+> browser non parte da un indirizzo IP di rete locale. Si passa dal tunnel
+> Cloudflare che il progetto usa già.
 
 ## Come è fatto
 

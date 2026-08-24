@@ -90,16 +90,23 @@ verificato dal vivo, non solo compilato:**
   `sticky`, e il `<nav>` va a capo invece di far scorrere la pagina intera in
   orizzontale.
 
+- **Registro delle azioni admin** (`/admin/log`, `lib/audit.server.ts`): chi
+  ha fatto cosa fra le azioni che toccano la fiducia o lo stato di un
+  prestito. Sola lettura, senza nemmeno un modo di cancellare una riga — un
+  registro che si può modificare non è un registro.
+- **Storico dei prestiti** nella scheda admin di un oggetto: chi l'ha avuto e
+  quando, sotto ai campi e sopra al pulsante di archiviazione, che è il
+  momento in cui la domanda «vale lo spazio che occupa?» si fa davvero.
+- **QR, scanner e consegna diretta** — vedi il capitolo *Il QR e la consegna
+  diretta*.
+
 **Manca**, in ordine di priorità:
 
 1. **Allineamento visivo a Material Matters** (vedi *Aspetto*) — resta il
    pezzo grosso, ma è quasi solo una sostituzione di valori: i token sono già
    tutti in `app.css`.
-2. **Registro delle azioni admin.** Non esiste una tabella per questo: oggi
-   una decisione si ricostruisce solo da `decidedById`/`decidedAt` sulla
-   richiesta, e ritiro/riconsegna non hanno un «chi» per niente (vedi
-   *Sicurezza → Cosa resta aperto*).
-3. *Un giorno:* QR sugli oggetti.
+2. **PWA installabile**, con le notifiche al posto delle sole email. Deciso
+   come passo successivo, non ancora cominciato.
 
 ---
 
@@ -261,7 +268,9 @@ giorno porterà fuori una colonna aggiunta dopo.
 
 **Nessun nome di persona nelle superfici pubbliche.** Il catalogo dice che un
 oggetto è occupato, non chi ce l'ha. `getOccupancy` ha `withHolders`, spento di
-serie: accendilo solo dopo `requireAdmin`.
+serie: accendilo solo dopo `requireAdmin`. Per la stessa ragione lo storico
+dei prestiti di un oggetto sta nella sua scheda **admin** e non in quella
+pubblica: dice chi ha avuto cosa, ed è esattamente ciò che il catalogo tace.
 
 **Le foto caricate stanno su un indirizzo pubblico**, avatar comprese:
 `/uploads/*` non chiede chi sei, come per le foto del catalogo. Il nome del
@@ -292,6 +301,14 @@ conferma: `newUserCallbackURL` ci manda chi si registra adesso, e solo lui.
 **I campi di ruolo hanno `input: false`** nella configurazione di Better Auth.
 Senza, il corpo della richiesta di registrazione può contenere `role: "ADMIN"` e
 chiunque si nomina amministratore da solo.
+
+**Quello che arriva dalla fotocamera è dato, non un indirizzo.** Un adesivo QR
+è un oggetto fisico: chiunque entri in magazzino può sostituirlo con uno
+stampato in casa. Il testo decodificato non si passa mai a `navigate()` così
+com'è — si valida che sia della nostra origine e col percorso atteso, e si
+**ricostruisce** il percorso dall'identificativo catturato
+(`handoverPathFrom`, in `admin.scan.tsx`). È la stessa regola del redirect
+filtrato, applicata a una superficie nuova.
 
 **Mai `dangerouslySetInnerHTML`, mai `$queryRawUnsafe`.** Al momento non ce n'è
 nessuno: tienilo così. Se serve SQL grezzo, usa `Prisma.sql` con i parametri.
@@ -327,9 +344,15 @@ l'accesso a tutti consumandoli. Better Auth stesso lo segnala nei log.
 - **Il limite di frequenza sta in memoria**, quindi si azzera a ogni riavvio e
   non si condivide fra processi. Con un processo solo va bene; se un giorno se
   ne mettono due, va spostato su database.
-- **Nessun registro delle azioni degli admin.** Approvazioni, rifiuti, ritiro
-  e riconsegna non hanno un «chi» tracciato oltre a `decidedById`/`decidedAt`
-  sulla richiesta stessa — chi ha segnato un ritiro non si sa più.
+- **Il registro degli admin non copre le modifiche di campo.** Rinominare un
+  oggetto, cambiarne la descrizione o la categoria non lascia traccia: è una
+  scelta, non una dimenticanza (sono azioni reversibili e a basso rischio, e
+  registrarle riempirebbe il registro di rumore). Se un giorno servisse,
+  `logAdminAction` è già generico abbastanza.
+- **Un `AdminAction` non ha una chiave esterna verso il suo bersaglio**, e non
+  è un difetto da correggere: un vincolo cancellerebbe in cascata proprio la
+  riga che dice «questo oggetto è stato eliminato». `targetId` che punta al
+  vuoto è normale, e `detail` è il testo che sopravvive.
 
 ---
 
@@ -409,15 +432,18 @@ app/
       ritiro/riconsegna per oggetto, nota, promemoria
 
   routes/ — solo admin
-    admin.requests.tsx    la coda di approvazione
-    admin.members.tsx     i soci: ruolo e link di reset password
-    admin.assets.tsx      gli oggetti: ricerca, filtro, gruppi per categoria
-    admin.assets.$id.tsx  scheda di un oggetto: modifica, foto, archivia/elimina
-    admin.assets.new.tsx  nuovo oggetto
-    admin.categories.tsx  le categorie: crea, rinomina, riordina, elimina
-    admin.kits.tsx        i kit, con i pezzi in chiaro su ogni riga
-    admin.kits.$id.tsx    scheda di un kit
-    admin.kits.new.tsx    nuovo kit
+    admin.requests.tsx         la coda di approvazione
+    admin.members.tsx          i soci: ruolo e link di reset password
+    admin.assets.tsx           gli oggetti: ricerca, filtro, gruppi per categoria
+    admin.assets.$id.tsx       scheda di un oggetto: modifica, foto, QR, storico, archivia/elimina
+    admin.assets.new.tsx       nuovo oggetto
+    admin.categories.tsx       le categorie: crea, rinomina, riordina, elimina
+    admin.kits.tsx             i kit, con i pezzi in chiaro su ogni riga
+    admin.kits.$id.tsx         scheda di un kit
+    admin.kits.new.tsx         nuovo kit
+    admin.scan.tsx             lo scanner: la fotocamera che legge gli adesivi
+    admin.handover.$assetId.tsx  la consegna diretta — l'indirizzo dentro al QR
+    admin.log.tsx              il registro: chi ha fatto cosa
 
   components/
     button.tsx             l'unico pulsante
@@ -432,6 +458,7 @@ app/
     photo-picker.tsx       le foto: quelle che ci sono e quelle in arrivo
     asset-fields.tsx       il modulo di un oggetto (nome, categoria, foto, note)
     kit-fields.tsx         il modulo di un kit e il selettore dei pezzi
+    person-picker.tsx      scegliere una persona: il fratello a scelta singola di AssetPicker
     admin-tabs.tsx         oggetti · kit · categorie, le tre schede admin
 
   lib/
@@ -440,12 +467,15 @@ app/
     session.server.ts        getUser / requireUser / requireAdmin
     auth.server.ts           configurazione dell'accesso (Better Auth)
     auth-client.ts           il client di Better Auth, lato browser
+    audit.server.ts          logAdminAction: il registro, una funzione sola
+    qr.server.ts             il QR di un oggetto, e l'indirizzo che ci sta dentro
     notifications.server.ts  tutte le email di una richiesta, in un posto solo
     reminders.server.ts      lo spazzatore orario del promemoria automatico
     email.server.ts          Resend, con ripiego a terminale
     ical.server.ts           generazione iCalendar
     uploads.server.ts        foto degli oggetti (due file) e avatar (uno)
     person.ts                alias, nome per esteso, etichetta per gli admin
+    request-status.ts        le etichette dei quattro stati, in un posto solo
     categories.ts            slug e nome ripulito, anche per il browser
     categories.server.ts     la categoria creata dalla scheda di un oggetto
     kits.server.ts           gli oggetti da spuntare, e la riscrittura dei pezzi
@@ -455,13 +485,69 @@ app/
   i18n/    tre lingue, tipizzate + i titoli delle pagine
   app.css  i token, con i rapporti di contrasto annotati
 
-prisma/schema.prisma    nove tabelle nostre + tre di Better Auth (Session, Account, Verification)
+prisma/schema.prisma    dieci tabelle nostre + tre di Better Auth (Session, Account, Verification)
 ```
 
 `availability.shared.ts` esiste per una ragione sola: `availability.server.ts`
 importa il database, quindi un componente che ne prendesse `MAX_ORDINARY_SPAN_DAYS`
 si porterebbe Prisma dentro al pacchetto del browser. I due tetti di durata
 servono da entrambe le parti e devono restare **lo stesso numero**.
+
+### Il QR e la consegna diretta
+
+Si stampa un adesivo per oggetto, lo si inquadra col telefono, si sceglie a
+chi darlo e fino a quando. Tre file: `lib/qr.server.ts` genera,
+`routes/admin.scan.tsx` legge, `routes/admin.handover.$assetId.tsx` consegna.
+
+**Quello che nasce è una `Request` normale**, già `APPROVED` con il suo
+`RequestItem` già `pickedUpAt` — lo stato in cui una richiesta ordinaria
+arriva dopo tre passaggi invece che dopo uno. È il motivo per cui questa
+funzione non ha richiesto nessuna tabella nuova, e per cui chat, riconsegna,
+promemoria automatico e storico funzionano su una consegna diretta senza una
+riga in più. Se ti trovi a inventare un modello parallelo per i prestiti
+«veloci», fermati: è già tutto lì.
+
+Due regole del percorso ordinario **non** valgono qui, di proposito:
+
+- **Niente tetto di sette giorni né motivo obbligatorio.** Quel tetto frena
+  l'autoservizio dei soci, non un admin che ha la persona davanti. Resta il
+  tetto assoluto `MAX_SPECIAL_SPAN_DAYS`, che difende dal dito storto.
+- **Il controllo di sovrapposizione invece resta, senza eccezioni**
+  (`getBusyAssetIds`), insieme a `isBookable`. Un oggetto è uno: consegnarlo
+  due volte è la sola cosa che il database non può rimediare dopo.
+
+**Il testo letto dalla fotocamera non è fidato.** Un adesivo è un oggetto
+fisico che chiunque passi in magazzino può sostituire con uno stampato in
+casa, e un QR può contenere qualunque indirizzo. Vale la stessa regola dei
+redirect che arrivano dall'utente: `handoverPathFrom` accetta solo un
+indirizzo di *questa* origine col percorso atteso, e **ricostruisce** il
+percorso dall'identificativo catturato invece di riusare quello letto — così
+query e frammenti non passano. Se tocchi quella funzione, ricontrolla i casi:
+altro host, `../`, schema `javascript:`, id con una barra dentro.
+
+Quattro cose che si scoprono solo sbattendoci:
+
+- **Il QR contiene un indirizzo intero, non l'id nudo.** Costa una trentina di
+  caratteri e in cambio l'adesivo funziona anche con la fotocamera di sistema
+  del telefono, che di un `cmf3x9k2p0000` non saprebbe che fare.
+- **L'indirizzo viene da `APP_URL`**, non dall'origine della richiesta: un
+  adesivo è per sempre, e generarli mentre si lavora su `localhost` vorrebbe
+  dire stampare etichette morte. Di conseguenza **la rotta
+  `/admin/handover/:assetId` non si rinomina a cuor leggero**: gli adesivi già
+  attaccati continuerebbero a puntare lì.
+- **La fotocamera parte da una pressione, mai da sola.** Su iOS
+  `getUserMedia` chiamato al caricamento della pagina viene rifiutato senza
+  nemmeno chiedere il permesso. Il pulsante «Avvia» non è una cortesia.
+- **`getUserMedia` esiste solo in un contesto sicuro.** `localhost` va bene,
+  `192.168.x.x` no: **per provare dal telefono in sviluppo si passa dal
+  tunnel Cloudflare**, non dall'indirizzo IP del computer. E il simulatore
+  iOS non ha una fotocamera vera — la prova finale si fa su un telefono.
+
+`qr-scanner` e non `BarcodeDetector`: quest'ultimo è già nel browser e non
+costerebbe niente, ma **su iOS Safari non esiste affatto**. Si carica con un
+`import()` dinamico, sia perché tocca `document` appena viene importata (e
+questa pagina viene disegnata anche sul server), sia perché così resta un
+chunk a parte da 15KB caricato solo quando la fotocamera parte davvero.
 
 ### L'accesso, in breve
 
