@@ -260,21 +260,39 @@ export default function Scan() {
         </h1>
         <p className="mt-2 max-w-prose text-sm text-muted">{t("scan.intro")}</p>
 
-        <div className="mt-6 overflow-hidden rounded border border-rule bg-sunk">
-          {/* `playsInline` o su iPhone il video parte a schermo intero, e chi
+        {/* **`relative` non è decorazione.** `qr-scanner` aggiunge la cornice
+            gialla dell'area di scansione come figlio del genitore del video,
+            con `position: absolute`: senza un genitore posizionato, quella
+            cornice si àncora a un antenato qualsiasi e finisce fuori posto. */}
+        <div className="relative mt-6 overflow-hidden rounded border border-rule bg-sunk">
+          {/* **Il video non si nasconde mai con `display: none`.** Un video
+              nascosto così non disegna fotogrammi: il canvas che deve leggere
+              il QR riceve nero, e `offsetWidth`/`offsetHeight` — con cui la
+              libreria calcola l'area di scansione — valgono zero. La libreria
+              sistema da sola l'*attributo* `hidden`, ma contro una classe CSS
+              non può fare niente. Prima di questa correzione la fotocamera si
+              accendeva e non si vedeva niente, e nessun QR veniva mai letto.
+              Il messaggio di stato gli va quindi *sopra*, non al posto suo.
+
+              `object-contain` e non `object-cover`: in uno scanner si deve
+              vedere **tutto** il fotogramma. Con un ritaglio, la cornice
+              gialla dell'area di lettura mostra un pezzo di immagine che
+              l'occhio non vede, e si finisce per allineare il QR con quello
+              che si vede invece che con quello che viene letto. Le bande nere
+              ai lati sono il prezzo, ed è quello che fa ogni mirino.
+
+              `playsInline` o su iPhone il video parte a schermo intero, e chi
               scansiona perde di vista la pagina sotto. `muted` perché senza,
               la riproduzione automatica viene bloccata. */}
           <video
             ref={videoRef}
             playsInline
             muted
-            className={`aspect-[4/3] w-full object-cover ${
-              status === "scanning" ? "" : "hidden"
-            }`}
+            className="aspect-[4/3] w-full bg-black object-contain"
           />
 
           {status !== "scanning" && (
-            <div className="flex aspect-[4/3] items-center justify-center px-6 text-center text-sm text-muted">
+            <div className="absolute inset-0 flex items-center justify-center bg-sunk px-6 text-center text-sm text-muted">
               {status === "blockedByPolicy"
                 ? t("scan.blockedByPolicy")
                 : status === "denied"

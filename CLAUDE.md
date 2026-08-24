@@ -563,6 +563,17 @@ Quattro cose che si scoprono solo sbattendoci:
   scanner smette di funzionare «senza motivo», questa è la prima riga da
   guardare — `document.featurePolicy.allowsFeature("camera")` risponde in un
   colpo, e `diagnoseCameraFailure` lo chiede per primo apposta.
+- **Il `<video>` dello scanner non si nasconde mai con `display: none`.** Un
+  video nascosto così non disegna fotogrammi — il canvas che deve leggere il
+  QR riceve nero — e `offsetWidth`/`offsetHeight`, con cui `qr-scanner`
+  calcola l'area di lettura e piazza la cornice gialla, valgono **zero**
+  (misurato). La libreria sistema da sola l'*attributo* `hidden`, ma contro
+  una classe CSS non può niente: il sintomo era la fotocamera che si accendeva
+  senza mostrare nulla e senza leggere mai un codice, su computer e telefono
+  insieme. Il messaggio di stato va **sopra** al video, non al posto suo.
+  Per la stessa ragione il contenitore è `relative`: la cornice è un figlio
+  assoluto del genitore del video, e senza un genitore posizionato si àncora
+  a un antenato qualsiasi.
 - **`qr-scanner` non dice mai perché non è partita.** Prova una lista di
   vincoli, inghiotte l'errore di ognuno in un `catch` vuoto e alla fine
   rilancia la stringa `"Camera not found."`: permesso negato e assenza di
