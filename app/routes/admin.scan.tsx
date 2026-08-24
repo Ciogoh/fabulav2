@@ -87,9 +87,26 @@ export function handoverPathFrom(text: string, origin: string): string | null {
   return match ? `/admin/handover/${match[1]}` : null;
 }
 
-type Status = "idle" | "starting" | "scanning" | "denied" | "noCamera" | "failed";
+type Status =
+  | "idle"
+  | "starting"
+  | "scanning"
+  | "denied"
+  | "noCamera"
+  | "blockedByPolicy"
+  | "failed";
 
 type CameraChoice = { id: string; label: string };
+
+/**
+ * `document.featurePolicy` non sta nei tipi del DOM perché non è standard:
+ * c'è su Chrome ed Edge, non su Firefox né Safari. Si dichiara qui il minimo
+ * che ci serve — opzionale, così il controllo dell'esistenza resta
+ * obbligatorio e non ci si può dimenticare che altrove non c'è.
+ */
+type DocumentWithFeaturePolicy = Document & {
+  featurePolicy?: { allowsFeature(feature: string): boolean };
+};
 
 /**
  * Perché la fotocamera non è partita.
@@ -106,6 +123,23 @@ type CameraChoice = { id: string; label: string };
  * messaggio meno preciso è meglio di uno sbagliato.
  */
 async function diagnoseCameraFailure(): Promise<Status> {
+  /* **Prima di tutto: siamo noi a vietarcela?** `Permissions-Policy` con
+     `camera=()` significa «nessuna origine, noi compresi», e in quel caso il
+     browser non chiede il permesso e non lo chiederà mai — darglielo a mano
+     nelle impostazioni non cambia niente, perché la decisione è già presa
+     dall'intestazione. È successo davvero: `root.tsx` spegneva la fotocamera
+     da quando esisteva, cioè da prima che ci fosse uno scanner.
+     Va chiesto per primo perché `permissions.query` in quel caso risponde
+     «denied» come per un rifiuto vero, e il consiglio da dare è l'opposto. */
+  const doc = document as DocumentWithFeaturePolicy;
+  if (doc.featurePolicy) {
+    try {
+      if (!doc.featurePolicy.allowsFeature("camera")) return "blockedByPolicy";
+    } catch {
+      // Se non risponde, si prosegue coi controlli qui sotto.
+    }
+  }
+
   try {
     const status = await navigator.permissions.query({
       name: "camera" as PermissionName,
@@ -241,15 +275,17 @@ export default function Scan() {
 
           {status !== "scanning" && (
             <div className="flex aspect-[4/3] items-center justify-center px-6 text-center text-sm text-muted">
-              {status === "denied"
-                ? t("scan.denied")
-                : status === "noCamera"
-                  ? t("scan.noCamera")
-                  : status === "failed"
-                    ? t("scan.failed")
-                    : status === "starting"
-                      ? t("scan.starting")
-                      : t("scan.idle")}
+              {status === "blockedByPolicy"
+                ? t("scan.blockedByPolicy")
+                : status === "denied"
+                  ? t("scan.denied")
+                  : status === "noCamera"
+                    ? t("scan.noCamera")
+                    : status === "failed"
+                      ? t("scan.failed")
+                      : status === "starting"
+                        ? t("scan.starting")
+                        : t("scan.idle")}
             </div>
           )}
         </div>

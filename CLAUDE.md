@@ -323,7 +323,7 @@ commit, controlla cosa stai includendo.
 | Limite di frequenza sull'accesso | `auth.server.ts` | 3 codici al minuto, poi 429 |
 | IP reale dietro Cloudflare | `advanced.ipAddress` | vedi sotto |
 | `SESSION_SECRET` obbligatoria in produzione | `auth.server.ts` | l'avvio fallisce se manca |
-| `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors`, `Permissions-Policy` | `root.tsx` `headers()` | presenti nella risposta |
+| `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors`, `Permissions-Policy` | `root.tsx` `headers()` | presenti nella risposta — su `Permissions-Policy` vedi la trappola della fotocamera |
 | HSTS un anno | `root.tsx`, solo produzione | — |
 | Password minimo 10 caratteri | `auth.server.ts` | — |
 | Collegamento account solo a parità di indirizzo | `account.accountLinking` | `allowDifferentEmails` spento |
@@ -553,6 +553,16 @@ Quattro cose che si scoprono solo sbattendoci:
   quel ripiego può prendere la fotocamera sbagliata: da qui la tendina di
   scelta, che compare solo con più di una. L'elenco si chiede **dopo**
   l'avvio, perché prima del permesso le etichette arrivano vuote.
+- **`Permissions-Policy: camera=()` spegne la fotocamera anche a noi.** La
+  lista vuota vuol dire «nessuna origine, noi compresi», non «nessun terzo».
+  Quella riga stava in `root.tsx` da prima che esistesse uno scanner, e il
+  sintomo era crudele: il browser **non chiedeva mai** il permesso, e darlo a
+  mano nelle impostazioni non cambiava niente, perché la decisione era già
+  presa dall'intestazione. Ora è `camera=(self)`; microfono, posizione e
+  pagamenti restano vuoti perché quelli davvero non servono. Se un giorno lo
+  scanner smette di funzionare «senza motivo», questa è la prima riga da
+  guardare — `document.featurePolicy.allowsFeature("camera")` risponde in un
+  colpo, e `diagnoseCameraFailure` lo chiede per primo apposta.
 - **`qr-scanner` non dice mai perché non è partita.** Prova una lista di
   vincoli, inghiotte l'errore di ognuno in un `catch` vuoto e alla fine
   rilancia la stringa `"Camera not found."`: permesso negato e assenza di

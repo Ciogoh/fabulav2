@@ -81,7 +81,15 @@ export function headers(): HeadersInit {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Content-Security-Policy": "frame-ancestors 'none'",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    // `camera=(self)` e non `camera=()`: la lista vuota vuol dire «nessuna
+    // origine, noi compresi», e finché è stata lì lo scanner QR non poteva
+    // funzionare in nessun browser. Il sintomo era crudele — la fotocamera
+    // non veniva mai chiesta, e darle il permesso a mano nelle impostazioni
+    // non cambiava niente, perché la decisione era già presa da questa riga
+    // prima ancora che il browser pensasse di domandare.
+    // Le altre restano vuote: Fabula non usa microfono, posizione né
+    // pagamenti, e ciò che non serve resta spento.
+    "Permissions-Policy": "camera=(self), microphone=(), geolocation=(), payment=()",
     // Un anno di HTTPS obbligatorio. Solo in produzione: in sviluppo
     // inchioderebbe `localhost` su HTTPS nel browser, per mesi.
     ...(process.env.NODE_ENV === "production"

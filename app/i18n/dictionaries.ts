@@ -357,6 +357,8 @@ const en = {
   "scan.denied":
     "Fabula cannot use the camera. Allow it in your browser settings, then try again.",
   "scan.noCamera": "No camera on this device.",
+  "scan.blockedByPolicy":
+    "Fabula itself is blocking the camera (Permissions-Policy). Giving permission in your browser will not help — this has to be fixed on the server.",
   "scan.failed": "The camera would not start. Fabula must be open over HTTPS.",
   "scan.notOurs": "That QR code is not one of ours.",
 
@@ -731,6 +733,8 @@ const it: Dictionary = {
   "scan.denied":
     "Fabula non può usare la fotocamera. Dalle il permesso nelle impostazioni del browser, poi riprova.",
   "scan.noCamera": "Su questo dispositivo non c'è una fotocamera.",
+  "scan.blockedByPolicy":
+    "È Fabula stessa a bloccare la fotocamera (Permissions-Policy). Dare il permesso nel browser non serve: va corretto sul server.",
   "scan.failed": "La fotocamera non è partita. Fabula dev'essere aperta in HTTPS.",
   "scan.notOurs": "Quel codice QR non è dei nostri.",
 
@@ -1102,6 +1106,8 @@ const de: Dictionary = {
   "scan.denied":
     "Fabula darf die Kamera nicht benutzen. Erlaube es in den Browser-Einstellungen und versuche es nochmal.",
   "scan.noCamera": "Auf diesem Gerät gibt es keine Kamera.",
+  "scan.blockedByPolicy":
+    "Fabula selbst blockiert die Kamera (Permissions-Policy). Die Erlaubnis im Browser hilft nicht — das muss auf dem Server behoben werden.",
   "scan.failed": "Die Kamera ist nicht gestartet. Fabula muss über HTTPS geöffnet sein.",
   "scan.notOurs": "Dieser QR-Code ist keiner von uns.",
 
