@@ -25,6 +25,11 @@ export default [
   route("admin/kits/:id", "routes/admin.kits.$id.tsx"),
   route("admin/categories", "routes/admin.categories.tsx"),
   route("admin/log", "routes/admin.log.tsx"),
+  // Lo scanner e la consegna che ne segue: l'indirizzo qui sotto è quello
+  // stampato dentro al QR di ogni oggetto, quindi non si cambia a cuor
+  // leggero — gli adesivi già attaccati continuerebbero a puntare qui.
+  route("admin/scan", "routes/admin.scan.tsx"),
+  route("admin/handover/:assetId", "routes/admin.handover.$assetId.tsx"),
   route("reset-password", "routes/reset-password.tsx"),
   route("uploads/*", "routes/uploads.tsx"),
   // Tutto l'accesso passa da un solo gestore di Better Auth.

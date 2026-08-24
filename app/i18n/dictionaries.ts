@@ -32,6 +32,7 @@ const en = {
   "nav.adminQueue": "To approve",
   "nav.adminMembers": "Members",
   "nav.adminAssets": "Items",
+  "nav.adminScan": "Scan",
   "nav.adminLog": "Activity",
 
   "catalogue.heading": "Catalogue",
@@ -339,6 +340,33 @@ const en = {
 
   "assets.historyHeading": "Loan history",
   "assets.historyEmpty": "Never lent out.",
+  "assets.qrHeading": "QR label",
+  "assets.qrAlt": "QR code for {name}",
+  "assets.qrHint":
+    "Print it and stick it on the item. Scanning it opens the handover page — with any camera, not just Fabula's.",
+
+  "scan.heading": "Scan",
+  "scan.intro": "Point the camera at an item's QR label to hand it over.",
+  "scan.idle": "The camera is off.",
+  "scan.starting": "Starting the camera…",
+  "scan.start": "Start the camera",
+  "scan.retry": "Try again",
+  "scan.denied":
+    "Fabula cannot use the camera. Allow it in your browser settings, then try again.",
+  "scan.failed": "The camera would not start. On a phone, Fabula must be open over HTTPS.",
+  "scan.notOurs": "That QR code is not one of ours.",
+
+  "handover.heading": "Hand over",
+  "handover.person": "To whom",
+  "handover.searchPlaceholder": "Name or email…",
+  "handover.chooseHint": "Choose who is taking it.",
+  "handover.chosen": "Going to {name}.",
+  "handover.noPeople": "No accounts yet.",
+  "handover.submit": "Hand over now",
+  "handover.done": "Handed over to {name}.",
+  "handover.openRequest": "Open the loan",
+  "handover.scanAnother": "Scan another",
+  "handover.errorNoPerson": "Choose who is taking it.",
 
   "log.heading": "Activity",
   "log.intro":
@@ -380,6 +408,7 @@ const it: Dictionary = {
   "nav.adminQueue": "Da approvare",
   "nav.adminMembers": "Soci",
   "nav.adminAssets": "Oggetti",
+  "nav.adminScan": "Scansiona",
   "nav.adminLog": "Registro",
 
   "catalogue.heading": "Catalogo",
@@ -681,6 +710,34 @@ const it: Dictionary = {
 
   "assets.historyHeading": "Storico dei prestiti",
   "assets.historyEmpty": "Mai prestato.",
+  "assets.qrHeading": "Etichetta QR",
+  "assets.qrAlt": "Codice QR di {name}",
+  "assets.qrHint":
+    "Stampala e attaccala sull'oggetto. Scansionandola si apre la pagina di consegna — con qualsiasi fotocamera, non solo con quella di Fabula.",
+
+  "scan.heading": "Scansiona",
+  "scan.intro": "Inquadra l'etichetta QR di un oggetto per consegnarlo.",
+  "scan.idle": "La fotocamera è spenta.",
+  "scan.starting": "Avvio della fotocamera…",
+  "scan.start": "Avvia la fotocamera",
+  "scan.retry": "Riprova",
+  "scan.denied":
+    "Fabula non può usare la fotocamera. Dalle il permesso nelle impostazioni del browser, poi riprova.",
+  "scan.failed":
+    "La fotocamera non è partita. Sul telefono, Fabula dev'essere aperta in HTTPS.",
+  "scan.notOurs": "Quel codice QR non è dei nostri.",
+
+  "handover.heading": "Consegna",
+  "handover.person": "A chi",
+  "handover.searchPlaceholder": "Nome o email…",
+  "handover.chooseHint": "Scegli chi lo prende.",
+  "handover.chosen": "Va a {name}.",
+  "handover.noPeople": "Ancora nessun account.",
+  "handover.submit": "Consegna adesso",
+  "handover.done": "Consegnato a {name}.",
+  "handover.openRequest": "Apri il prestito",
+  "handover.scanAnother": "Scansiona un altro",
+  "handover.errorNoPerson": "Scegli chi lo prende.",
 
   "log.heading": "Registro",
   "log.intro":
@@ -719,6 +776,7 @@ const de: Dictionary = {
   "nav.adminQueue": "Zu genehmigen",
   "nav.adminMembers": "Mitglieder",
   "nav.adminAssets": "Gegenstände",
+  "nav.adminScan": "Scannen",
   "nav.adminLog": "Protokoll",
 
   "catalogue.heading": "Katalog",
@@ -1020,6 +1078,34 @@ const de: Dictionary = {
 
   "assets.historyHeading": "Ausleihverlauf",
   "assets.historyEmpty": "Nie verliehen.",
+  "assets.qrHeading": "QR-Etikett",
+  "assets.qrAlt": "QR-Code für {name}",
+  "assets.qrHint":
+    "Drucke es aus und klebe es auf den Gegenstand. Beim Scannen öffnet sich die Übergabeseite — mit jeder Kamera, nicht nur mit der von Fabula.",
+
+  "scan.heading": "Scannen",
+  "scan.intro": "Richte die Kamera auf das QR-Etikett eines Gegenstands, um ihn zu übergeben.",
+  "scan.idle": "Die Kamera ist aus.",
+  "scan.starting": "Kamera wird gestartet…",
+  "scan.start": "Kamera starten",
+  "scan.retry": "Nochmal versuchen",
+  "scan.denied":
+    "Fabula darf die Kamera nicht benutzen. Erlaube es in den Browser-Einstellungen und versuche es nochmal.",
+  "scan.failed":
+    "Die Kamera ist nicht gestartet. Auf dem Handy muss Fabula über HTTPS geöffnet sein.",
+  "scan.notOurs": "Dieser QR-Code ist keiner von uns.",
+
+  "handover.heading": "Übergabe",
+  "handover.person": "An wen",
+  "handover.searchPlaceholder": "Name oder E-Mail…",
+  "handover.chooseHint": "Wähle, wer ihn mitnimmt.",
+  "handover.chosen": "Geht an {name}.",
+  "handover.noPeople": "Noch keine Konten.",
+  "handover.submit": "Jetzt übergeben",
+  "handover.done": "An {name} übergeben.",
+  "handover.openRequest": "Ausleihe öffnen",
+  "handover.scanAnother": "Nächsten scannen",
+  "handover.errorNoPerson": "Wähle, wer ihn mitnimmt.",
 
   "log.heading": "Protokoll",
   "log.intro":

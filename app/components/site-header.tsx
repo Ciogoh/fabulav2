@@ -91,6 +91,9 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
               <NavLink to="/admin/assets" className={LINK}>
                 {t("nav.adminAssets")}
               </NavLink>
+              <NavLink to="/admin/scan" className={LINK}>
+                {t("nav.adminScan")}
+              </NavLink>
               <NavLink to="/admin/log" className={LINK}>
                 {t("nav.adminLog")}
               </NavLink>

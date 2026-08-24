@@ -28,6 +28,7 @@ import { deleteAssetPhotoFiles, saveAssetPhoto } from "~/lib/uploads.server";
 import { useFormatDay, useT } from "~/i18n/use-t";
 import { Avatar, PersonName } from "~/components/person";
 import { REQUEST_STATUS_LABELS } from "~/lib/request-status";
+import { assetQrDataUrl } from "~/lib/qr.server";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import { categoryFromForm } from "~/lib/categories.server";
 import { AssetFields } from "~/components/asset-fields";
@@ -96,15 +97,17 @@ async function loadHistory(assetId: string) {
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const [asset, categories, history] = await Promise.all([
+  const [asset, categories, history, qr] = await Promise.all([
     loadAsset(params.id),
     db.category.findMany({ orderBy: { sortOrder: "asc" } }),
     loadHistory(params.id),
+    assetQrDataUrl(params.id),
   ]);
 
   return {
     asset,
     categories,
+    qr,
     history: history.map((item) => ({
       id: item.id,
       requestId: item.request.id,
@@ -265,7 +268,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function EditAsset({ loaderData, actionData }: Route.ComponentProps) {
-  const { asset, categories, history } = loaderData;
+  const { asset, categories, history, qr } = loaderData;
   const t = useT();
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
@@ -330,6 +333,8 @@ export default function EditAsset({ loaderData, actionData }: Route.ComponentPro
           </p>
         )}
 
+        <AssetQr dataUrl={qr} name={asset.name} />
+
         <AssetHistory entries={history} />
 
         <ExitZone
@@ -339,6 +344,45 @@ export default function EditAsset({ loaderData, actionData }: Route.ComponentPro
         />
       </PageShell>
     </main>
+  );
+}
+
+/**
+ * L'etichetta da stampare e attaccare sull'oggetto.
+ *
+ * Il QR si vede a schermo piccolo — 160 pixel bastano a leggerlo col telefono
+ * direttamente dal monitor, che è il modo in cui lo si prova — ma il file
+ * dietro è a 512, così stampato non sgrana.
+ *
+ * Non c'è un pulsante «scarica»: un `<a download>` è una di quelle cose che
+ * funzionano quasi sempre e falliscono in silenzio dove non funzionano.
+ * Tasto destro sull'immagine, oppure stampa la pagina — due strade che
+ * esistono in ogni browser e che nessuno deve spiegare.
+ */
+function AssetQr({ dataUrl, name }: { dataUrl: string; name: string }) {
+  const t = useT();
+
+  return (
+    <section className="mt-10 border-t border-rule pt-6">
+      <h2 className="font-mono text-[0.66rem] uppercase tracking-widest text-muted">
+        {t("assets.qrHeading")}
+      </h2>
+
+      <div className="mt-3 flex flex-wrap items-start gap-4">
+        {/* Fondo bianco esplicito e non `bg-card`: nel tema scuro la scheda è
+            scura, e un QR nero su fondo scuro non lo legge nessuna
+            fotocamera. Il codice è nero su bianco per contratto, non per
+            stile. */}
+        <img
+          src={dataUrl}
+          alt={t("assets.qrAlt", { name })}
+          width={160}
+          height={160}
+          className="rounded border border-rule bg-white p-2"
+        />
+        <p className="max-w-xs text-sm text-muted">{t("assets.qrHint")}</p>
+      </div>
+    </section>
   );
 }
 

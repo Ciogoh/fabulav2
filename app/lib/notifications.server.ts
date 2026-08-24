@@ -89,6 +89,26 @@ export async function notifyRequesterCancelled(
   await sendEmail({ to: params.to, subject: "Fabula: request cancelled", text });
 }
 
+/**
+ * La conferma di una consegna fatta di persona, col QR.
+ *
+ * Non è una decisione da comunicare — chi la riceve era lì, ha appena preso
+ * l'oggetto in mano — ma la traccia scritta di quando va restituito, che è
+ * l'unica cosa che dopo mezz'ora nessuno ricorda più. Per questo la data di
+ * riconsegna è la frase principale e non un dettaglio in coda.
+ */
+export async function notifyDirectHandover(
+  params: RequestSummary & { to: string; name: string }
+): Promise<void> {
+  const text =
+    `Hi ${params.name},\n\n` +
+    `You picked up: ${params.itemNames.join(", ")}\n` +
+    `Please return by ${formatDay(params.endDate)}.\n` +
+    `\n${requestLink(params.origin, params.requestId)}`;
+
+  await sendEmail({ to: params.to, subject: "Fabula: item handed over", text });
+}
+
 export async function sendReturnReminder(params: {
   to: string;
   name: string;
