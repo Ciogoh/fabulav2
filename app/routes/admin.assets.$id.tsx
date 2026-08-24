@@ -16,7 +16,7 @@
  * l'oggetto in vetrina.
  */
 
-import { Form, redirect, useNavigation, useSearchParams } from "react-router";
+import { Form, Link, redirect, useNavigation, useSearchParams } from "react-router";
 import type { Route } from "./+types/admin.assets.$id";
 import { PageShell } from "~/components/page";
 import { buttonClass } from "~/components/button";
@@ -25,7 +25,9 @@ import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
 import { logAdminAction } from "~/lib/audit.server";
 import { deleteAssetPhotoFiles, saveAssetPhoto } from "~/lib/uploads.server";
-import { useT } from "~/i18n/use-t";
+import { useFormatDay, useT } from "~/i18n/use-t";
+import { Avatar, PersonName } from "~/components/person";
+import { REQUEST_STATUS_LABELS } from "~/lib/request-status";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import { categoryFromForm } from "~/lib/categories.server";
 import { AssetFields } from "~/components/asset-fields";
@@ -57,13 +59,63 @@ async function loadAsset(id: string) {
   return asset;
 }
 
+/**
+ * Chi ha avuto questo oggetto, e quando.
+ *
+ * Sta qui e non sulla scheda pubblica (`item.tsx`) per la regola di sicurezza
+ * che vale in tutto il progetto: **nessun nome di persona nelle superfici
+ * pubbliche**. Il catalogo dice che un oggetto è occupato, non chi ce l'ha —
+ * questa pagina invece è già dietro `requireAdmin`.
+ *
+ * Nessuna tabella nuova: i dati ci sono già tutti su `RequestItem` e
+ * `Request`. Lo storico non è un dato da raccogliere, è una lettura di quello
+ * che il prestito lascia dietro di sé.
+ */
+async function loadHistory(assetId: string) {
+  return db.requestItem.findMany({
+    where: { assetId },
+    orderBy: { request: { startDate: "desc" } },
+    select: {
+      id: true,
+      pickedUpAt: true,
+      returnedAt: true,
+      request: {
+        select: {
+          id: true,
+          startDate: true,
+          endDate: true,
+          status: true,
+          user: {
+            select: { name: true, firstName: true, lastName: true, alias: true, image: true },
+          },
+        },
+      },
+    },
+  });
+}
+
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const [asset, categories] = await Promise.all([
+  const [asset, categories, history] = await Promise.all([
     loadAsset(params.id),
     db.category.findMany({ orderBy: { sortOrder: "asc" } }),
+    loadHistory(params.id),
   ]);
-  return { asset, categories };
+
+  return {
+    asset,
+    categories,
+    history: history.map((item) => ({
+      id: item.id,
+      requestId: item.request.id,
+      startDate: item.request.startDate.toISOString(),
+      endDate: item.request.endDate.toISOString(),
+      status: item.request.status,
+      holder: item.request.user,
+      pickedUp: item.pickedUpAt !== null,
+      returned: item.returnedAt !== null,
+    })),
+  };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -213,7 +265,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function EditAsset({ loaderData, actionData }: Route.ComponentProps) {
-  const { asset, categories } = loaderData;
+  const { asset, categories, history } = loaderData;
   const t = useT();
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
@@ -278,6 +330,8 @@ export default function EditAsset({ loaderData, actionData }: Route.ComponentPro
           </p>
         )}
 
+        <AssetHistory entries={history} />
+
         <ExitZone
           archived={Boolean(asset.archivedAt)}
           loans={asset._count.requestItems}
@@ -285,6 +339,70 @@ export default function EditAsset({ loaderData, actionData }: Route.ComponentPro
         />
       </PageShell>
     </main>
+  );
+}
+
+/**
+ * Lo storico dei prestiti, sotto ai campi e sopra alla via d'uscita.
+ *
+ * È messo lì di proposito: la domanda «questo oggetto vale lo spazio che
+ * occupa in magazzino?» si fa proprio nel momento in cui si sta per premere
+ * «archivia», e la risposta è questo elenco — dieci prestiti in sei mesi o
+ * nessuno da due anni.
+ *
+ * Ogni riga porta al dettaglio della richiesta invece di ripeterlo qui: chat,
+ * date e passaggi di mano esistono già lì, e duplicarli vorrebbe dire tenerli
+ * allineati in due posti.
+ */
+function AssetHistory({
+  entries,
+}: {
+  entries: Route.ComponentProps["loaderData"]["history"];
+}) {
+  const t = useT();
+  const formatDayLabel = useFormatDay();
+
+  return (
+    <section className="mt-10 border-t border-rule pt-6">
+      <h2 className="font-mono text-[0.66rem] uppercase tracking-widest text-muted">
+        {t("assets.historyHeading")}
+      </h2>
+
+      {entries.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">{t("assets.historyEmpty")}</p>
+      ) : (
+        <ul className="mt-3 flex flex-col divide-y divide-rule">
+          {entries.map((entry) => (
+            <li key={entry.id}>
+              <Link
+                to={`/requests/${entry.requestId}`}
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm hover:text-accent"
+              >
+                <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+                  {formatDayLabel(entry.startDate)} — {formatDayLabel(entry.endDate)}
+                </span>
+
+                <span className="flex items-center gap-2">
+                  <Avatar person={entry.holder} size="sm" />
+                  <PersonName person={entry.holder} />
+                </span>
+
+                {/* Lo stato del passaggio di mano vince su quello della
+                    richiesta quando c'è: «riconsegnato» dice più di
+                    «approvata», che a prestito finito è ormai una formalità. */}
+                <span className="ml-auto font-mono text-[0.62rem] uppercase tracking-wider text-muted">
+                  {entry.returned
+                    ? t("requests.item.returned")
+                    : entry.pickedUp
+                      ? t("requests.item.pickedUp")
+                      : t(REQUEST_STATUS_LABELS[entry.status])}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

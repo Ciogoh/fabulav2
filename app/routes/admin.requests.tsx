@@ -14,6 +14,7 @@ import { pageTitle } from "~/i18n/meta";
 import { Avatar, PersonName } from "~/components/person";
 import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
+import { REQUEST_STATUS_LABELS } from "~/lib/request-status";
 import { useFormatDay, useT } from "~/i18n/use-t";
 
 export function meta({ matches }: Route.MetaArgs) {
@@ -67,13 +68,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   };
 }
 
-const STATUS_LABELS = {
-  PENDING: "requests.status.pending",
-  APPROVED: "requests.status.approved",
-  REJECTED: "requests.status.rejected",
-  CANCELLED: "requests.status.cancelled",
-} as const;
-
 export default function AdminRequests({ loaderData }: Route.ComponentProps) {
   const { requests, showAll } = loaderData;
   const t = useT();
@@ -109,7 +103,7 @@ export default function AdminRequests({ loaderData }: Route.ComponentProps) {
                       {formatDay(r.startDate)} — {formatDay(r.endDate)}
                     </span>
                     <span className="rounded-full bg-sunk px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-muted">
-                      {t(STATUS_LABELS[r.status])}
+                      {t(REQUEST_STATUS_LABELS[r.status])}
                     </span>
                   </div>
                   <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">

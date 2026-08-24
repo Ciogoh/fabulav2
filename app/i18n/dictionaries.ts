@@ -337,6 +337,9 @@ const en = {
   "adminQueue.showAll": "Show all requests",
   "adminQueue.showPending": "Show only pending",
 
+  "assets.historyHeading": "Loan history",
+  "assets.historyEmpty": "Never lent out.",
+
   "log.heading": "Activity",
   "log.intro":
     "Decisions on requests, handovers, roles and archiving. Edits to an item's fields are not recorded.",
@@ -676,6 +679,9 @@ const it: Dictionary = {
   "adminQueue.showAll": "Mostra tutte le richieste",
   "adminQueue.showPending": "Mostra solo quelle in attesa",
 
+  "assets.historyHeading": "Storico dei prestiti",
+  "assets.historyEmpty": "Mai prestato.",
+
   "log.heading": "Registro",
   "log.intro":
     "Decisioni sulle richieste, passaggi di mano, ruoli e archiviazione. Le modifiche ai campi di un oggetto non sono registrate.",
@@ -1011,6 +1017,9 @@ const de: Dictionary = {
   "adminQueue.empty": "Nichts ausstehend.",
   "adminQueue.showAll": "Alle Anfragen zeigen",
   "adminQueue.showPending": "Nur ausstehende zeigen",
+
+  "assets.historyHeading": "Ausleihverlauf",
+  "assets.historyEmpty": "Nie verliehen.",
 
   "log.heading": "Protokoll",
   "log.intro":

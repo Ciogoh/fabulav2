@@ -23,9 +23,9 @@ import {
   todayUtc,
 } from "~/lib/availability.server";
 import { notifyAdminsNewRequest } from "~/lib/notifications.server";
+import { REQUEST_STATUS_LABELS } from "~/lib/request-status";
 import { useFormatDay, useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
-import type { RequestStatus } from "~/generated/prisma/enums";
 
 export function meta({ matches }: Route.MetaArgs) {
   return [{ title: pageTitle(matches, "requests.heading") }];
@@ -177,13 +177,6 @@ export async function action({ request }: Route.ActionArgs) {
   return { ok: true as const, id: created.id };
 }
 
-const STATUS_LABELS: Record<RequestStatus, TranslationKey> = {
-  PENDING: "requests.status.pending",
-  APPROVED: "requests.status.approved",
-  REJECTED: "requests.status.rejected",
-  CANCELLED: "requests.status.cancelled",
-};
-
 export default function MyRequests({ loaderData }: Route.ComponentProps) {
   const { requests } = loaderData;
   const t = useT();
@@ -211,7 +204,7 @@ export default function MyRequests({ loaderData }: Route.ComponentProps) {
                       {formatDayLabel(r.startDate)} — {formatDayLabel(r.endDate)}
                     </span>
                     <span className="rounded-full bg-sunk px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-muted">
-                      {t(STATUS_LABELS[r.status])}
+                      {t(REQUEST_STATUS_LABELS[r.status])}
                     </span>
                   </div>
                   <p className="mt-2 text-sm">{r.itemNames.join(" · ")}</p>

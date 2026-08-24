@@ -28,6 +28,7 @@ import {
 } from "~/lib/availability.server";
 import { notifyRequesterCancelled, notifyRequesterDecision, sendReturnReminder } from "~/lib/notifications.server";
 import { logAdminAction } from "~/lib/audit.server";
+import { REQUEST_STATUS_LABELS } from "~/lib/request-status";
 import { useFormatDay, useLang, useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import type { RequestStatus } from "~/generated/prisma/enums";
@@ -385,13 +386,6 @@ export async function action({ request, params }: Route.ActionArgs) {
   return { ok: false as const, error: "request.errorGeneric" as TranslationKey };
 }
 
-const STATUS_LABELS: Record<RequestStatus, TranslationKey> = {
-  PENDING: "requests.status.pending",
-  APPROVED: "requests.status.approved",
-  REJECTED: "requests.status.rejected",
-  CANCELLED: "requests.status.cancelled",
-};
-
 export default function RequestDetail({ loaderData }: Route.ComponentProps) {
   const { id, startDate, endDate, status, purpose, today, isOwner, items, messages, admin } =
     loaderData;
@@ -410,7 +404,7 @@ export default function RequestDetail({ loaderData }: Route.ComponentProps) {
             {formatDayLabel(startDate)} — {formatDayLabel(endDate)}
           </h1>
           <span className="rounded-full bg-sunk px-2.5 py-1 font-mono text-[0.68rem] font-medium uppercase tracking-wider text-muted">
-            {t(STATUS_LABELS[status])}
+            {t(REQUEST_STATUS_LABELS[status])}
           </span>
         </div>
 
