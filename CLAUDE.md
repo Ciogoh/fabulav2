@@ -177,6 +177,16 @@ che dipenda da lei. MAJOR non vuol dire «rottura di compatibilità».
 - **MAJOR**: **la 1.0.0 è la consegna ai soci.** Dopo, solo ciò che obbliga
   qualcuno a cambiare abitudine.
 
+**Alla 1.0 si riapre la domanda, e solo lì.** Per le applicazioni si consiglia
+spesso il versionamento a calendario (`2026.08`) invece del semver: nessun
+giudizio da dare, nessun numero da dimenticare. Qui non è stato scelto perché
+un calendario avanza anche nei mesi in cui non succede niente, e finché la
+consegna è davanti la domanda vera è «quanto manca» — a cui `0.5.0` risponde e
+`2026.08` no. Quando il traguardo sarà passato quel vantaggio sparisce, e
+tanto vale riguardarla. **Cambiare costa una riga**: niente nel codice dipende
+dalla forma di quella stringa, `versionLabel()` continua a funzionare identico.
+Fino ad allora, non riaprire la discussione.
+
 ### Il rito, quando un piano è finito
 
 1. si alza il MINOR in `package.json`;
