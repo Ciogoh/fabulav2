@@ -1,4 +1,38 @@
-.react-router
-build
+# Cosa non entra nel contesto di costruzione.
+#
+# Due mestieri in un file solo: tenere il contesto piccolo, e tenere fuori
+# roba che nell'immagine non deve proprio finire.
+
+# I segreti. Non arrivavano nell'immagine finale — l'ultimo stadio copia solo
+# `build` e `node_modules` — ma con `COPY . /app` finivano negli strati
+# intermedi, che restano nella cache del daemon e si leggono con
+# `docker history`. Il `.env` non serve a costruire: la sola variabile che
+# serviva, `DATABASE_URL`, ora è un valore finto dichiarato nel Dockerfile.
+.env
+.env.*
+
+# Le foto caricate dai soci. Stanno in un volume montato a runtime: copiarle
+# dentro all'immagine vorrebbe dire spedire in giro le foto dell'associazione
+# a ogni ricostruzione, e vederle crescere di peso senza motivo.
+data
+
+# Rifatti dentro al container, sempre. `app/generated` in particolare **deve**
+# essere quello generato lì: se arrivasse dal computer di chi costruisce,
+# l'immagine si porterebbe dietro un client Prisma vecchio quanto l'ultimo
+# `prisma generate` fatto a mano.
 node_modules
+app/generated
+build
+.react-router
+
+# Non servono a `vite build`.
+.git
+.gitignore
+.claude
+.agents
+.DS_Store
 README.md
+CLAUDE.md
+Dockerfile
+docker-compose.yml
+scripts

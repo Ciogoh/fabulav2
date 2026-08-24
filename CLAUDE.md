@@ -733,7 +733,28 @@ macchina o dopo il trasferimento su Linux, lo script è identico):
   il comando di avvio che chiama `react-router-serve` direttamente invece di
   passare da `pnpm run start` — quel giro triggera un controllo automatico
   delle dipendenze che, senza `pnpm-workspace.yaml` nell'immagine finale,
-  fallisce e mette il container in crash-loop.
+  fallisce e mette il container in crash-loop. **Lo stesso controllo scatta su
+  `pnpm exec`**: lo stadio che chiama `prisma generate` deve avere accanto i
+  manifesti, o conclude che non è installato niente e prova a reinstallare,
+  fallendo con `ERR_PNPM_NO_PKG_MANIFEST`.
+- **L'ordine delle righe nel `Dockerfile` è la sua velocità.** Docker riusa una
+  riga solo se tutto ciò che sta sopra è identico, quindi i manifesti vanno
+  copiati **da soli, prima del sorgente**. Con `COPY . /app` prima di
+  `pnpm install` — com'era — bastava toccare un commento per invalidare
+  l'installazione e ripagare mezzo giga di dipendenze, `sharp` nativo
+  compreso: **48 secondi misurati, contro 4 dopo il riordino**, dove si
+  rifanno solo `COPY . .` e `vite build`. Se un giorno queste righe sembrano
+  scritte in un ordine strano, è questo il motivo.
+- **`.dockerignore` è anche una barriera per i segreti, non solo un
+  acceleratore.** Non conteneva `.env`: i segreti non arrivavano
+  nell'immagine finale — l'ultimo stadio copia solo `build` e `node_modules` —
+  ma finivano negli **strati intermedi**, che restano nella cache del daemon e
+  si leggono con `docker history`. Ora il `.env` è escluso, e il build non ne
+  ha bisogno: `prisma generate` legge `DATABASE_URL` da un valore finto
+  dichiarato nel `Dockerfile`, perché non si collega a nessun database.
+  Escluse anche `data` (le foto dei soci, che stanno in un volume) e
+  `app/generated` (il client Prisma **deve** essere quello generato dentro al
+  container, non quello vecchio sul computer di chi costruisce).
 - **`docker compose up -d` da solo avvia solo `db`.** Il servizio `app` sta
   dietro `profiles: ["full"]` apposta, per separare lo sviluppo (solo
   database, col codice che gira fuori con `pnpm dev`) dalla produzione.

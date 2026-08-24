@@ -196,6 +196,18 @@ function LanguageMenu() {
   const { open, setOpen, wrapRef, triggerRef, openedByHover } =
     useDisclosure();
 
+  /* Il pannello si chiude quando l'invio è *davvero* partito, non nello
+     stesso click che lo scatena. Chiudere nell'`onClick` del pulsante
+     smonterebbe il bottone — e la form intorno — nello stesso istante in cui
+     il browser deve ancora processare l'invio nativo: su Safari (mobile
+     compreso) questo può far saltare l'invio in silenzio, perché l'elemento
+     che l'ha innescato non esiste già più. `fetcher.state` passa a
+     "submitting" solo dopo che React Router ha già catturato l'invio, quindi
+     a quel punto smontare è sicuro. */
+  useEffect(() => {
+    if (fetcher.state !== "idle") setOpen(false);
+  }, [fetcher.state, setOpen]);
+
   return (
     <div
       ref={wrapRef}
@@ -269,7 +281,6 @@ function LanguageMenu() {
                 name="lang"
                 value={code}
                 aria-current={code === active ? "true" : undefined}
-                onClick={() => setOpen(false)}
                 className={`${ITEM} ${code === active ? "font-medium text-ink" : ""}`}
               >
                 {LANGUAGE_NAMES[code]}
