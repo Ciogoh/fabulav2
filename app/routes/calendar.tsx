@@ -415,8 +415,21 @@ function AgendaList({
 
 /* --------------------------------------------------------------- pezzi */
 
+/**
+ * Le tre barre si distinguono per **riempimento** prima che per tinta.
+ *
+ * `REQUESTED` non è un'occupazione: è un «forse», e finché un admin non
+ * decide l'oggetto resta prenotabile da chiunque altro. Il tratteggio lo dice
+ * dal disegno — si legge anche in bianco e nero e anche da chi non distingue
+ * i colori, che con tre velature di tinta diversa vedeva tre barre identiche.
+ *
+ * Le altre due restano velate e non piene: qui la barra è una superficie
+ * larga trentacinque colonne, e un riempimento pieno sarebbe un muro di
+ * colore. È la stessa ragione per cui il badge ha due toni.
+ */
 const BAR_STYLES: Record<OccupancyState, string> = {
-  REQUESTED: "bg-sunk text-muted border border-dashed border-muted",
+  REQUESTED:
+    "bg-[repeating-linear-gradient(45deg,var(--sunk)_0_4px,var(--rule)_4px_8px)] text-muted border border-dashed border-muted",
   RESERVED: "bg-held-bg text-held",
   IN_USE: "bg-out-bg text-out",
 };

@@ -27,6 +27,24 @@
  * e sembrava una nota a margine invece dello stato dell'oggetto. Ha colori
  * neutri — non è un guasto da segnalare in rosso, è un oggetto che non si
  * presta e basta.
+ *
+ * ## I due toni, e la forma
+ *
+ * **`tone="solid"`** è il catalogo e la scheda di un oggetto: fondo pieno,
+ * perché lì la domanda si legge da lontano e su una griglia di venti schede
+ * tre velature hanno tutte lo stesso peso visivo — si distinguevano solo
+ * leggendole una per una. **`tone="soft"`** resta per gli elenchi fitti
+ * dell'admin, dove dodici pastiglie piene di fila diventano una coperta.
+ *
+ * `NOT_BOOKABLE` **non** si riempie nemmeno nel tono pieno: resta un contorno.
+ * Un grigio pieno griderebbe quanto il rosso, e la gerarchia vera è che i
+ * segnali forti sono due — si può o non si può — mentre «non prestabile» è
+ * assenza di gioco, non un allarme.
+ *
+ * **La forma** (il carattere prima della parola) porta lo stesso significato
+ * senza colore: circa un uomo su dodici non distingue verde e rosso, e su un
+ * elenco stampato in bianco e nero non li distingue nessuno. È `aria-hidden`
+ * perché chi usa un lettore di schermo la parola ce l'ha già.
  */
 
 import type { DisplayState } from "~/lib/availability.server";
@@ -39,6 +57,9 @@ export type BadgeState = DisplayState | "NOT_BOOKABLE";
 /** Quello che si vede davvero: «libero» o «no», più i due casi a parte. */
 type VisualState = Exclude<BadgeState, "RESERVED">;
 
+/** Quanto forte parla il badge. Vedi il blocco in cima. */
+export type BadgeTone = "solid" | "soft";
+
 export type BadgeInfo = {
   state: BadgeState;
   until?: Date | string | null;
@@ -47,13 +68,30 @@ export type BadgeInfo = {
    * server e «oggi» nel browser possono essere due giorni diversi, e React se
    * ne accorge in idratazione. */
   today: string;
+  tone?: BadgeTone;
 };
 
-const STYLES: Record<VisualState, string> = {
+const SOFT: Record<VisualState, string> = {
   FREE: "text-free bg-free-bg",
   IN_USE: "text-out bg-out-bg",
   UNAVAILABLE: "text-out bg-out-bg",
   NOT_BOOKABLE: "text-idle bg-idle-bg",
+};
+
+const SOLID: Record<VisualState, string> = {
+  FREE: "text-on-free bg-free-solid",
+  IN_USE: "text-on-out bg-out-solid",
+  UNAVAILABLE: "text-on-out bg-out-solid",
+  // Contorno e non riempimento: vedi il blocco in cima.
+  NOT_BOOKABLE: "text-idle border border-idle",
+};
+
+/** La forma che dice lo stato quando il colore non c'è. */
+const SHAPES: Record<VisualState, string> = {
+  FREE: "●", // ● pieno: «c'è»
+  IN_USE: "▪", // ▪ quadrato: «bloccato»
+  UNAVAILABLE: "▪",
+  NOT_BOOKABLE: "◇", // ◇ vuoto: assenza di stato, non un guasto
 };
 
 const LABELS = {
@@ -63,14 +101,27 @@ const LABELS = {
   NOT_BOOKABLE: "state.notBookable",
 } as const;
 
-export function StateBadge({ state, until, from, today }: BadgeInfo) {
+/**
+ * Lo stato visivo, che è quello che decide anche il colore della fascia sulla
+ * scheda del catalogo. Esportato perché quella fascia e questo badge devono
+ * raccontare la stessa cosa: se divergessero, la scheda direbbe una cosa e la
+ * pastiglia dentro un'altra.
+ */
+export function visualStateOf(
+  state: BadgeState,
+  from?: Date | string | null
+): VisualState {
+  if (state !== "RESERVED") return state;
+  // Una prenotazione che deve ancora cominciare non toglie niente a oggi.
+  return from ? "FREE" : "IN_USE";
+}
+
+export function StateBadge({ state, until, from, today, tone = "soft" }: BadgeInfo) {
   const t = useT();
   const formatDay = useFormatDay();
 
-  // Una prenotazione che deve ancora cominciare non toglie niente a oggi.
   const upcoming = state === "RESERVED" && from ? from : null;
-  const visual: VisualState =
-    state === "RESERVED" ? (upcoming ? "FREE" : "IN_USE") : state;
+  const visual = visualStateOf(state, from);
 
   /* La mezza riga più utile della scheda, in `--muted` e non in `--faint`:
      quando l'oggetto è occupato, quando torna; quando è libero ma già
@@ -90,8 +141,13 @@ export function StateBadge({ state, until, from, today }: BadgeInfo) {
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
       <span
-        className={`inline-block rounded-full px-2 py-0.5 font-mono text-[0.68rem] font-medium uppercase tracking-wider ${STYLES[visual]}`}
+        className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-[0.68rem] font-medium uppercase tracking-wider ${
+          tone === "solid" ? SOLID[visual] : SOFT[visual]
+        }`}
       >
+        <span aria-hidden="true" className="text-[0.6em] leading-none">
+          {SHAPES[visual]}
+        </span>
         {t(LABELS[visual])}
       </span>
       {detail && (

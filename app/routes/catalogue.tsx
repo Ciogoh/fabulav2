@@ -34,7 +34,7 @@ import { getUser } from "~/lib/session.server";
 import { useT } from "~/i18n/use-t";
 import { initialsOf } from "~/lib/initials";
 import { pageTitle, tagline } from "~/i18n/meta";
-import { StateBadge } from "~/components/state-badge";
+import { StateBadge, visualStateOf } from "~/components/state-badge";
 import { PageShell } from "~/components/page";
 import { Select } from "~/components/select";
 import { Button } from "~/components/button";
@@ -336,8 +336,25 @@ function AssetCard({
   const canAdd = asset.isBookable;
   const photo = asset.photos[0]?.thumbUrl;
 
+  /* La fascia in cima alla scheda porta lo stato **senza parole**: scorrendo
+     una griglia di venti si vede quali sono libere senza leggerne nessuna. Il
+     colore lo decide la stessa funzione del badge, o la scheda direbbe una
+     cosa e la pastiglia dentro un'altra. Tratteggiata per «non prestabile»:
+     non è un allarme, è assenza di gioco. */
+  const visual = asset.isBookable
+    ? visualStateOf(availability.state, availability.from)
+    : "NOT_BOOKABLE";
+  const STRIPE: Record<typeof visual, string> = {
+    FREE: "bg-free",
+    IN_USE: "bg-out",
+    UNAVAILABLE: "bg-out",
+    NOT_BOOKABLE:
+      "bg-[repeating-linear-gradient(90deg,var(--idle)_0_6px,transparent_6px_12px)]",
+  };
+
   return (
     <article className="relative flex flex-col overflow-hidden rounded border border-rule bg-card focus-within:border-accent hover:border-accent">
+      <span aria-hidden="true" className={`h-[3px] w-full ${STRIPE[visual]}`} />
       {photo && (
         <img
           src={photo}
@@ -389,9 +406,10 @@ function AssetCard({
               until={availability.until}
               from={availability.from}
               today={today}
+              tone="solid"
             />
           ) : (
-            <StateBadge state="NOT_BOOKABLE" today={today} />
+            <StateBadge state="NOT_BOOKABLE" today={today} tone="solid" />
           )}
         </div>
 

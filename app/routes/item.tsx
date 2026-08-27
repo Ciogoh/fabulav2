@@ -137,9 +137,10 @@ export default function Item({ loaderData }: Route.ComponentProps) {
                   until={availability.until}
                   from={availability.from}
                   today={today}
+                  tone="solid"
                 />
               ) : (
-                <StateBadge state="NOT_BOOKABLE" today={today} />
+                <StateBadge state="NOT_BOOKABLE" today={today} tone="solid" />
               )}
 
               {asset.description && (

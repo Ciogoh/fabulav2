@@ -51,6 +51,10 @@
   --color-out-bg: var(--out-bg);
   --color-idle: var(--idle);
   --color-idle-bg: var(--idle-bg);
+  --color-free-solid: var(--free-solid);
+  --color-on-free: var(--on-free);
+  --color-out-solid: var(--out-solid);
+  --color-on-out: var(--on-out);
 
   --color-admin-bg: var(--admin-bg);
   --color-admin-rule: var(--admin-rule);
@@ -73,10 +77,17 @@
 
   --free: #15704b;
   --free-bg: #dff0e6;
+  /* La versione piena, per il badge del catalogo: lì la domanda è «lo prendo
+     adesso?» e una velatura non la risponde da lontano. Nel tema chiaro il
+     fondo è il verde stesso e sopra ci va bianco. */
+  --free-solid: #15704b;
+  --on-free: #ffffff; /* 6,08:1 su --free-solid */
   --held: #8a5700; /* 5,12:1 su --held-bg */
   --held-bg: #f6ead3;
   --out: #a9383a;
   --out-bg: #f6e1e1;
+  --out-solid: #a9383a;
+  --on-out: #ffffff; /* 6,34:1 su --out-solid */
   /* «Non prestabile»: non è un guasto e non è un allarme, è assenza di
      stato. Neutro di proposito, così il rosso resta libero. */
   --idle: #4d5666; /* 5,97:1 su --idle-bg */
@@ -105,10 +116,16 @@
 
     --free: #5bc793;
     --free-bg: #14291f;
+    /* Stessa trappola di `--on-accent`: nel tema scuro il colore di stato è
+       chiaro, quindi sopra ci va inchiostro e non bianco. */
+    --free-solid: #5bc793;
+    --on-free: #0f131a; /* 8,85:1 su --free-solid */
     --held: #e0ac55;
     --held-bg: #2b2214;
     --out: #ec8480;
     --out-bg: #2e1a1b;
+    --out-solid: #ec8480;
+    --on-out: #0f131a; /* 7,25:1 su --out-solid */
     --idle: #a6b0be; /* 6,49:1 su --idle-bg */
     --idle-bg: #242b37;
 
