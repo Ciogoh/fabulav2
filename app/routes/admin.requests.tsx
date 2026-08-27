@@ -1,136 +1,20 @@
 /**
- * La coda di approvazione.
+ * La coda di approvazione, che adesso è una sezione del Centro.
  *
- * Prima di questa pagina un admin scopriva una richiesta in attesa solo
- * incappandoci per caso sul calendario. Qui sono tutte, più vecchie prima —
- * si smaltiscono in ordine. Nessuna action qui dentro: ogni riga porta al
- * dettaglio (`/requests/:id`), dove approva/rifiuta/chat esistono già.
+ * Questo file resta per una ragione sola: **un segnalibro non deve smettere
+ * di funzionare per una riorganizzazione nostra.** L'elenco vive in
+ * `routes/admin.tsx`, insieme a ritardi, messaggi non letti e al lavoro di
+ * oggi — che è il punto: prima erano tre posti da guardare e nessuno che li
+ * riassumesse.
  */
 
-import { Link } from "react-router";
+import { redirect } from "react-router";
 import type { Route } from "./+types/admin.requests";
-import { PageShell } from "~/components/page";
-import { pageTitle } from "~/i18n/meta";
-import { PersonInline } from "~/components/person";
-import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
-import { REQUEST_STATUS_LABELS } from "~/lib/request-status";
-import { useFormatDay, useT } from "~/i18n/use-t";
-
-export function meta({ matches }: Route.MetaArgs) {
-  return [{ title: pageTitle(matches, "adminQueue.heading") }];
-}
 
 export async function loader({ request }: Route.LoaderArgs) {
+  // Prima di rimandare: chi non è admin non deve nemmeno scoprire che questo
+  // indirizzo porta da qualche parte (`requireAdmin` risponde 404, non 403).
   await requireAdmin(request);
-  const url = new URL(request.url);
-  const showAll = url.searchParams.get("all") === "1";
-
-  const requests = await db.request.findMany({
-    where: showAll ? undefined : { status: "PENDING" },
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      startDate: true,
-      endDate: true,
-      status: true,
-      purpose: true,
-      user: {
-        select: {
-          name: true,
-          firstName: true,
-          lastName: true,
-          alias: true,
-          image: true,
-          email: true,
-        },
-      },
-      items: { select: { asset: { select: { name: true } } } },
-    },
-  });
-
-  return {
-    showAll,
-    requests: requests.map((r) => ({
-      id: r.id,
-      startDate: r.startDate.toISOString(),
-      endDate: r.endDate.toISOString(),
-      status: r.status,
-      // Il riassunto, non il testo intero: serve a decidere quale guardare per
-      // prima, e a quello bastano due righe.
-      purpose: r.purpose ? r.purpose.slice(0, 160) : null,
-      holder: {
-        name: r.user.name,
-        firstName: r.user.firstName,
-        lastName: r.user.lastName,
-        alias: r.user.alias,
-        image: r.user.image,
-      },
-      holderEmail: r.user.email,
-      itemNames: r.items.map((item) => item.asset.name),
-    })),
-  };
-}
-
-export default function AdminRequests({ loaderData }: Route.ComponentProps) {
-  const { requests, showAll } = loaderData;
-  const t = useT();
-  const formatDay = useFormatDay();
-
-  return (
-    <main>
-      <PageShell width="narrow" className="pb-24 pt-8">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="font-serif text-3xl font-semibold tracking-tight">
-            {t("adminQueue.heading")}
-          </h1>
-          <Link
-            to={showAll ? "/admin/requests" : "/admin/requests?all=1"}
-            className="text-sm text-muted underline underline-offset-4 hover:text-ink"
-          >
-            {showAll ? t("adminQueue.showPending") : t("adminQueue.showAll")}
-          </Link>
-        </div>
-
-        {requests.length === 0 ? (
-          <p className="mt-16 text-center text-muted">{t("adminQueue.empty")}</p>
-        ) : (
-          <ul className="mt-6 flex flex-col gap-3">
-            {requests.map((r) => (
-              <li key={r.id}>
-                <Link
-                  to={`/requests/${r.id}`}
-                  className="block rounded border border-rule bg-card p-4 hover:border-accent"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
-                      {formatDay(r.startDate)} — {formatDay(r.endDate)}
-                    </span>
-                    <span className="rounded-full bg-sunk px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-muted">
-                      {t(REQUEST_STATUS_LABELS[r.status])}
-                    </span>
-                  </div>
-                  {/* Una frase sola e non tre riquadri affiancati: da
-                      telefono il `flex flex-wrap` staccava l'avatar dal nome a
-                      fine riga. */}
-                  <p className="mt-2 text-sm">
-                    {t("requests.admin.requestedBy")} <PersonInline person={r.holder} />{" "}
-                    <span className="text-muted">({r.holderEmail})</span>
-                  </p>
-                  <p className="mt-1 text-sm text-muted">{r.itemNames.join(" · ")}</p>
-                  {/* Le parole di chi ha chiesto, non un'etichetta nostra: si
-                      riconoscono da sole come citazione. */}
-                  {r.purpose && (
-                    <p className="mt-1 line-clamp-2 text-sm italic text-muted">
-                      &ldquo;{r.purpose}&rdquo;
-                    </p>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </PageShell>
-    </main>
-  );
+  throw redirect("/admin?vista=approvare");
 }

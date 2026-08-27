@@ -279,6 +279,22 @@ model Request {
   /// mandarlo due volte se il processo riparte lo stesso giorno.
   reminderSentAt DateTime?
 
+  /// L'ultima volta che un admin ha aperto questa richiesta, e l'ultima volta
+  /// che l'ha aperta chi l'ha fatta.
+  ///
+  /// Servono a una domanda sola — «c'è un messaggio che non ho ancora
+  /// letto?» — e si rispondono confrontandole con la data dell'ultimo
+  /// messaggio della chat. Non contano niente e non sono uno stato: sono due
+  /// segnalibri.
+  ///
+  /// Due colonne e non una tabella di lettura per messaggio: a questa scala
+  /// la tabella costerebbe una riga per messaggio per persona per dire
+  /// esattamente quello che dicono due date, e la chat di una richiesta si
+  /// legge sempre tutta insieme — nessuno legge il terzo messaggio saltando
+  /// il secondo.
+  adminSeenAt DateTime?
+  userSeenAt  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

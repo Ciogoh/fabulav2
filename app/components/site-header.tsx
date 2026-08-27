@@ -28,14 +28,56 @@ import type { Person } from "~/lib/person";
 export type HeaderUser = Person & {
   email: string;
   isAdmin: boolean;
-  pendingCount?: number;
-  overdueCount?: number;
+  /** Le tre voci del Centro. Solo per gli admin. */
+  inbox?: { pending: number; unread: number; overdue: number };
+  /** Quante delle proprie richieste hanno una risposta non ancora letta. */
+  myUnreadCount: number;
 };
 
 /** 44px: il minimo per un tocco affidabile, non i 36px che "ci stava il
  * pollice" lasciava intendere — vedi ITEM più sotto per la stessa misura. */
 const LINK =
   "inline-flex min-h-11 items-center rounded px-0.5 text-muted hover:text-ink aria-[current=page]:font-medium aria-[current=page]:text-ink";
+
+/**
+ * Il Centro, con una pastiglia sola.
+ *
+ * Erano due voci e due numeri — «da approvare» e «in ritardo» — e i messaggi
+ * non letti non comparivano affatto. Tre segnali separati sulla stessa barra
+ * si leggono come tre posti da controllare, che è esattamente il difetto che
+ * il Centro esiste per togliere.
+ *
+ * Il numero è la somma; il colore dice se dentro c'è un ritardo, perché una
+ * richiesta in attesa è normale amministrazione e un oggetto che non torna è
+ * un problema. **Un numero nudo non dice di cosa**, quindi il dettaglio per
+ * esteso va nell'`aria-label`: è l'unico posto in cui «3» può diventare «3 da
+ * approvare, 1 in ritardo» senza allargare la barra.
+ */
+function InboxLink({ inbox }: { inbox: HeaderUser["inbox"] }) {
+  const t = useT();
+  const total = inbox ? inbox.pending + inbox.unread + inbox.overdue : 0;
+  const hasOverdue = Boolean(inbox?.overdue);
+
+  return (
+    <NavLink to="/admin" className={LINK}>
+      {t("nav.adminInbox")}
+      {total > 0 && (
+        <span
+          aria-label={t("nav.adminInboxDetail", {
+            pending: inbox?.pending ?? 0,
+            unread: inbox?.unread ?? 0,
+            overdue: inbox?.overdue ?? 0,
+          })}
+          className={`ml-1.5 rounded-full px-1.5 py-0.5 font-mono text-[0.65rem] font-medium ${
+            hasOverdue ? "bg-out-bg text-out" : "bg-accent-soft text-accent"
+          }`}
+        >
+          {total}
+        </span>
+      )}
+    </NavLink>
+  );
+}
 
 export function SiteHeader({ user }: { user: HeaderUser | null }) {
   const t = useT();
@@ -73,32 +115,23 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
           {user && (
             <NavLink to="/requests" className={LINK}>
               {t("nav.myRequests")}
+              {/* Il segnale che a chi chiede in prestito è sempre mancato:
+                  «ti hanno risposto». Un pallino e non un numero — quante
+                  siano non cambia cosa fare, e un numero accanto a due voci di
+                  menu diverse si legge come lo stesso conteggio. */}
+              {user.myUnreadCount > 0 && (
+                <span
+                  aria-label={t("nav.myRequestsUnread")}
+                  className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle"
+                />
+              )}
             </NavLink>
           )}
 
           {user?.isAdmin && (
             <span className="flex flex-wrap items-center gap-x-5 gap-y-1">
               <span className="hidden h-4 w-px bg-admin-rule sm:inline-block" />
-              <NavLink to="/admin/requests" className={LINK}>
-                {t("nav.adminQueue")}
-                {Boolean(user.pendingCount) && (
-                  <span className="ml-1.5 rounded-full bg-accent-soft px-1.5 py-0.5 font-mono text-[0.65rem] font-medium text-accent">
-                    {user.pendingCount}
-                  </span>
-                )}
-              </NavLink>
-              <NavLink to="/admin/overdue" className={LINK}>
-                {t("nav.adminOverdue")}
-                {/* `--out`, non `--accent-soft` come la coda di approvazione:
-                    una richiesta in attesa è normale amministrazione, un
-                    oggetto in ritardo è un problema — stesso colore del
-                    badge «in uso» rosso, di cui questo è un caso. */}
-                {Boolean(user.overdueCount) && (
-                  <span className="ml-1.5 rounded-full bg-out-bg px-1.5 py-0.5 font-mono text-[0.65rem] font-medium text-out">
-                    {user.overdueCount}
-                  </span>
-                )}
-              </NavLink>
+              <InboxLink inbox={user.inbox} />
               <NavLink to="/admin/members" className={LINK}>
                 {t("nav.adminMembers")}
               </NavLink>

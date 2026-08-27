@@ -29,8 +29,6 @@ const en = {
   "nav.myRequests": "My requests",
   "nav.signIn": "Sign in",
   "nav.language": "Language",
-  "nav.adminQueue": "To approve",
-  "nav.adminOverdue": "Overdue",
   "nav.adminMembers": "Members",
   "nav.adminAssets": "Items",
   "nav.adminScan": "Scan",
@@ -340,13 +338,7 @@ const en = {
   "members.errorLastAdmin": "This is the last admin — promote someone else first.",
   "members.errorGeneric": "Something went wrong. Try again.",
 
-  "adminQueue.heading": "To approve",
-  "adminQueue.empty": "Nothing pending.",
-  "adminQueue.showAll": "Show all requests",
-  "adminQueue.showPending": "Show only pending",
 
-  "overdue.heading": "Overdue",
-  "overdue.empty": "Nothing overdue.",
   "overdue.dueOn": "Due {date}",
   "overdue.daysLate": "{count} days late",
 
@@ -408,6 +400,28 @@ const en = {
   "resetPassword.mismatch": "The two passwords do not match.",
   "resetPassword.failed": "That did not work. The link may have expired — ask for a new one.",
   "resetPassword.invalidToken": "This link is missing its token. Ask for a new one.",
+
+  "nav.adminInbox": "Inbox",
+  "nav.adminInboxDetail":
+    "{pending} to approve, {unread} unread, {overdue} overdue",
+  "nav.myRequestsUnread": "New reply",
+
+  "inbox.heading": "What needs you",
+  "inbox.showAll": "Everything",
+  "inbox.allClear": "Nothing waiting. Nice.",
+  "inbox.pending": "To approve",
+  "inbox.pendingEmpty": "Nothing to approve.",
+  "inbox.waitingDays": "waiting {count}d",
+  "inbox.messages": "Unread messages",
+  "inbox.messagesEmpty": "No new messages.",
+  "inbox.soon": "Today and tomorrow",
+  "inbox.soonEmpty": "Nothing to hand over or take back.",
+  "inbox.pickupToday": "To hand over today",
+  "inbox.pickupTomorrow": "To hand over tomorrow",
+  "inbox.returnToday": "Coming back today",
+  "inbox.returnTomorrow": "Coming back tomorrow",
+  "inbox.overdue": "Overdue",
+  "inbox.overdueEmpty": "Nothing overdue.",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -421,8 +435,6 @@ const it: Dictionary = {
   "nav.myRequests": "Le mie richieste",
   "nav.signIn": "Entra",
   "nav.language": "Lingua",
-  "nav.adminQueue": "Da approvare",
-  "nav.adminOverdue": "In ritardo",
   "nav.adminMembers": "Soci",
   "nav.adminAssets": "Oggetti",
   "nav.adminScan": "Scansiona",
@@ -723,13 +735,7 @@ const it: Dictionary = {
   "members.errorLastAdmin": "È l'ultimo admin rimasto — rendine admin un altro prima.",
   "members.errorGeneric": "Qualcosa è andato storto. Riprova.",
 
-  "adminQueue.heading": "Da approvare",
-  "adminQueue.empty": "Niente in attesa.",
-  "adminQueue.showAll": "Mostra tutte le richieste",
-  "adminQueue.showPending": "Mostra solo quelle in attesa",
 
-  "overdue.heading": "In ritardo",
-  "overdue.empty": "Niente in ritardo.",
   "overdue.dueOn": "Scadenza {date}",
   "overdue.daysLate": "In ritardo da {count} giorni",
 
@@ -791,6 +797,28 @@ const it: Dictionary = {
   "resetPassword.mismatch": "Le due password non coincidono.",
   "resetPassword.failed": "Non ha funzionato. Il link potrebbe essere scaduto: chiedine uno nuovo.",
   "resetPassword.invalidToken": "A questo link manca il token. Chiedine uno nuovo.",
+
+  "nav.adminInbox": "Centro",
+  "nav.adminInboxDetail":
+    "{pending} da approvare, {unread} non letti, {overdue} in ritardo",
+  "nav.myRequestsUnread": "Nuova risposta",
+
+  "inbox.heading": "Cosa aspetta te",
+  "inbox.showAll": "Tutto",
+  "inbox.allClear": "Non c'è niente in sospeso.",
+  "inbox.pending": "Da approvare",
+  "inbox.pendingEmpty": "Niente da approvare.",
+  "inbox.waitingDays": "aspetta da {count}g",
+  "inbox.messages": "Messaggi da leggere",
+  "inbox.messagesEmpty": "Nessun messaggio nuovo.",
+  "inbox.soon": "Oggi e domani",
+  "inbox.soonEmpty": "Niente da consegnare né da ricevere.",
+  "inbox.pickupToday": "Da consegnare oggi",
+  "inbox.pickupTomorrow": "Da consegnare domani",
+  "inbox.returnToday": "Torna oggi",
+  "inbox.returnTomorrow": "Torna domani",
+  "inbox.overdue": "In ritardo",
+  "inbox.overdueEmpty": "Niente in ritardo.",
 };
 
 const de: Dictionary = {
@@ -801,8 +829,6 @@ const de: Dictionary = {
   "nav.myRequests": "Meine Anfragen",
   "nav.signIn": "Anmelden",
   "nav.language": "Sprache",
-  "nav.adminQueue": "Zu genehmigen",
-  "nav.adminOverdue": "Überfällig",
   "nav.adminMembers": "Mitglieder",
   "nav.adminAssets": "Gegenstände",
   "nav.adminScan": "Scannen",
@@ -1103,13 +1129,7 @@ const de: Dictionary = {
   "members.errorLastAdmin": "Das ist der letzte Admin — mach zuerst jemand anderen zum Admin.",
   "members.errorGeneric": "Etwas ist schiefgelaufen. Versuche es erneut.",
 
-  "adminQueue.heading": "Zu genehmigen",
-  "adminQueue.empty": "Nichts ausstehend.",
-  "adminQueue.showAll": "Alle Anfragen zeigen",
-  "adminQueue.showPending": "Nur ausstehende zeigen",
 
-  "overdue.heading": "Überfällig",
-  "overdue.empty": "Nichts überfällig.",
   "overdue.dueOn": "Fällig {date}",
   "overdue.daysLate": "{count} Tage überfällig",
 
@@ -1171,6 +1191,28 @@ const de: Dictionary = {
   "resetPassword.mismatch": "Die beiden Passwörter stimmen nicht überein.",
   "resetPassword.failed": "Das hat nicht geklappt. Der Link ist vielleicht abgelaufen — fordere einen neuen an.",
   "resetPassword.invalidToken": "Diesem Link fehlt das Token. Fordere einen neuen an.",
+
+  "nav.adminInbox": "Zentrale",
+  "nav.adminInboxDetail":
+    "{pending} zu genehmigen, {unread} ungelesen, {overdue} überfällig",
+  "nav.myRequestsUnread": "Neue Antwort",
+
+  "inbox.heading": "Was auf dich wartet",
+  "inbox.showAll": "Alles",
+  "inbox.allClear": "Nichts offen.",
+  "inbox.pending": "Zu genehmigen",
+  "inbox.pendingEmpty": "Nichts zu genehmigen.",
+  "inbox.waitingDays": "wartet seit {count}T",
+  "inbox.messages": "Ungelesene Nachrichten",
+  "inbox.messagesEmpty": "Keine neuen Nachrichten.",
+  "inbox.soon": "Heute und morgen",
+  "inbox.soonEmpty": "Nichts zu übergeben oder zurückzunehmen.",
+  "inbox.pickupToday": "Heute zu übergeben",
+  "inbox.pickupTomorrow": "Morgen zu übergeben",
+  "inbox.returnToday": "Kommt heute zurück",
+  "inbox.returnTomorrow": "Kommt morgen zurück",
+  "inbox.overdue": "Überfällig",
+  "inbox.overdueEmpty": "Nichts überfällig.",
 };
 
 export const dictionaries: Record<Lang, Dictionary> = { en, it, de };

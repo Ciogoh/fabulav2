@@ -23,6 +23,7 @@ import {
   todayUtc,
 } from "~/lib/availability.server";
 import { notifyAdminsNewRequest } from "~/lib/notifications.server";
+import { unreadForUserIds } from "~/lib/inbox.server";
 import { REQUEST_STATUS_LABELS } from "~/lib/request-status";
 import { useFormatDay, useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
@@ -35,6 +36,12 @@ type CartItemInput = { assetId: string; fromKitId?: string };
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await requireUser(request);
+
+  /* Quali hanno una risposta che non ho ancora letto. Fino a ieri non c'era
+     **nessun** segnale che un admin avesse scritto: bisognava aprire le
+     proprie richieste una per una per scoprirlo, ed è lo stesso difetto che
+     dall'altra parte ha fatto nascere il Centro. */
+  const unread = new Set(await unreadForUserIds(user.id));
 
   const requests = await db.request.findMany({
     where: { userId: user.id },
@@ -58,6 +65,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       endDate: formatDay(r.endDate),
       status: r.status,
       purpose: r.purpose,
+      hasUnread: unread.has(r.id),
       itemNames: r.items.map((item) => item.asset.name),
     })),
   };
@@ -206,8 +214,18 @@ export default function MyRequests({ loaderData }: Route.ComponentProps) {
                     <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
                       {formatDayLabel(r.startDate)} — {formatDayLabel(r.endDate)}
                     </span>
-                    <span className="rounded-full bg-sunk px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-muted">
-                      {t(REQUEST_STATUS_LABELS[r.status])}
+                    <span className="flex items-center gap-2">
+                      {/* Prima dello stato, non dopo: «c'è una risposta» è ciò
+                          che fa aprire la riga, lo stato è ciò che si legge
+                          una volta dentro. */}
+                      {r.hasUnread && (
+                        <span className="rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-accent">
+                          {t("nav.myRequestsUnread")}
+                        </span>
+                      )}
+                      <span className="rounded-full bg-sunk px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-muted">
+                        {t(REQUEST_STATUS_LABELS[r.status])}
+                      </span>
                     </span>
                   </div>
                   <p className="mt-2 text-sm">{r.itemNames.join(" · ")}</p>

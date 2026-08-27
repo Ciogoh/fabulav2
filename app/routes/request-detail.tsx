@@ -71,6 +71,8 @@ async function loadAuthorized(userId: string, isAdminRole: boolean, id: string) 
       status: true,
       purpose: true,
       adminNote: true,
+      adminSeenAt: true,
+      userSeenAt: true,
       // Campo per campo, e con quelli del profilo: chi decide su una
       // richiesta deve vedere l'alias *e* il nome vero.
       user: {
@@ -127,6 +129,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const isAdmin = user.role === "ADMIN";
   const req = await loadAuthorized(user.id, isAdmin, params.id);
 
+  await markSeen(req, user.id, isAdmin);
+
   return {
     id: req.id,
     startDate: formatDay(req.startDate),
@@ -170,6 +174,47 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         }
       : null,
   };
+}
+
+/**
+ * Il segnalibro: chi apre questa pagina l'ha vista.
+ *
+ * È ciò che fa esistere la sezione «messaggi da leggere» del Centro e il
+ * pallino su «le mie richieste». Due date e non una tabella di lettura per
+ * messaggio: vedi il commento sullo schema.
+ *
+ * **Si scrive solo quando serve davvero**, cioè quando c'è un messaggio più
+ * recente del segnalibro. Senza questa guardia sarebbe una `UPDATE` a ogni
+ * apertura — e con la chat che si aggiorna da sola le aperture diventano
+ * molte, perché ogni colpetto ricarica il loader.
+ *
+ * Chi è admin **e** proprietario aggiorna tutti e due i segnalibri: sono due
+ * ruoli sulla stessa pagina, non due persone.
+ */
+async function markSeen(
+  req: {
+    id: string;
+    userId: string;
+    adminSeenAt: Date | null;
+    userSeenAt: Date | null;
+    messages: Array<{ createdAt: Date }>;
+  },
+  userId: string,
+  isAdmin: boolean
+): Promise<void> {
+  // I messaggi arrivano in ordine crescente: l'ultimo è in fondo.
+  const last = req.messages.at(-1);
+  if (!last) return;
+
+  const isOwner = req.userId === userId;
+  const stale = (mark: Date | null) => mark === null || last.createdAt > mark;
+
+  const data: { adminSeenAt?: Date; userSeenAt?: Date } = {};
+  if (isAdmin && stale(req.adminSeenAt)) data.adminSeenAt = new Date();
+  if (isOwner && stale(req.userSeenAt)) data.userSeenAt = new Date();
+  if (Object.keys(data).length === 0) return;
+
+  await db.request.update({ where: { id: req.id }, data });
 }
 
 export async function action({ request, params }: Route.ActionArgs) {

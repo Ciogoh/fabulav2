@@ -14,9 +14,8 @@ import { getLang } from "~/i18n/lang.server";
 import { LangProvider } from "~/i18n/use-t";
 import { SiteHeader } from "~/components/site-header";
 import { getUser } from "~/lib/session.server";
-import { db } from "~/lib/db.server";
 import { startReminderScheduler } from "~/lib/reminders.server";
-import { todayUtc } from "~/lib/availability.server";
+import { adminCounts, unreadForUserIds } from "~/lib/inbox.server";
 import { PageShell } from "~/components/page";
 import { ButtonLink } from "~/components/button";
 import { versionLabel } from "~/lib/version";
@@ -43,26 +42,16 @@ export async function loader({ request }: Route.LoaderArgs) {
   const user = await getUser(request);
   const isAdmin = user?.role === "ADMIN";
 
-  // Solo per gli admin: chi guarda il catalogo da anonimo non paga questa
-  // query in più a ogni pagina.
-  const pendingCount = isAdmin
-    ? await db.request.count({ where: { status: "PENDING" } })
-    : undefined;
+  /* Le tre voci del Centro in un colpo solo, e **solo per gli admin**: chi
+     guarda il catalogo da anonimo non paga niente di tutto questo a ogni
+     pagina. Il conto delle interrogazioni resta quello di prima — due —
+     perché attesa e messaggi non letti viaggiano insieme (`inbox.server.ts`). */
+  const inbox = isAdmin ? await adminCounts() : undefined;
 
-  // Un oggetto è in ritardo quando è stato ritirato, non è ancora tornato e
-  // il periodo della richiesta è già finito. Gli oggetti archiviati restano
-  // fuori: sono già stati scritti come persi, non c'è più niente da
-  // sollecitare.
-  const overdueCount = isAdmin
-    ? await db.requestItem.count({
-        where: {
-          pickedUpAt: { not: null },
-          returnedAt: null,
-          asset: { archivedAt: null },
-          request: { status: "APPROVED", endDate: { lt: todayUtc() } },
-        },
-      })
-    : undefined;
+  /* Una in più per chi ha fatto l'accesso, admin o no: è il segnale che a chi
+     chiede in prestito è sempre mancato — «ti hanno risposto». È indicizzata
+     su `userId` e riguarda solo le proprie richieste. */
+  const myUnreadCount = user ? (await unreadForUserIds(user.id)).length : 0;
 
   return {
     // La preferenza salvata sul profilo vince sul cookie: chi entra da un
@@ -76,8 +65,8 @@ export async function loader({ request }: Route.LoaderArgs) {
       image: user.image,
       email: user.email,
       isAdmin,
-      pendingCount,
-      overdueCount,
+      inbox,
+      myUnreadCount,
     },
   };
 }

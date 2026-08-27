@@ -15,6 +15,10 @@ export default [
   // scelti sono liberi nelle date scelte, mentre le si sceglie.
   route("availability", "routes/availability.tsx"),
   route("requests/:id", "routes/request-detail.tsx"),
+  // Il Centro: tutto quello che aspetta un admin in una schermata sola. Le due
+  // rotte qui sotto ci rimandano con `?vista=`, perché un segnalibro non deve
+  // smettere di funzionare per una riorganizzazione nostra.
+  route("admin", "routes/admin.tsx"),
   route("admin/members", "routes/admin.members.tsx"),
   route("admin/requests", "routes/admin.requests.tsx"),
   route("admin/overdue", "routes/admin.overdue.tsx"),
