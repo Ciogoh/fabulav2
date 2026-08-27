@@ -10,3 +10,17 @@
 .env
 /app/generated
 /data
+
+# graphify — il grafo del progetto (`graphify . --update` lo ricostruisce).
+#
+# Si ignora tutto tranne il report, e l'ordine delle due righe conta:
+# `graphify-out/*` e non `graphify-out/`, perché escludendo la cartella intera
+# git non guarda nemmeno cosa c'è dentro e la riga di eccezione non varrebbe.
+#
+# Fuori restano `graph.json` e `graph.html`: un mega e mezzo che cambia per
+# intero a ogni ricostruzione, cioè differenze illeggibili a ogni commit per
+# un file che si rigenera con un comando. `GRAPH_REPORT.md` invece sono otto
+# chilobyte di testo, e chi apre il repo ci trova la mappa del progetto senza
+# installare niente.
+graphify-out/*
+!graphify-out/GRAPH_REPORT.md
