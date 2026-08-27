@@ -143,3 +143,109 @@ Coolify copre il database. Restano due cose:
 
 E la regola di sempre: **un backup mai ripristinato è una speranza.** Il primo
 ripristino di prova si fa subito, non il giorno in cui serve.
+
+---
+
+## Com'è configurato oggi (27 agosto 2026)
+
+Questo capitolo è la fotografia di ciò che gira davvero, con gli uuid veri.
+Serve a chi apre il pannello fra un anno e non sa da dove cominciare.
+
+**Server:** `46.18.29.105`, Coolify 4.3.12, team `mama`, progetto `fabula`,
+ambiente `production`.
+
+| Risorsa | uuid | Cos'è |
+|---|---|---|
+| `fabula` | `12uhtrtkqbsybdrlwkpymtva` | l'applicazione, costruita dal `Dockerfile` sul ramo `main` |
+| `fabula-postgres` | `oyqmluvhzjh1dh26hsurkrfy` | il database; è anche il suo nome di rete |
+| `cloudflared` | `ouuimrk4mjueyea9nwdzhzgf` | il connettore del tunnel, `network_mode: host` |
+
+**Il percorso di una richiesta**, che è la cosa da avere in testa:
+
+```
+chi visita fabulabz.com
+  → Cloudflare            (TLS, il certificato è suo)
+  → cloudflared           (tunnel in uscita: nessuna porta aperta sul server)
+  → http://localhost:80
+  → coolify-proxy         (Traefik: legge Host(`fabulabz.com`))
+  → il container di Fabula sulla porta 3000
+  → fabula-postgres
+```
+
+**Perché il tunnel punta al proxy e non al container.** Sembra un giro
+inutile e non lo è: il container si chiama `<uuid>-<timestamp>` e **quel nome
+cambia a ogni rilascio**. Puntandogli direttamente, Cloudflare andrebbe
+riconfigurato a ogni push. Traefik invece lo ritrova dall'intestazione `Host`,
+quindi la rotta del tunnel — `http://localhost:80` — si scrive una volta sola.
+È anche il motivo per cui aggiungere un secondo servizio sullo stesso tunnel
+costa solo un dominio scritto in Coolify.
+
+Il dominio dell'applicazione è dichiarato **`http://`** e non `https://`: il
+TLS lo fa Cloudflare al bordo. Con `https` Coolify proverebbe a emettere un
+certificato Let's Encrypt sulla porta 80, che è chiusa nel firewall, e il
+rilascio resterebbe impantanato lì.
+
+### Tailscale non c'entra col pubblico
+
+`tailscaled` serve la dashboard di Coolify sull'indirizzo `100.96.78.78`, e
+**non sta nel percorso pubblico**: spegnendolo, Fabula continua a funzionare e
+si perde solo l'amministrazione. È la ragione per cui la 8000 non deve stare
+su internet aperto.
+
+---
+
+## Le tre trappole trovate mettendoci le mani
+
+Sono scritte qui perché ognuna è costata tempo, e nessuna si annuncia da sé.
+
+### 1. Il proxy spento è un sito giù senza nessun segnale
+
+Al primo tentativo il tunnel rispondeva **502** qualunque indirizzo gli si
+desse. La causa non era l'indirizzo: **`coolify-proxy` era `exited`**, quindi
+su `localhost:80` non c'era nessuno. Fabula era `running:healthy`, il tunnel
+aveva quattro connessioni registrate, e il sito era irraggiungibile.
+
+**Da qui la regola: davanti a un 502, guardare il proxy prima dell'indirizzo.**
+
+```
+Servers → il server → Proxy       (dev'essere «running»)
+```
+
+Ed è il motivo per cui le notifiche di Coolify non sono un vezzo: questo
+guasto non lo vede nessuno finché non scrive un socio.
+
+### 2. Tailscale e Traefik si contendono la 443
+
+Il proxy non partiva perché `tailscaled` teneva la 443 sul proprio indirizzo, e
+Traefik la chiede su `0.0.0.0` — che quell'indirizzo lo include. L'errore che
+si vede in Coolify è `Port 443 is in use`, ma solo provando ad avviare il proxy
+**a mano dall'interfaccia**: da fuori il sintomo è quello della trappola 1.
+
+**Risolto alla radice, il 27 agosto 2026**, disattivando Tailscale Serve sulla
+443. Il proxy è tornato alla configurazione standard di Coolify — `80`, `443`,
+`443/udp`, `8080` — e non c'è nessuna modifica a mano che un aggiornamento
+possa cancellare.
+
+Per un attimo si era rimediato togliendo la 443 dalla configurazione del
+proxy: funzionava, perché in questo schema il TLS lo fa Cloudflare e il tunnel
+entra dalla 80. Ma era una modifica fuori standard che viveva nel database di
+Coolify, cioè una mina innescata al primo aggiornamento che rigenerasse quel
+file. **Se un giorno il proxy dovesse tornare a non partire per la 443, la
+strada giusta è di nuovo questa: liberare la porta, non toglierla a Traefik.**
+
+Per il seguito, la configurazione del proxy si rilegge e si riscrive così —
+l'endpoint è `PUT`, non `PATCH`, e un `PATCH` risponde `Not found`, il che
+sembra un problema di permessi e non lo è:
+
+```
+GET  /api/v1/servers/{uuid}/proxy
+PUT  /api/v1/servers/{uuid}/proxy/configuration    {"configuration": "<base64>"}
+```
+
+### 3. Il controllo di salute ha bisogno di `curl`, e `localhost` non basta
+
+`node:24-alpine` non ha `curl`; il `wget` di BusyBox risolve `localhost` su
+IPv6 `::1` mentre il server ascolta su IPv4, e risponde «Connection refused»
+con l'applicazione perfettamente sana. Per questo il `Dockerfile` installa
+`curl` nell'immagine finale e il controllo punta a **`127.0.0.1`**, non a
+`localhost`.

@@ -869,12 +869,25 @@ da sapere prima di toccarlo:
 Requisito esplicito dell'utente: deve essere facile **aggiornare** e **spostare
 su un'altra macchina**.
 
-**Aggiornare = `git push`.** In produzione Fabula gira su Coolify, che ascolta
-il ramo `main`: al push ricostruisce l'immagine, applica le migrazioni
+**Aggiornare = `git push`.** In produzione Fabula vive su
+**https://fabulabz.com**, servita da un server Linux con Coolify che ascolta il
+ramo `main`: al push ricostruisce l'immagine, applica le migrazioni
 (`docker-entrypoint.sh`) e sostituisce il container solo se `/healthz`
 risponde. Se qualcosa va storto la versione precedente resta su e non serve
-fare niente. La procedura completa — server, risorse, migrazione dei dati —
-sta in [`docs/coolify.md`](./docs/coolify.md).
+fare niente.
+
+**Prima di toccare la produzione, leggi [`docs/coolify.md`](./docs/coolify.md)**:
+c'è la fotografia di com'è configurata oggi, il percorso che fa una richiesta
+da Cloudflare fino al database, e soprattutto le tre trappole che sono costate
+mezza giornata. Due meritano di essere sapute anche solo passando di qui:
+
+- **Davanti a un 502, guarda il proxy prima dell'indirizzo.** Un
+  `coolify-proxy` spento è un sito irraggiungibile con l'applicazione
+  `running:healthy` e il tunnel connesso: nessuno dei due segnali lo tradisce.
+- **Se il proxy non parte, guarda chi occupa la 443.** Ci è già successo con
+  Tailscale Serve: si libera la porta, non si toglie a Traefik — la
+  configurazione del proxy vive nel database di Coolify, e ogni modifica a
+  mano è una mina innescata al primo aggiornamento.
 
 Trasferire = installare Coolify sulla macchina nuova, ricollegare il repo,
 riportare le variabili, ripristinare dump e cartella foto. Il dominio pubblico
