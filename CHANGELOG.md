@@ -14,6 +14,51 @@ e la PWA con le notifiche.
 
 ---
 
+## 0.6.0 — 27 agosto 2026
+
+Fabula lascia il MacBook. Il rischio non è mai stato il carico ma la
+**disponibilità**: un portatile che va in sospensione è la piattaforma
+offline, e il tunnel non può farci niente. Da qui in poi gira su un server
+Linux con Coolify, e **aggiornare è `git push`**.
+
+### Aggiunto
+
+- **Le migrazioni si applicano da sole all'avvio** (`docker-entrypoint.sh`).
+  Prima non le applicava *nessuno*: il `Dockerfile` finiva con
+  `react-router-serve` e basta, e funzionava solo perché il rilascio era un
+  gesto umano con le migrazioni come gesto umano accanto. Col rilascio al
+  push quel secondo gesto non c'è più, e il primo commit che tocca lo schema
+  avrebbe mandato online il codice nuovo contro il database vecchio. Se
+  `migrate deploy` fallisce il container esce prima di servire, e Coolify
+  tiene su la versione precedente: un database a metà strada è peggio di un
+  rilascio che non parte.
+- **`/healthz`**, che interroga davvero il database con una `SELECT 1`. La
+  distinzione che conta non è «il processo è vivo» ma «la piattaforma è
+  viva»: un Node in piedi con Postgres irraggiungibile, per chi usa Fabula, è
+  indistinguibile da tutto spento — e un controllo sulla sola porta 3000 non
+  lo vedrebbe.
+- **[`docs/coolify.md`](./docs/coolify.md)**: server, risorse, migrazione dei
+  dati e cosa succede a ogni push, col perché accanto a ogni scelta.
+
+### Cambiato
+
+- **`dotenv` passa alle dipendenze di produzione** e `prisma.config.ts` entra
+  nell'immagine finale. Non è pulizia: dal Prisma 7 l'URL del database non sta
+  più nel blocco `datasource` dello schema ma in quel file, quindi senza di
+  lui `migrate deploy` non sa nemmeno a quale database parlare.
+- **La riga di versione sopravvive al clone di Coolify.** `versionStamp`
+  conta i commit, ma Coolify clona in profondità 1: il conteggio avrebbe
+  detto `1` **senza fallire**, quindi in silenzio e per sempre. Ora, quando
+  c'è, vince lo sha passato come `SOURCE_COMMIT`.
+- **La trappola dell'`APP_PORT` sparisce in produzione.** `cloudflared` sta
+  nella stessa rete Docker e punta al container per nome: nessuna porta
+  esposta sull'host, e non più due numeri in due pannelli diversi che nulla
+  teneva allineati. Resta vera per chi rialza tutto col
+  `docker-compose.yml` — che **rimane, e va tenuto funzionante**: è la via di
+  fuga se un giorno Coolify è il problema.
+
+---
+
 ## 0.5.1 — 24 agosto 2026
 
 ### Cambiato

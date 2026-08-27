@@ -42,6 +42,11 @@ build
 #
 # Vale finché nella storia non finisce un segreto. Se succede, il problema è
 # il commit — ma allora questa riga va rimessa.
+#
+# Nota per chi costruisce su Coolify: lì `.git` c'è ma è un clone di
+# profondità 1, quindi il conteggio dei commit darebbe `1` in silenzio. Per
+# quel caso c'è l'argomento di costruzione `SOURCE_COMMIT`, che Coolify passa
+# da sé e che `versionStamp` preferisce quando c'è.
 
 # Non servono a `vite build`.
 .gitignore

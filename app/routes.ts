@@ -37,6 +37,9 @@ export default [
   route("h/:code", "routes/h.$code.tsx"),
   route("reset-password", "routes/reset-password.tsx"),
   route("uploads/*", "routes/uploads.tsx"),
+  // Chi tiene su la piattaforma chiede qui se è viva: Coolify per decidere se
+  // il container nuovo può prendere il traffico, il tunnel per lo stesso.
+  route("healthz", "routes/healthz.tsx"),
   // Tutto l'accesso passa da un solo gestore di Better Auth.
   route("api/auth/*", "routes/api.auth.$.tsx"),
 ] satisfies RouteConfig;

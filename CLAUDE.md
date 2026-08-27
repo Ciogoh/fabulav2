@@ -869,10 +869,22 @@ da sapere prima di toccarlo:
 Requisito esplicito dell'utente: deve essere facile **aggiornare** e **spostare
 su un'altra macchina**.
 
-Trasferire = `git clone`, `.env`, `docker compose up -d`, ripristino del dump,
-copia della cartella foto. Dieci minuti. Il dominio pubblico è legato al tunnel
-Cloudflare e non alla macchina, quindi non cambia nulla per chi usa la
-piattaforma: basta riavviare `cloudflared` con lo stesso token.
+**Aggiornare = `git push`.** In produzione Fabula gira su Coolify, che ascolta
+il ramo `main`: al push ricostruisce l'immagine, applica le migrazioni
+(`docker-entrypoint.sh`) e sostituisce il container solo se `/healthz`
+risponde. Se qualcosa va storto la versione precedente resta su e non serve
+fare niente. La procedura completa — server, risorse, migrazione dei dati —
+sta in [`docs/coolify.md`](./docs/coolify.md).
+
+Trasferire = installare Coolify sulla macchina nuova, ricollegare il repo,
+riportare le variabili, ripristinare dump e cartella foto. Il dominio pubblico
+è legato al tunnel Cloudflare e non alla macchina, quindi non cambia nulla per
+chi usa la piattaforma: basta ripartire con lo stesso token.
+
+**Il `docker-compose.yml` resta, e non per nostalgia**: in sviluppo dà il
+database (`pnpm db:up`), e in caso di guasto grave permette di rialzare tutto
+su una macchina qualsiasi con `docker compose --profile full up -d`, senza
+Coolify di mezzo. È la via di fuga, e va tenuta funzionante.
 
 **Da salvare ci sono solo due cose:** il database e la cartella delle foto. Il
 codice sta su Git. Due regole che quasi nessuno rispetta: un backup sulla stessa
@@ -995,6 +1007,21 @@ macchina o dopo il trasferimento su Linux, lo script è identico):
   configurazioni indipendenti — una nel `.env` locale, l'altra nella
   dashboard Cloudflare — e nulla le tiene sincronizzate: se divergono,
   Cloudflare risponde 502 anche con l'app perfettamente sana in locale.
+
+  **In produzione su Coolify questa trappola non esiste più**, ed è uno dei
+  motivi per cui `cloudflared` è stato messo lì dentro invece che sul
+  sistema: sta nella stessa rete Docker e il Service punta a
+  `http://fabula:3000`, cioè al nome del container. Nessuna porta viene
+  esposta sull'host, quindi non c'è un secondo numero da tenere allineato.
+  La trappola resta valida per chi rialza tutto col `docker-compose.yml`.
+
+- **Le migrazioni le applica l'avvio del container, non una persona**
+  (`docker-entrypoint.sh`). Se `prisma migrate deploy` fallisce, il container
+  esce prima di servire: è voluto: un database a metà strada è peggio di un
+  rilascio che non parte. Nei log di Coolify si vede subito, perché sono le
+  prime righe. Conseguenza pratica: **una migrazione va committata insieme al
+  codice che la richiede.** Spingere lo schema senza la sua migrazione manda
+  in produzione codice che parla a tabelle che non esistono.
 - **Docker Desktop deve avere «Start Docker Desktop when you log in»
   attivo** (Settings → General). Senza, un riavvio del Mac non fa ripartire
   nulla nonostante `restart: unless-stopped` sui container — Docker stesso

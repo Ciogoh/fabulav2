@@ -27,17 +27,28 @@ function versionStamp() {
     // Non può succedere, ma se succede la costruzione continua.
   }
 
-  let build = "?";
-  try {
-    build = execSync("git rev-list --count HEAD", {
-      // Senza questo, quando git fallisce il suo errore finisce nel terminale
-      // e sembra un guasto della costruzione, che invece prosegue benissimo.
-      stdio: ["ignore", "pipe", "ignore"],
-    })
-      .toString()
-      .trim();
-  } catch {
-    // Niente cartella .git (o niente git installato): `build ?`.
+  // Lo sha passato da chi costruisce vince sul conteggio dei commit.
+  //
+  // Coolify clona in profondità 1 e passa `SOURCE_COMMIT` come argomento di
+  // costruzione (vedi il `Dockerfile`). Lì il conteggio direbbe `1` **senza
+  // fallire**, quindi il `catch` qui sotto non se ne accorgerebbe mai, e la
+  // riga di versione mostrerebbe `build 1` per sempre. In locale la variabile
+  // è vuota, `.git` c'è davvero e il conteggio resta quello di prima.
+  let build = process.env.SOURCE_COMMIT?.slice(0, 7) || "?";
+
+  if (build === "?") {
+    try {
+      build = execSync("git rev-list --count HEAD", {
+        // Senza questo, quando git fallisce il suo errore finisce nel
+        // terminale e sembra un guasto della costruzione, che invece prosegue
+        // benissimo.
+        stdio: ["ignore", "pipe", "ignore"],
+      })
+        .toString()
+        .trim();
+    } catch {
+      // Niente cartella .git (o niente git installato): `build ?`.
+    }
   }
 
   return {

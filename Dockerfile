@@ -57,10 +57,32 @@ ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build"
 RUN pnpm exec prisma generate
 
 COPY . .
+
+# Lo sha del commit, per la riga di versione quando `.git` non basta.
+#
+# `versionStamp` conta i commit con `git rev-list --count HEAD`, che vuole la
+# storia intera. Coolify però clona in profondità 1: il conteggio darebbe `1`
+# **senza errore**, quindi in silenzio, per sempre. Coolify passa da sé un
+# argomento di costruzione `SOURCE_COMMIT`; quando c'è, vince lui.
+# Vuoto in locale, dove `.git` c'è davvero e il conteggio è quello giusto.
+ARG SOURCE_COMMIT=""
+ENV SOURCE_COMMIT=$SOURCE_COMMIT
+
 RUN pnpm run build
 
 FROM base
 ENV NODE_ENV=production
+
+# `curl` serve al controllo di salute, e sta **qui** e non in uno stadio
+# buttato via: è l'unico che finisce davvero in produzione.
+#
+# Chi controlla la salute non è dentro all'applicazione ma fuori, e per
+# chiedere `/healthz` deve avere qualcosa con cui chiedere. `node:24-alpine`
+# non ha `curl`, e il `wget` di BusyBox risolve `localhost` sull'indirizzo
+# IPv6 `::1` mentre il server ascolta solo su IPv4: «Connection refused» a
+# ogni tentativo, con l'applicazione perfettamente sana dietro. Il primo
+# rilascio è morto esattamente così.
+RUN apk add --no-cache curl
 COPY package.json pnpm-lock.yaml ./
 COPY --from=prod-deps /app/node_modules ./node_modules
 # Il client Prisma non si copia: `vite build` lo incorpora dentro a
@@ -68,8 +90,23 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 # verso `app/generated`.
 COPY --from=build-env /app/build ./build
 
+# Lo schema, le migrazioni e la configurazione di Prisma arrivano fin qui
+# **anche se l'applicazione non ne ha bisogno per servire**: servono a
+# `prisma migrate deploy`, che l'avvio esegue prima di ogni altra cosa (vedi
+# `docker-entrypoint.sh` per il perché). La CLI `prisma` c'è già: sta fra le
+# dipendenze di produzione, non fra quelle di sviluppo.
+#
+# `prisma.config.ts` non è facoltativo: dal Prisma 7 il blocco `datasource`
+# dello schema non contiene più l'URL, che vive lì dentro. È anche il motivo
+# per cui `dotenv` sta fra le dipendenze di produzione — quel file lo importa.
+# Senza `.env` nell'immagine non fa niente, e `DATABASE_URL` arriva
+# dall'ambiente vero iniettato da chi avvia il container.
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+COPY docker-entrypoint.sh ./
+
 # `react-router-serve` direttamente e non `pnpm run start`: quel giro fa
 # scattare un controllo automatico delle dipendenze che, senza
 # `pnpm-workspace.yaml` nell'immagine finale, fallisce e mette il container in
-# crash-loop.
-CMD ["node_modules/.bin/react-router-serve", "./build/server/index.js"]
+# crash-loop. La riga vera è in fondo all'entrypoint.
+ENTRYPOINT ["sh", "docker-entrypoint.sh"]
