@@ -35,7 +35,8 @@ import type { RequestStatus } from "~/generated/prisma/enums";
 import { AdminBadge } from "~/components/admin-badge";
 import { PersonInline, PersonName } from "~/components/person";
 import { fullLabelOf, type Person } from "~/lib/person";
-import { DateRangeFields } from "~/components/date-range-fields";
+import { DateRangeFields, daysBetweenInclusive } from "~/components/date-range-fields";
+import { MAX_ORDINARY_SPAN_DAYS as ORDINARY_SPAN } from "~/lib/availability.shared";
 
 export function meta({ matches }: Route.MetaArgs) {
   return [{ title: pageTitle(matches, "requests.detailHeading") }];
@@ -202,7 +203,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     const from = parseDay(String(form.get("from") ?? ""));
     const to = parseDay(String(form.get("to") ?? ""));
     const longer = form.get("longer") === "1";
-    const purpose = String(form.get("purpose") ?? "").trim();
+    // Tagliato qui e non solo nel browser: `maxLength` è un suggerimento che
+  // un `curl` ignora, e questa è l'unica colonna di testo libero senza
+  // tetto proprio. Stessa regola già applicata al corpo dei messaggi.
+  const purpose = String(form.get("purpose") ?? "").trim().slice(0, 2000);
     const today = todayUtc();
 
     if (!from || !to || from < today || to < from) {
@@ -416,6 +420,7 @@ export default function RequestDetail({ loaderData }: Route.ComponentProps) {
             today={today}
             startDate={startDate}
             endDate={endDate}
+            purpose={purpose}
             canCancel={!anyPickedUp}
           />
         )}
@@ -441,12 +446,14 @@ function RequestActions({
   today,
   startDate,
   endDate,
+  purpose: initialPurpose,
   canCancel,
 }: {
   id: string;
   today: string;
   startDate: string;
   endDate: string;
+  purpose: string | null;
   canCancel: boolean;
 }) {
   const t = useT();
@@ -456,8 +463,15 @@ function RequestActions({
 
   const [from, setFrom] = useState(startDate);
   const [to, setTo] = useState(endDate);
-  const [longer, setLonger] = useState(false);
-  const [purpose, setPurpose] = useState("");
+  /* Due difetti che si sommavano, e si vedevano solo aprendo «Modifica date»
+     su una richiesta che ne aveva già: il campo partiva **vuoto**, quindi
+     salvare cancellava in silenzio quello che era stato scritto; e la spunta
+     partiva **spenta**, quindi una richiesta speciale già approvata veniva
+     rifiutata con `errorSpan` senza che nessuno avesse toccato le date. */
+  const [longer, setLonger] = useState(
+    daysBetweenInclusive(startDate, endDate) > ORDINARY_SPAN
+  );
+  const [purpose, setPurpose] = useState(initialPurpose ?? "");
 
   useEffect(() => {
     if (editFetcher.state === "idle" && editFetcher.data?.ok) {

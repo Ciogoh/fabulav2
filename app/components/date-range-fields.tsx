@@ -8,6 +8,15 @@
  * il chiamante decide cosa fare del valore, incluso cosa succede quando si
  * sposta `from` oltre `to`.
  *
+ * **Perché il campo «a cosa serve» non sta più dentro alla spunta.** Prima
+ * esisteva solo per le richieste oltre i sette giorni, e chi ne chiedeva tre
+ * non aveva nessun posto dove scrivere «mi serve anche il carrello» o «passo
+ * a ritirarlo di sabato»: l'unico canale era la chat, che però nasce *dopo*
+ * l'invio, quando l'admin ha già letto una richiesta nuda. Ora il campo c'è
+ * sempre, ed è la spunta a renderlo obbligatorio — non a farlo esistere.
+ * Di conseguenza l'ordine è date → avviso → campo → spunta: il campo si legge
+ * come parte normale della richiesta e non come conseguenza di una casella.
+ *
  * **Perché il tetto non è più un attributo `max`.** Prima il campo «Fino a»
  * portava `max={from + 6 giorni}`: il browser rendeva l'ottavo giorno
  * semplicemente non selezionabile, in silenzio. Chi ne voleva dieci provava a
@@ -69,6 +78,7 @@ export function DateRangeFields({
   const toId = `${uid}-to`;
   const purposeId = `${uid}-purpose`;
   const hintId = `${uid}-hint`;
+  const purposeHintId = `${uid}-purpose-hint`;
 
   const span = daysBetweenInclusive(from, to);
   const overLimit = span > MAX_ORDINARY_SPAN_DAYS;
@@ -135,10 +145,40 @@ export function DateRangeFields({
               : t("request.maxSpan")}
       </p>
 
+      {/* Il campo c'è sempre; la spunta ne cambia solo l'etichetta, l'aiuto e
+          l'obbligatorietà. `maxLength` perché è testo libero che finisce in
+          una colonna senza tetto: il taglio vero resta lato server. */}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={purposeId} className={label}>
+          {longer ? t("request.purposeRequired") : t("request.purpose")}
+        </label>
+        <textarea
+          id={purposeId}
+          name="purpose"
+          rows={3}
+          required={longer}
+          maxLength={2000}
+          value={purpose}
+          aria-describedby={purposeHintId}
+          onChange={(event) => onPurposeChange(event.target.value)}
+          className="rounded border border-rule bg-card px-3 py-2 text-sm"
+        />
+        <p id={purposeHintId} className="text-[0.8rem] text-muted">
+          {longer ? t("request.purposeHintRequired") : t("request.purposeHint")}
+        </p>
+      </div>
+
       {/* Bersaglio comodo: la spunta era 16×16px, sotto ai 24 che chiede la
           WCAG 2.2 e ben sotto a un pollice. L'area cliccabile è tutta la
           riga, etichetta compresa. */}
-      <label className="-my-1 flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+      {/* Con il campo in mezzo, l'avviso «spunta la casella» e la casella non
+          si toccano più: finché il tetto è superato la riga si accende, così
+          l'occhio ci arriva senza doverla cercare. */}
+      <label
+        className={`-my-1 flex min-h-11 cursor-pointer items-center gap-3 rounded px-2 text-sm ${
+          overLimit && !longer ? "bg-accent-soft" : ""
+        }`}
+      >
         <input
           type="checkbox"
           name="longer"
@@ -149,23 +189,6 @@ export function DateRangeFields({
         />
         {t("request.longer")}
       </label>
-
-      {longer && (
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={purposeId} className={label}>
-            {t("request.purpose")}
-          </label>
-          <textarea
-            id={purposeId}
-            name="purpose"
-            rows={3}
-            required
-            value={purpose}
-            onChange={(event) => onPurposeChange(event.target.value)}
-            className="rounded border border-rule bg-card px-3 py-2 text-sm"
-          />
-        </div>
-      )}
     </>
   );
 }

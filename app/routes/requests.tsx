@@ -91,7 +91,10 @@ export async function action({ request }: Route.ActionArgs) {
   const from = parseDay(String(form.get("from") ?? ""));
   const to = parseDay(String(form.get("to") ?? ""));
   const longer = form.get("longer") === "1";
-  const purpose = String(form.get("purpose") ?? "").trim();
+  // Tagliato qui e non solo nel browser: `maxLength` è un suggerimento che
+  // un `curl` ignora, e questa è l'unica colonna di testo libero senza
+  // tetto proprio. Stessa regola già applicata al corpo dei messaggi.
+  const purpose = String(form.get("purpose") ?? "").trim().slice(0, 2000);
   const today = todayUtc();
 
   if (!from || !to || from < today || to < from) {

@@ -13,7 +13,7 @@
  * schermata sola invece che a due quasi identiche.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/signin";
 import { PageShell } from "~/components/page";
@@ -40,6 +40,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { googleEnabled: googleConfigured, microsoftEnabled: microsoftConfigured };
 }
 
+/** Quanto resta spento «Mandane un altro»: due terzi del minuto di Better
+ * Auth, che ne concede tre — così due tentativi ravvicinati restano possibili
+ * e il terzo, quello che fa scattare il 429, no. */
+const RESEND_COOLDOWN_SECONDS = 45;
+
 type Step =
   | { name: "email" }
   | { name: "code"; email: string }
@@ -52,6 +57,16 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
 
   const [step, setStep] = useState<Step>({ name: "email" });
   const [busy, setBusy] = useState(false);
+  /**
+   * Secondi che mancano prima di poter chiedere un altro codice.
+   *
+   * Non è cosmetica. Better Auth ne concede **tre al minuto**, poi risponde
+   * 429: chi non vede arrivare il codice in trenta secondi preme «Mandane un
+   * altro» due o tre volte di fila e si blocca da solo proprio mentre sta
+   * cercando di entrare — e il messaggio che riceve sembra dirgli che ha
+   * sbagliato qualcosa. Il freno vale più della spiegazione.
+   */
+  const [resendIn, setResendIn] = useState(0);
   /**
    * **Un ritorno fallito da Google o dallo Scientific Network arriva qui, non
    * sul catalogo.** Better Auth, quando il giro va storto, rimanda
@@ -93,6 +108,12 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
     );
   }
 
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = setTimeout(() => setResendIn((seconds) => seconds - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendIn]);
+
   /**
    * Entrare con Google o Microsoft.
    *
@@ -131,6 +152,7 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
     if (failure) {
       return setError(t(failure.status === 429 ? "signin.tooManyRequests" : "signin.failed"));
     }
+    setResendIn(RESEND_COOLDOWN_SECONDS);
     setStep({ name: "code", email });
   }
 
@@ -211,6 +233,9 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
             <p className="mt-2 text-sm text-muted">
               {t("signin.codeSentTo", { email: step.email })}
             </p>
+            <p className="mt-1 text-sm text-muted">
+              {t("signin.codeMayTakeMinutes")}
+            </p>
 
             <form
               className="mt-8 flex flex-col gap-4"
@@ -257,10 +282,13 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
             <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
               <button
                 type="button"
+                disabled={busy || resendIn > 0}
                 onClick={() => void sendCode(step.email)}
-                className="text-muted underline underline-offset-4 hover:text-ink"
+                className="text-muted underline underline-offset-4 hover:text-ink disabled:cursor-default disabled:no-underline disabled:opacity-60 disabled:hover:text-muted"
               >
-                {t("signin.resend")}
+                {resendIn > 0
+                  ? t("signin.resendIn", { seconds: resendIn })
+                  : t("signin.resend")}
               </button>
               <button
                 type="button"

@@ -34,6 +34,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       startDate: true,
       endDate: true,
       status: true,
+      purpose: true,
       user: {
         select: {
           name: true,
@@ -55,6 +56,9 @@ export async function loader({ request }: Route.LoaderArgs) {
       startDate: r.startDate.toISOString(),
       endDate: r.endDate.toISOString(),
       status: r.status,
+      // Il riassunto, non il testo intero: serve a decidere quale guardare per
+      // prima, e a quello bastano due righe.
+      purpose: r.purpose ? r.purpose.slice(0, 160) : null,
       holder: {
         name: r.user.name,
         firstName: r.user.firstName,
@@ -114,6 +118,13 @@ export default function AdminRequests({ loaderData }: Route.ComponentProps) {
                     <span className="text-muted">({r.holderEmail})</span>
                   </p>
                   <p className="mt-1 text-sm text-muted">{r.itemNames.join(" · ")}</p>
+                  {/* Le parole di chi ha chiesto, non un'etichetta nostra: si
+                      riconoscono da sole come citazione. */}
+                  {r.purpose && (
+                    <p className="mt-1 line-clamp-2 text-sm italic text-muted">
+                      &ldquo;{r.purpose}&rdquo;
+                    </p>
+                  )}
                 </Link>
               </li>
             ))}
