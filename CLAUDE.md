@@ -133,6 +133,11 @@ verificato dal vivo, non solo compilato:**
   Tutti gli avvisi di una richiesta — nuova, decisa, annullata, i quattro
   promemoria, il riassunto — vivono in un posto solo,
   `lib/notifications.server.ts`.
+- **Fabula si installa, e ogni persona sceglie da dove essere avvisata** —
+  vedi *L'app installabile e le notifiche*. In due parole: icona sulla
+  schermata Home e finestra senza barra del browser; e nel profilo si sceglie
+  fra email, notifiche dell'app o entrambe, con l'email che resta comunque il
+  ripiego quando una notifica non parte.
 - **Pannello admin: oggetti, categorie e kit** (`/admin/assets`, tre schede),
   con ricerca, filtro, gruppi per categoria e spostamento in blocco. Una
   categoria si crea anche dal menu a tendina della scheda di un oggetto, senza
@@ -165,9 +170,10 @@ verificato dal vivo, non solo compilato:**
 1. **Allineamento visivo a Material Matters** (vedi *Aspetto*) — resta il
    pezzo grosso, ma è quasi solo una sostituzione di valori: i token sono già
    tutti in `app.css`.
-2. **PWA installabile**, con le notifiche al posto delle sole email. Deciso
-   come passo successivo, non ancora cominciato — il piano è già scritto per
-   intero in [`docs/piani/2026-08-24-pwa-notifiche.md`](./docs/piani/2026-08-24-pwa-notifiche.md).
+2. **La prova su dispositivi veri della PWA.** Il codice è finito e provato in
+   locale, ma un iPhone e un Android in mano non li ha ancora visti nessuno —
+   ed è il passo che trova più difetti di tutti gli altri messi insieme. Vedi
+   *L'app installabile e le notifiche*, in fondo al capitolo.
 
 La storia di come ci siamo arrivati sta in [`CHANGELOG.md`](./CHANGELOG.md), i
 ragionamenti dietro a ogni passo in [`docs/piani/`](./docs/piani/).
@@ -181,6 +187,7 @@ pnpm setup                # da zero: installa, .env, SESSION_SECRET, db, migrazi
 pnpm dev                  # http://localhost:5173
 pnpm typecheck            # tipi + traduzioni mancanti
 pnpm test                 # Vitest, solo funzioni pure — vedi sotto
+pnpm icons                # rigenera le icone della PWA dal logo (scripts/icons.ts)
 ```
 
 `pnpm setup` (`scripts/setup.sh`) è la somma di `pnpm install` + `cp
@@ -458,6 +465,28 @@ non risulta nemmeno esistere.
 `Asset.adminNotes` non devono mai finire in una risposta senza login. I `select`
 di Prisma vanno scritti a mano campo per campo: mai `include: true`, che un
 giorno porterà fuori una colonna aggiunta dopo.
+
+**Il service worker non mette mai in cache una pagina né una risposta di
+loader.** Solo `/assets/*` — che Vite firma con l'impronta del contenuto nel
+nome, quindi non può servire una versione vecchia — più le icone e
+`offline.html`. È la regola qui sopra vista dall'altro lato: una pagina di
+Fabula contiene `Asset.location`, `adminNotes` e i nomi di chi ha in prestito
+cosa, e metterla in cache vuol dire lasciarla **sul disco del telefono**,
+leggibile dopo l'uscita e dopo che a quella persona è stato tolto il ruolo di
+admin. Sarebbe la regola dei loader aggirata dal basso, dal browser stesso,
+senza che nessuna riga di codice nostro sembri sbagliata. Il prezzo — senza
+rete si vede `offline.html` e non il catalogo — è il prezzo giusto.
+
+**Nel corpo di una notifica push non vanno nomi di persona, luoghi né nomi di
+oggetti.** Una notifica si legge a schermo bloccato, sul tavolo di un bar, in
+mezzo alla gente: è una superficie semi-pubblica, e chi guarda quello schermo
+non ha fatto l'accesso. «3 items · 2026-08-20 → 2026-08-25» basta a far capire
+di cosa si tratta; il resto si vede aprendo, cioè dopo aver sbloccato. Gli
+oggetti restano fuori anche se il catalogo è pubblico: il catalogo dice che
+una certa attrezzatura *esiste*, una notifica direbbe a chi passa che ce
+l'hai **tu, adesso, in casa**. Le email invece i nomi ce li hanno: si leggono
+in una casella, non su una vetrina. Il posto in cui la regola va rispettata è
+`lib/notifications.server.ts`.
 
 **Nessun nome di persona nelle superfici pubbliche.** Il catalogo dice che un
 oggetto è occupato, non chi ce l'ha. `getOccupancy` ha `withHolders`, spento di
@@ -773,6 +802,96 @@ Il limite del processo unico è scritto in *Sicurezza → Cosa resta aperto*,
 accanto a quello del limite di frequenza: sono la stessa assunzione e si
 spostano insieme.
 
+### L'app installabile e le notifiche
+
+Due metà indipendenti, e conviene tenerle separate anche mentalmente: **il
+guscio** (Fabula si installa) e **il canale** (ogni persona sceglie da dove
+essere avvisata). La seconda funziona anche senza la prima, tranne che su
+iPhone — vedi più sotto, è il vincolo che decide tutto.
+
+**Il guscio.** `public/manifest.webmanifest`, `public/sw.js`,
+`public/offline.html`, `public/icons/`, più `components/pwa.tsx` che registra
+il service worker e cattura l'evento di installazione. In `root.tsx` ci sono i
+`links()`, i `<meta>` che iOS legge al posto del manifesto, e i **due**
+`theme-color` per tema chiaro e scuro: il manifesto ne accetta uno solo, che
+sarebbe per forza sbagliato per metà delle persone.
+
+**Le icone non si disegnano, si generano.** `pnpm icons`
+(`scripts/icons.ts`). Il logo consegnato è un lettering largo 3,86:1 e dentro
+a un quadrato da 48 pixel non si legge, quindi l'icona è la sola **F**, che è
+già quasi quadrata. Il colore del marchio (`#ec008c`) sta scritto in due posti
+soli — quello script e `components/logo.tsx` — ed è deliberato: le icone
+vivono **fuori** da Fabula, sulla schermata Home e dentro a una notifica, dove
+i token di `app.css` non arrivano e il tema chiaro/scuro non esiste. Nota per
+il rebrand: quel magenta non è il rosso di Material Matters (vedi *Aspetto*).
+È il file che ci è stato dato, quindi vince, ma è la prima cosa da rivedere.
+
+**La cache è una regola di sicurezza**, ed è scritta per intero in
+*Sicurezza → Le regole*. Riassunta: mai una pagina, mai un `.data`, solo
+`/assets/*` e le icone. E `/api/stream` si lascia passare senza toccarlo.
+
+**Il canale.** `lib/push.server.ts` è il gemello di `email.server.ts`: stessa
+forma, stessa promessa che un errore non faccia mai fallire l'azione che l'ha
+innescato. Qui però una libreria (`web-push`) si paga da sola — una notifica
+va cifrata da capo a fondo con ECDH e `aes128gcm` e la chiave del server
+firmata come JWT VAPID, cioè crittografia vera, non una POST con un token.
+
+`lib/notifications.server.ts` è **l'unico posto che legge
+`User.notifyChannel`**, e quella singolarità è ciò che tiene in piedi il
+confine più importante:
+
+> La preferenza vale **solo** per gli avvisi di prestito. Codice di accesso,
+> reimpostazione della password e comunicazioni sulla piattaforma restano
+> email, sempre, per chiunque.
+
+Una notifica che non arriva è un fastidio; un codice di accesso che non arriva
+chiude fuori una persona dalla piattaforma. Per questo `notifyChannel` non sta
+in `CurrentUser`: chi volesse consultarlo altrove deve andarselo a prendere, e
+accorgersi di quello che sta facendo.
+
+**Tre difese contro il modo in cui le notifiche falliscono, cioè in silenzio.**
+Un'iscrizione push muore senza dirlo a nessuno — dati del browser puliti,
+icona tolta dalla schermata Home, mesi di inattività su iOS:
+
+1. chi ha scelto `PUSH` ma non ha nessun dispositivo vivo **riceve comunque
+   l'email**, sempre (`deliver`);
+2. le iscrizioni morte **si cancellano da sole** sul 404 o 410 del servizio
+   push, e solo su quelli — ogni altro errore non cancella niente, o un guasto
+   temporaneo di Google disiscriverebbe tutti;
+3. `deliver` **restituisce se è arrivato qualcosa** invece di `void`, ed è il
+   valore su cui lo spazzatore decide se scrivere la riga in `ReminderLog`.
+
+**I destinatari degli avvisi admin vengono dal database** (ruolo `ADMIN`),
+ciascuno sul proprio canale. `ADMIN_EMAILS` resta per chi non ha un account —
+la casella condivisa dell'associazione — ma gli indirizzi che coincidono con
+un admin registrato **vengono scartati** (`extraAdminEmails`), o chi ha scelto
+«solo notifiche» continuerebbe a ricevere la posta dalla porta di servizio,
+che è esattamente il problema che la preferenza doveva risolvere.
+
+**Un'iscrizione è del dispositivo, la preferenza è della persona.** Telefono e
+portatile sono due righe in `PushSubscription` e due righe nel profilo. Chi
+non lo capisce accende le notifiche sul portatile, esce dall'ufficio e
+conclude che non funzionano: è per questo che la schermata mostra l'elenco dei
+dispositivi con la data e la marca «questo», invece di un interruttore solo.
+
+**iPhone, ed è il vincolo che decide tutto.** Le notifiche web su iOS esistono
+dal 16.4, ma **solo** se Fabula è stata aggiunta alla schermata Home. Non c'è
+nessun evento da intercettare e nessun pulsante «installa» da mostrare: la
+persona deve toccare Condividi → Aggiungi alla schermata Home, e va spiegato a
+voce le prime volte. Per gli admin con iPhone la PWA non è un'opzione fra le
+altre, è **il prerequisito** — ed è la ragione per cui l'invito a installare
+vive dentro alla sezione delle notifiche in `/account` e non in una barra che
+galleggia. Se il permesso viene negato una volta, dal sito non si può più
+chiedere: si passa dalle impostazioni del sistema, e il testo lo dice, o si
+preme un pulsante che non fa niente e si conclude che è rotto.
+
+**Le chiavi VAPID sono un segreto con memoria.** Vedi *Backup automatico*.
+
+**Cosa non si ottiene, e non è una svista:** presenza sull'App Store (servirebbe
+un involucro, 99 $/anno e una revisione a ogni versione — e se un giorno
+servisse, la PWA fatta ora è il materiale di partenza), e uso serio senza rete,
+che è una conseguenza voluta della regola della cache.
+
 ### Il QR e la consegna diretta
 
 Si stampa un adesivo per oggetto, lo si inquadra col telefono, si sceglie a
@@ -1056,6 +1175,19 @@ datato del database, più la cartella foto, caricati su OneDrive via
 (`rclone copy`, mai `sync`) e non vengono mai cancellate lato OneDrive —
 così una cancellazione locale per errore non si propaga mai al backup.
 
+**Quello che il backup NON salva, e che va salvato a mano: le chiavi VAPID.**
+Stanno solo nel `.env`, che è escluso dal backup di proposito — lì dentro ci
+sono anche la password del database e le chiavi di Resend, Google e Microsoft,
+e copiarle su OneDrive significa che chiunque abbia accesso a quel OneDrive ha
+accesso a Fabula. Ma `VAPID_PUBLIC_KEY` e `VAPID_PRIVATE_KEY` sono l'unico
+segreto che **non si può rigenerare senza conseguenze**: rigenerarle non rompe
+niente in modo visibile — semplicemente ogni iscrizione push diventa carta
+straccia, tutti i telefoni smettono di ricevere nello stesso istante, e ognuno
+deve riattivare le notifiche a mano dal proprio profilo senza che nessuno gli
+abbia detto che deve farlo. Vanno copiate in un gestore di password, accanto a
+`SESSION_SECRET` (che invece si può cambiare, al prezzo di un accesso rifatto
+da tutti).
+
 Lo script non contiene mai le credenziali dell'account OneDrive: si
 riferisce solo al nome di un remote rclone (`onedrive`). **Spostare il
 backup su un altro spazio OneDrive** — cambio di ateneo, account personale —
@@ -1076,6 +1208,21 @@ macchina o dopo il trasferimento su Linux, lo script è identico):
 
 ## Trappole già incontrate
 
+- **In sviluppo non si tiene una chiave Resend viva.** Senza
+  `RESEND_API_KEY` le email finiscono nel terminale invece che nelle caselle
+  vere (`lib/email.server.ts`), ed è il comportamento che si vuole in locale —
+  ma la ragione è più forte di «così non spammo»: **lo spazzatore dei
+  promemoria parte da solo a ogni avvio del server**, anche in sviluppo, e il
+  seed contiene prestiti con scadenze vere. Un prestito scaduto da 7 giorni
+  nel database di prova fa partire posta vera ai tre indirizzi di
+  `ADMIN_EMAILS`, che sono persone reali, per un oggetto che non è mai uscito
+  da nessun magazzino. Se la chiave serve per una prova, si rimette per il
+  tempo della prova e si toglie subito dopo.
+- **`process.env` non si ricarica da solo.** Cambiare una riga del `.env`
+  mentre `pnpm dev` gira non ha nessun effetto: il processo ha letto il file
+  all'avvio. Vale in tutte e due le direzioni, ed è insidioso al contrario —
+  si toglie una chiave credendo di aver disinnescato qualcosa, e il processo
+  in esecuzione continua a usare quella di prima.
 - **`sortOrder` esisteva ma non lo scriveva nessuno.** Le foto nascevano tutte
   a zero, e siccome il catalogo prende la prima per `sortOrder`, la copertina
   di un oggetto era quella che il database restituiva per prima — poteva

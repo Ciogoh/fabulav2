@@ -16,8 +16,8 @@ I nomi dei file cominciano con la data in cui il piano è stato scritto.
 | [Registro admin, storico dell'oggetto, QR e consegna diretta](2026-08-24-registro-storico-qr.md) — tre passi in un piano solo | ✅ fatto |
 | [Numero di versione e archivio dei piani](2026-08-24-versione-e-archivio-piani.md) — `0.5.0 · build 27`, il CHANGELOG, e questa cartella | 🔄 in corso |
 | [La foto del profilo si cambia premendo la foto](2026-08-24-foto-profilo-premibile.md) — l'invito era il «Scegli file» del browser, cioè nessun invito | ✅ fatto |
-| [PWA installabile e notifiche al posto delle email](2026-08-24-pwa-notifiche.md) — il guscio, il motore push, la scelta del canale nel profilo | 🔄 in corso — il prerequisito del rebrand è caduto, si parte da icone provvisorie |
-| [Il Centro, la chat dal vivo e i promemoria](2026-08-28-centro-chat-promemoria.md) — sei cose che rendono la piattaforma usabile da volontari che si alternano | 🔄 in corso, fasi 1–5 fatte |
+| [PWA installabile e notifiche al posto delle email](2026-08-24-pwa-notifiche.md) — il guscio, il motore push, la scelta del canale nel profilo | ✅ fatto — il prerequisito del rebrand è caduto: dipendeva dal logo, non dall'interfaccia. Resta la prova su dispositivi veri |
+| [Il Centro, la chat dal vivo e i promemoria](2026-08-28-centro-chat-promemoria.md) — sei cose che rendono la piattaforma usabile da volontari che si alternano | ✅ fatto |
 | [L'arretrato](2026-08-28-arretrato.md) — calendario personale, guide e manuali, backup su R2, tunnel, Telegram, documenti, CI: cosa resta e come si fa | ⏳ da fare |
 
 ## Come si aggiunge un piano

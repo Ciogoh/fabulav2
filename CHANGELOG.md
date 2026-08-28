@@ -9,8 +9,131 @@ piani, changelog e versione, stanno nel capitolo *Versione* di
 [`CLAUDE.md`](./CLAUDE.md).
 
 **La 1.0.0 è il giorno in cui Fabula viene consegnata davvero ai soci.** Da lì
-si misura quanto manca: oggi mancano l'allineamento visivo a Material Matters
-e la PWA con le notifiche.
+si misura quanto manca: oggi manca l'allineamento visivo a Material Matters, e
+la prova su iPhone e Android veri di quello che la 0.7.0 ha aggiunto.
+
+---
+
+## 0.7.0 — 28 agosto 2026
+
+Il ciclo del prestito funzionava già da capo a fondo. Quello che mancava era
+**il contorno che lo rende usabile da volontari che si alternano**: accorgersi
+di una richiesta senza avere tre posti da guardare, ricevere un promemoria
+prima e non dopo, e non dover tenere aperta la casella di posta per sapere
+cosa succede. Due filoni di lavoro, portati avanti in parallelo.
+
+### La piattaforma si fa capire
+
+- **Il modulo della richiesta chiede quello che serve sapere.** Il campo «a
+  cosa serve» esisteva solo dentro alla spunta dei sette giorni: chi ne
+  chiedeva tre non aveva nessun posto dove scrivere «mi serve anche il
+  carrello» o «passo a ritirarlo di sabato». L'unico canale era la chat, che
+  però nasce dopo l'invio, quando l'admin ha già letto una richiesta nuda. Ora
+  il campo c'è sempre ed è la spunta a renderlo obbligatorio, non a farlo
+  esistere. Corretti due difetti che si vedevano solo aprendo «Modifica date»
+  su una richiesta che ne aveva già: il campo partiva vuoto e salvare
+  cancellava in silenzio quello che era scritto, e la spunta partiva spenta,
+  quindi una richiesta speciale già approvata veniva rifiutata senza che
+  nessuno avesse toccato le date. Nell'accesso, il codice via email dice
+  quanto può metterci ad arrivare e il reinvio resta spento 45 secondi: Better
+  Auth ne concede tre al minuto, e chi non lo vedeva arrivare si bloccava da
+  solo premendo «Mandane un altro».
+- **Lo stato di un oggetto si vede da lontano.** Su una griglia di venti
+  schede le tre pastiglie avevano lo stesso peso visivo e si distinguevano
+  solo leggendole una per una. Ora il badge ha un tono pieno per il catalogo e
+  uno velato per gli elenchi fitti dell'admin, ogni stato porta una forma
+  (● pieno, ▪ bloccato, ◇ fuori gioco) che vale anche senza colore — circa un
+  uomo su dodici non distingue verde e rosso, e su un elenco stampato non li
+  distingue nessuno — e la scheda porta una fascia di stato in cima. I token
+  nuovi sono propri degli stati e non toccano `--accent`, che è la porta da
+  cui il rosso di Material Matters entrerà al rebrand.
+- **Il Centro.** Erano tre posti da guardare e nessuno che li riassumesse:
+  coda di approvazione, ritardi, e la chat, che non aveva nessuna superficie
+  propria. Aprendo il Centro la prima volta sono saltati fuori tre messaggi di
+  soci veri a cui non aveva risposto nessuno. Le sezioni sono in ordine di chi
+  sta aspettando te, non di gravità, con una sola eccezione dichiarata: un
+  ritardo oltre la settimana sale in cima. `/admin/requests` e
+  `/admin/overdue` restano e rimandano lì. Lo stesso meccanismo dà finalmente
+  a chi chiede in prestito il segnale che gli è sempre mancato: «ti hanno
+  risposto».
+- **La chat si aggiorna da sola.** Ci si accorda su un ritiro dentro alla
+  chat, ma la pagina mostrava la conversazione di quando l'avevi aperta: chi
+  la guardava credeva di essere aggiornato, che è peggio di non mostrarla.
+  Server-Sent Events, nessuna dipendenza nuova, e una regola che rende la cosa
+  difendibile: sul canale non passa mai un contenuto, solo un colpetto, e il
+  browser ricarica il loader che esisteva già con le sue autorizzazioni.
+- **I promemoria diventano quattro, e sanno dire dove.** Da uno solo (il
+  giorno prima della riconsegna) a ritiro, scadenza vicina, scadenza oggi e
+  ritardo a 1, 3 e 7 giorni, più un riassunto unico al giorno agli admin.
+  Tutti raggruppano gli oggetti per posizione: una richiesta con pezzi in due
+  magazzini, riassunta in un indirizzo solo, manda qualcuno a cercare una cosa
+  dove non c'è. **E si spedisce solo fra le 8 e le 20 ora di Roma**: il giro
+  ragiona in giorni UTC e partiva all'una di notte — con le notifiche push
+  sarebbe stata una suoneria alle 2, cioè il modo più rapido per farle
+  spegnere a tutti. `Request.reminderSentAt` lascia il posto a `ReminderLog`,
+  perché un timestamp solo sapeva dire *se* era partito qualcosa, non *quale*
+  dei quattro.
+
+### Fabula si installa, e gli avvisi scelgono la strada
+
+- **Il guscio.** Manifesto, service worker, pagina di cortesia senza rete
+  nelle tre lingue, e le icone generate da `pnpm icons` a partire dalla **F**
+  del lettering — il logo intero è largo 3,86:1 e dentro a un quadrato da 48
+  pixel non si legge. Il lettering vero entra nell'intestazione al posto della
+  scritta col punto. Si ottengono icona sulla schermata Home, finestra senza
+  barra del browser, e il pallino col numero sull'icona — lo stesso numero che
+  mostra il Centro, perché due conti diversi per la stessa cosa si
+  contraddicono a vicenda.
+- **La cache del service worker è una regola di sicurezza, non una scelta di
+  velocità.** Non finisce in cache nessuna pagina e nessuna risposta di
+  loader: solo `/assets/*`, che Vite firma con l'impronta del contenuto nel
+  nome. Una pagina di Fabula contiene ubicazioni, note interne degli admin e i
+  nomi di chi ha in prestito cosa — metterla in cache vuol dire lasciarla sul
+  disco del telefono, leggibile dopo l'uscita e dopo che a quella persona è
+  stato tolto il ruolo di admin. Sarebbe la regola «niente dati riservati nei
+  loader pubblici» aggirata dal basso, dal browser stesso. Il prezzo è che
+  senza rete si vede una pagina di cortesia e non il catalogo: è il prezzo
+  giusto.
+- **Ogni persona sceglie il canale** dal proprio profilo: email, notifiche
+  dell'app, o entrambe, con l'elenco dei dispositivi iscritti e una notifica
+  di prova — che vale da sola metà della verifica, perché senza bisognerebbe
+  aspettare che qualcuno faccia una richiesta per sapere se funziona.
+  Un'iscrizione è del **dispositivo** e la preferenza è della **persona**:
+  telefono e portatile sono due righe, e chi non lo capisce accende le
+  notifiche sul portatile ed esce dall'ufficio.
+- **Il confine che non si sposta:** la preferenza vale solo per gli avvisi di
+  prestito. Codice di accesso, reimpostazione della password e comunicazioni
+  sulla piattaforma restano email per chiunque. Una notifica che non arriva è
+  un fastidio; un codice di accesso che non arriva chiude fuori una persona.
+  Allo stesso modo, nel corpo di una notifica non vanno nomi di persona,
+  luoghi né nomi di oggetti: si legge a schermo bloccato, in mezzo alla gente.
+- **Tre difese contro il modo in cui le notifiche falliscono, cioè in
+  silenzio.** Chi ha scelto solo le notifiche ma non ha nessun dispositivo
+  vivo riceve comunque l'email; le iscrizioni morte si cancellano da sole sul
+  404 o 410 del servizio push, e solo su quelli, o un guasto temporaneo di
+  Google disiscriverebbe tutti; il promemoria a mano dice se non è partito
+  invece di dire «fatto».
+- **I destinatari degli avvisi admin arrivano dal database** e non più da
+  `ADMIN_EMAILS`, che resta per chi non ha un account. Gli indirizzi di quella
+  lista che coincidono con un admin registrato vengono scartati: altrimenti
+  chi ha scelto «solo notifiche» continuerebbe a ricevere la posta dalla porta
+  di servizio, che è esattamente il problema da risolvere.
+
+### Da sapere
+
+- **Le chiavi VAPID (`.env`) sono un segreto con memoria.** Rigenerarle non
+  rompe niente in modo visibile: semplicemente ogni iscrizione push diventa
+  carta straccia e tutti i telefoni smettono di ricevere nello stesso istante,
+  senza che nessuno lo sappia. Vanno copiate in un gestore di password accanto
+  a `SESSION_SECRET`. Il backup non le salva, e non le salverà: il `.env`
+  contiene anche la password del database e le chiavi di Resend e Google.
+- **In sviluppo non si tiene una chiave Resend viva**, perché lo spazzatore
+  dei promemoria gira anche lì e il seed ha scadenze vere. Vedi *Trappole già
+  incontrate* in `CLAUDE.md`.
+- **Resta da provare su dispositivi veri**, dal tunnel `try.fabulabz.com`. Su
+  iPhone le notifiche funzionano **solo** dopo «Aggiungi alla schermata Home»:
+  è un vincolo di Apple, e per gli admin con iPhone l'installazione non è
+  un'opzione ma il prerequisito.
 
 ---
 
