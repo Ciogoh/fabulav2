@@ -12,9 +12,10 @@
  * nascondono le poche che contano.
  */
 
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { useRef, useState } from "react";
+import { Link, useFetcher, useNavigate, useSearchParams } from "react-router";
 import { PageShell, PageTitle } from "~/components/page";
-import { ButtonLink } from "~/components/button";
+import { Button, ButtonLink } from "~/components/button";
 import type { Route } from "./+types/calendar";
 import { db } from "~/lib/db.server";
 import {
@@ -24,9 +25,13 @@ import {
   todayUtc,
   type OccupancyState,
 } from "~/lib/availability.server";
-import { getUser } from "~/lib/session.server";
+import { getUser, requireUser } from "~/lib/session.server";
 import { useFormatDay, useLang, useT } from "~/i18n/use-t";
 import { pageTitle } from "~/i18n/meta";
+import {
+  getOrCreateCalendarToken,
+  regenerateCalendarToken,
+} from "~/lib/calendar-token.server";
 
 /** Cinque settimane: un mese abbondante, ancora leggibile su uno schermo. */
 const DAYS = 35;
@@ -47,6 +52,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const user = await getUser(request);
   const isAdmin = user?.role === "ADMIN";
+
+  // Creato pigramente qui: la prima volta che chi ha fatto l'accesso apre
+  // questa pagina, non prima. Per chi non ha fatto l'accesso resta `null` —
+  // niente da mostrare, niente token da creare per un account che non c'è.
+  const calendarUrl = user
+    ? `${new URL(request.url).origin}/cal/${await getOrCreateCalendarToken(user.id)}.ics`
+    : null;
 
   const [assets, occupancy] = await Promise.all([
     db.asset.findMany({
@@ -106,11 +118,21 @@ export async function loader({ request }: Route.LoaderArgs) {
     todayOffset: daysBetween(start, todayUtc()),
     days: Array.from({ length: DAYS }, (_, i) => formatDay(shiftDays(start, i))),
     isAdmin,
+    calendarUrl,
   };
 }
 
+/** Solo il pulsante «rigenera»: la pagina è pubblica, ma questa azione ha
+ * senso solo per chi ha già fatto l'accesso — è il proprio token, non un
+ * parametro qualsiasi del modulo. */
+export async function action({ request }: Route.ActionArgs) {
+  const user = await requireUser(request);
+  await regenerateCalendarToken(user.id);
+  return { ok: true as const };
+}
+
 export default function Calendar({ loaderData }: Route.ComponentProps) {
-  const { rows, showAll, totalAssets, days, todayOffset, previous, next, isAdmin } =
+  const { rows, showAll, totalAssets, days, todayOffset, previous, next, isAdmin, calendarUrl } =
     loaderData;
   const t = useT();
   const lang = useLang();
@@ -329,6 +351,8 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
           </p>
           </>
         )}
+
+        {calendarUrl && <PersonalCalendarBox url={calendarUrl} />}
       </PageShell>
     </main>
   );
@@ -553,6 +577,82 @@ function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
     <ButtonLink to={to} variant="quiet" size="sm">
       {children}
     </ButtonLink>
+  );
+}
+
+/**
+ * Il collegamento privato con i propri prestiti, da incollare in Google
+ * Calendar, Calendario di Apple o Outlook. Compare solo a chi ha fatto
+ * l'accesso: la pagina resta pubblica, ma un token personale per chi non ha
+ * un account non avrebbe niente da mostrare.
+ *
+ * **È una credenziale**, non un indirizzo qualsiasi: chi ce l'ha vede i
+ * prestiti di questa persona, posizioni comprese. Da qui il pulsante
+ * «Rigenera» invece di «Revoca»: il token nasce pigramente alla prima
+ * apertura di questa pagina, quindi toglierlo senza sostituirlo lo farebbe
+ * solo ricomparire identico all'apertura successiva — rigenerare è la cosa
+ * vera che succede quando lo si preme.
+ */
+function PersonalCalendarBox({ url }: { url: string }) {
+  const t = useT();
+  const fetcher = useFetcher();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Niente permesso o niente API: la casella resta lì, selezionabile a
+      // mano, che è il ripiego che funziona ovunque.
+      inputRef.current?.select();
+    }
+  }
+
+  return (
+    <section className="mt-10 rounded border border-rule bg-card p-5">
+      <h2 className="text-sm font-semibold">{t("calendar.personalHeading")}</h2>
+      <p className="mt-1 max-w-prose text-sm text-muted">
+        {t("calendar.personalIntro")}
+      </p>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <input
+          ref={inputRef}
+          type="text"
+          readOnly
+          value={url}
+          onFocus={(event) => event.currentTarget.select()}
+          aria-label={t("calendar.personalUrlLabel")}
+          className="min-h-11 min-w-0 flex-1 rounded border border-rule bg-sunk px-3 py-2 font-mono text-xs text-muted"
+        />
+        <Button variant="secondary" onClick={copy}>
+          {copied ? t("calendar.personalCopied") : t("calendar.personalCopy")}
+        </Button>
+      </div>
+
+      <p className="mt-3 max-w-prose text-[0.8rem] text-muted">
+        {t("calendar.personalHint")}
+      </p>
+
+      <fetcher.Form method="post" className="mt-4">
+        <Button
+          type="submit"
+          variant="danger"
+          size="sm"
+          disabled={fetcher.state !== "idle"}
+          onClick={(event) => {
+            if (!window.confirm(t("calendar.personalRegenerateConfirm"))) {
+              event.preventDefault();
+            }
+          }}
+        >
+          {t("calendar.personalRegenerate")}
+        </Button>
+      </fetcher.Form>
+    </section>
   );
 }
 

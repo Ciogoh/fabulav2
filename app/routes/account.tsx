@@ -33,10 +33,6 @@ import { db } from "~/lib/db.server";
 import { requireUser } from "~/lib/session.server";
 import { deleteAvatarFile, saveAvatar } from "~/lib/uploads.server";
 import {
-  getOrCreateCalendarToken,
-  regenerateCalendarToken,
-} from "~/lib/calendar-token.server";
-import {
   MAX_ALIAS,
   MAX_NAME_PART,
   MIN_NAME_PART,
@@ -79,7 +75,7 @@ export async function loader({ request }: Route.LoaderArgs) {
      Tenerlo fuori da `CurrentUser` è ciò che garantisce che l'unico posto a
      consultarlo per spedire resti `notifications.server.ts` — e quindi che
      il codice di accesso continui ad arrivare per email a chiunque. */
-  const [settings, devices, calendarToken] = await Promise.all([
+  const [settings, devices] = await Promise.all([
     db.user.findUniqueOrThrow({
       where: { id: user.id },
       select: { notifyChannel: true },
@@ -89,9 +85,6 @@ export async function loader({ request }: Route.LoaderArgs) {
       orderBy: { createdAt: "asc" },
       select: { id: true, endpoint: true, userAgent: true, createdAt: true },
     }),
-    // Creato pigramente qui: la prima volta che questa sezione del profilo
-    // si apre, non prima.
-    getOrCreateCalendarToken(user.id),
   ]);
 
   return {
@@ -103,7 +96,6 @@ export async function loader({ request }: Route.LoaderArgs) {
       image: user.image,
     } satisfies Person,
     email: user.email,
-    calendarUrl: `${new URL(request.url).origin}/cal/${calendarToken}.ics`,
     notifyChannel: settings.notifyChannel,
     devices: devices.map((device) => ({
       id: device.id,
@@ -170,11 +162,6 @@ export async function action({ request }: Route.ActionArgs) {
       where: { id: user.id },
       data: { notifyChannel: channel satisfies NotifyChannel },
     });
-    return { ok: true as const };
-  }
-
-  if (intent === "calendarRegenerate") {
-    await regenerateCalendarToken(user.id);
     return { ok: true as const };
   }
 
@@ -295,9 +282,6 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
           devices={loaderData.devices}
           vapidPublicKey={loaderData.vapidPublicKey}
         />
-
-        {/* --------------------------------------- calendario personale */}
-        <CalendarSection url={loaderData.calendarUrl} />
 
         {/* L'indirizzo non si cambia da qui: è l'identità con cui si entra, e
             spostarla vuol dire un codice di conferma sul nuovo indirizzo —
@@ -575,85 +559,6 @@ function Field({
       />
       {hint && <span className="text-[0.8rem] text-muted">{hint}</span>}
     </div>
-  );
-}
-
-/* ------------------------------------------------ il calendario personale */
-
-/**
- * Il collegamento privato con solo i propri prestiti, da incollare in Google
- * Calendar, Calendario di Apple o Outlook.
- *
- * **È una credenziale**, non un indirizzo qualsiasi: chi ce l'ha vede i
- * prestiti di questa persona, posizioni comprese, senza fare l'accesso. Da
- * qui il pulsante «Rigenera» invece di «Revoca»: sul profilo la sezione è
- * sempre aperta, quindi un token tolto ne farebbe nascere subito un altro —
- * dire la verità su cosa succede davvero è più chiaro che fingere una revoca
- * che lascerebbe comunque un collegamento valido in vista un istante dopo.
- */
-function CalendarSection({ url }: { url: string }) {
-  const t = useT();
-  const fetcher = useFetcher();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [copied, setCopied] = useState(false);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Niente permesso o niente API: la casella resta lì, selezionabile a
-      // mano, che è il ripiego che funziona ovunque.
-      inputRef.current?.select();
-    }
-  }
-
-  return (
-    <section className="mt-10 border-t border-rule pt-8">
-      <h2 className="font-serif text-xl font-semibold">
-        {t("account.calendarHeading")}
-      </h2>
-      <p className="mt-2 max-w-prose text-sm text-muted">
-        {t("account.calendarIntro")}
-      </p>
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <input
-          ref={inputRef}
-          type="text"
-          readOnly
-          value={url}
-          onFocus={(event) => event.currentTarget.select()}
-          aria-label={t("account.calendarUrlLabel")}
-          className="min-h-11 min-w-0 flex-1 rounded border border-rule bg-sunk px-3 py-2 font-mono text-[0.8rem] text-muted"
-        />
-        <Button variant="secondary" onClick={copy}>
-          {copied ? t("account.calendarCopied") : t("account.calendarCopy")}
-        </Button>
-      </div>
-
-      <p className="mt-3 max-w-prose text-[0.8rem] text-muted">
-        {t("account.calendarHint")}
-      </p>
-
-      <fetcher.Form method="post" className="mt-4">
-        <input type="hidden" name="intent" value="calendarRegenerate" />
-        <Button
-          type="submit"
-          variant="danger"
-          size="sm"
-          disabled={fetcher.state !== "idle"}
-          onClick={(event) => {
-            if (!window.confirm(t("account.calendarRegenerateConfirm"))) {
-              event.preventDefault();
-            }
-          }}
-        >
-          {t("account.calendarRegenerate")}
-        </Button>
-      </fetcher.Form>
-    </section>
   );
 }
 
