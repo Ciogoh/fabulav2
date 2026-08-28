@@ -45,9 +45,17 @@ verificato dal vivo, non solo compilato:**
   misura e formato prima di spedire (`AvatarPicker`, in fondo a `account.tsx`)
 - **Le date si scelgono al momento di richiedere, non in cima al catalogo**
   (`components/date-range-fields.tsx`). Fino a `MAX_ORDINARY_SPAN_DAYS` (sette
-  giorni) senza altro; oltre, la spunta «richiesta speciale» chiede un motivo
-  e sale fino a `MAX_SPECIAL_SPAN_DAYS`. I due tetti stanno in
-  `availability.shared.ts` — vedi *Struttura*.
+  giorni) senza altro; oltre, la spunta «richiesta speciale» sale fino a
+  `MAX_SPECIAL_SPAN_DAYS`. I due tetti stanno in `availability.shared.ts` —
+  vedi *Struttura*.
+
+  **Il campo «a cosa serve» c'è sempre, ed è la spunta a renderlo
+  obbligatorio — non a farlo esistere.** Prima viveva dentro alla spunta, e
+  chi chiedeva tre giorni non aveva nessun posto dove scrivere «mi serve anche
+  il carrello» o «passo a ritirarlo di sabato»: l'unico canale era la chat,
+  che però nasce *dopo* l'invio, quando l'admin ha già letto una richiesta
+  nuda. Da qui anche l'ordine dei campi — date, avviso, campo, spunta — e il
+  fatto che la riga della spunta si accenda finché il tetto è superato.
 - **Invio della richiesta** (`routes/requests.tsx`, azione POST): il carrello
   manda a `/requests`, che ricontrolla disponibilità e prestabilità lato
   server — il carrello vive nel browser e può essere vecchio di settimane, un
@@ -65,21 +73,33 @@ verificato dal vivo, non solo compilato:**
     mano
   - la chat (`Message`) è aperta a entrambi: è lì che ci si accorda su un
     ritiro, non solo un canale per l'admin
-- **Coda di approvazione** (`/admin/requests`): tutte le richieste in attesa,
-  più vecchie prima, con un badge sul numero nell'intestazione admin (mostrato
-  solo agli admin — un `db.request.count` in più a ogni pagina non lo paga chi
-  guarda il catalogo da anonimo). Nessuna azione qui dentro: ogni riga porta al
-  dettaglio.
-- **In ritardo** (`/admin/overdue`): stesso schema della coda di approvazione,
-  ma per gli oggetti già ritirati e non ancora tornati oltre la fine del
-  periodo. «In ritardo» è per oggetto e non per richiesta — una riconsegna
-  parziale (regola 2) può lasciarne in ritardo solo alcuni. Prima di questa
-  pagina l'unico modo di saperlo era il promemoria automatico via email
-  (`lib/reminders.server.ts`) o aprire ogni richiesta una per una; qui si vede
-  tutto insieme, più vecchie prima, col badge rosso nell'intestazione — stesso
-  `--out` del badge «in uso», perché un oggetto in ritardo è un caso di quello
-  stato, non un colore nuovo. Gli oggetti archiviati non contano: sono già
-  scritti come persi, non c'è più niente da sollecitare.
+- **Il Centro** (`/admin`): tutto quello che aspetta un admin in una schermata
+  sola — da approvare, messaggi non letti, oggi e domani, in ritardo. Prima
+  erano tre posti (`/admin/requests`, `/admin/overdue`, e la chat, che non
+  aveva **nessuna** superficie propria: una risposta di un socio non compariva
+  da nessuna parte finché non si apriva quella richiesta). I due indirizzi
+  vecchi restano e rimandano qui con `?vista=`, perché un segnalibro non deve
+  smettere di funzionare per una riorganizzazione nostra.
+
+  **L'ordine delle sezioni non è per gravità ma per chi sta aspettando te**:
+  su un ritardo il tempo è già passato e nessuno è fermo davanti a una tua
+  azione, su una richiesta in attesa c'è una persona che aspetta. Unica
+  eccezione, dichiarata: un ritardo oltre la settimana fa salire quella
+  sezione in cima.
+
+  **Nessuna azione qui dentro**: ogni riga porta al dettaglio. Approvare da un
+  elenco significa approvare senza aver letto.
+
+  «Non letto» sono due segnalibri (`Request.adminSeenAt`, `userSeenAt`)
+  confrontati con la data dell'ultimo messaggio, scritti da `markSeen()` nel
+  loader del dettaglio. Lo stesso meccanismo dà a chi chiede in prestito il
+  segnale che gli è sempre mancato — «ti hanno risposto» — su `/requests` e
+  come pallino nel menu.
+
+- **Le pagine si aggiornano da sole** (`lib/events.server.ts`,
+  `routes/api.stream.tsx`, `lib/use-live.ts`): la chat di una richiesta e il
+  Centro. Vedi *Il canale dal vivo*.
+
 - **Promemoria di riconsegna**: automatico, uno spazzatore orario in-process
   con guardia sul giorno già fatto (`lib/reminders.server.ts`, avviato dal
   loader radice), più il pulsante a mano nel dettaglio. Tutte le email di una
@@ -362,7 +382,23 @@ pulsante primario andava corretto in dodici punti.
   prossima volta che cambia una misura.
 
 - Lo stato di un oggetto passa sempre da `StateBadge`. Il colore non è mai
-  l'unico portatore: parola e, quando c'è, data.
+  l'unico portatore: parola, **forma** e, quando c'è, data.
+
+  **Due toni.** `tone="solid"` per il catalogo e la scheda di un oggetto, dove
+  la domanda si legge da lontano: su una griglia di venti schede tre velature
+  hanno lo stesso peso visivo e si distinguono solo leggendole una per una.
+  `tone="soft"` per gli elenchi fitti dell'admin, dove dodici pastiglie piene
+  di fila diventano una coperta. La scheda del catalogo porta anche una fascia
+  di stato in cima, del colore che decide `visualStateOf` — la stessa
+  funzione del badge, o la scheda direbbe una cosa e la pastiglia dentro
+  un'altra.
+
+  **La forma** (`●` libero, `▪` bloccato, `◇` non prestabile) porta lo stesso
+  significato senza colore: circa un uomo su dodici non distingue verde e
+  rosso, e su un elenco stampato non li distingue nessuno. `NOT_BOOKABLE`
+  resta un contorno anche nel tono pieno — un grigio pieno griderebbe quanto
+  il rosso, mentre i segnali forti sono due (si può, non si può) e quello è
+  assenza di gioco.
 
   Il badge riceve lo stato **di dominio** (tre più «non prestabile») e ne
   mostra uno **visivo**, perché il colore deve rispondere a una domanda sola:
@@ -473,6 +509,11 @@ l'accesso a tutti consumandoli. Better Auth stesso lo segnala nei log.
 - **Il limite di frequenza sta in memoria**, quindi si azzera a ogni riavvio e
   non si condivide fra processi. Con un processo solo va bene; se un giorno se
   ne mettono due, va spostato su database.
+- **L'emettitore del canale dal vivo ha lo stesso limite** e per la stessa
+  ragione (`lib/events.server.ts`): vive dentro al processo. Con due processi,
+  un messaggio scritto su A non sveglia una scheda collegata a B, e la
+  sostituzione è `LISTEN/NOTIFY` di Postgres — una ventina di righe, stessa
+  forma. **Le due cose vanno spostate insieme**: sono la stessa assunzione.
 - **Il registro degli admin non copre le modifiche di campo.** Rinominare un
   oggetto, cambiarne la descrizione o la categoria non lascia traccia: è una
   scelta, non una dimenticanza (sono azioni reversibili e a basso rischio, e
@@ -510,6 +551,14 @@ Non inventare un accento diverso dal rosso.
 I colori sono tutti in `app/app.css`, quindi il cambio è quasi solo una
 sostituzione di valori. **Ogni colore va definito anche fuori dal blocco del
 tema scuro**, o sparisce nel tema chiaro.
+
+**Il rosso del marchio e il rosso «occupato» si scontreranno**, ed è la sola
+cosa da sapere prima di iniziare il rebrand. La difesa è già in piedi e va
+solo rispettata: gli stati usano **token propri** (`--out`, `--free`,
+`--idle`, più le versioni `-solid`) e **mai `--accent`**. Quando arriverà il
+rosso di Material Matters, `--out` potrà scendere verso un bordeaux profondo
+o verso l'inchiostro pieno **senza toccare una riga di componente**. Chi
+cambia quei valori ricalcola i rapporti e li riscrive accanto.
 
 **1. Ogni token semantico dice una cosa sola.** `--out` significa
 «indisponibile o guasto». Quando è servito un fondo per la modalità admin è
@@ -562,6 +611,7 @@ app/
     reset-password.tsx  imposta una password da un link — anche il primo utilizzo
     account.tsx         il proprio profilo: foto, nome, alias, lingua
     api.auth.$.tsx      gestore unico di Better Auth
+    api.stream.tsx      il canale dal vivo: colpetti, mai contenuti
     language.tsx        cambio lingua (scrive il cookie)
 
   routes/ — richieste (chi prende in prestito)
@@ -570,7 +620,8 @@ app/
       ritiro/riconsegna per oggetto, nota, promemoria
 
   routes/ — solo admin
-    admin.requests.tsx         la coda di approvazione
+    admin.tsx                  il Centro: coda, messaggi, oggi, ritardi
+    admin.requests.tsx         rimanda al Centro (segnalibri vecchi)
     admin.members.tsx          i soci: ruolo e link di reset password
     admin.assets.tsx           gli oggetti: ricerca, filtro, gruppi per categoria
     admin.assets.$id.tsx       scheda di un oggetto: modifica, foto, QR, storico, archivia/elimina
@@ -607,6 +658,9 @@ app/
     auth.server.ts           configurazione dell'accesso (Better Auth)
     auth-client.ts           il client di Better Auth, lato browser
     audit.server.ts          logAdminAction: il registro, una funzione sola
+    inbox.server.ts          le domande del Centro (l'unico SQL grezzo, col perché)
+    events.server.ts         la campanella del canale dal vivo
+    use-live.ts              l'aggancio nel browser: apre, ricarica, ripiega
     qr.server.ts             il QR di un oggetto, e l'indirizzo che ci sta dentro
     notifications.server.ts  tutte le email di una richiesta, in un posto solo
     reminders.server.ts      lo spazzatore orario del promemoria automatico
@@ -632,6 +686,64 @@ prisma/schema.prisma    dieci tabelle nostre + tre di Better Auth (Session, Acco
 importa il database, quindi un componente che ne prendesse `MAX_ORDINARY_SPAN_DAYS`
 si porterebbe Prisma dentro al pacchetto del browser. I due tetti di durata
 servono da entrambe le parti e devono restare **lo stesso numero**.
+
+### Il canale dal vivo
+
+La chat di una richiesta e il Centro si aggiornano da soli. Tre file:
+`lib/events.server.ts` (la campanella), `routes/api.stream.tsx` (il canale),
+`lib/use-live.ts` (l'aggancio nel browser).
+
+**La regola che rende la cosa difendibile, e che non va rotta:**
+
+> **Sul canale non passa mai un contenuto.** Il server manda un colpetto — «la
+> richiesta X è cambiata» — e il browser ricarica il loader che esisteva già,
+> con `loadAuthorized` e i suoi `select` scritti a mano. Nessun campo può
+> uscire da una strada nuova, perché **non c'è una strada nuova**: c'è una
+> campanella.
+
+Da qui il resto: `api.stream.tsx` non sceglie campi perché non ne manda
+nessuno, e ripete comunque la stessa autorizzazione del dettaglio — 404 a chi
+non c'entra, perché «tanto l'id è difficile da indovinare» non è una difesa.
+
+**Server-Sent Events e non WebSocket.** Il canale serve in una direzione sola
+(il browser scrive già con i moduli), passa da Cloudflare e da Traefik senza
+configurazione, e non obbliga a sostituire `react-router-serve` con un Express
+scritto a mano. Nessuna dipendenza in più.
+
+Le cose che si scoprono solo sbattendoci:
+
+- **Il battito ogni 25 secondi non è un vezzo.** Sotto al timeout più corto
+  che si incontra fra proxy e reti mobili: senza, la connessione viene
+  tagliata, il ripiego entra in funzione e sembra che il canale non funzioni.
+  La riga che comincia per `:` è un commento del protocollo — tiene viva la
+  connessione e non innesca niente.
+- **La pulizia sull'`abort` è obbligatoria.** Senza, ogni scheda chiusa lascia
+  un ascoltatore attaccato all'emettitore e un intervallo acceso: la memoria
+  del processo sale e non scende mai. Non si vede finché il server non è su da
+  una settimana. C'è anche un tetto di cinque flussi per persona.
+- **Il canale si apre solo a scheda visibile**, e tornando in primo piano
+  ricarica subito: quello è il momento in cui può essere cambiato qualcosa
+  mentre non si guardava. Una scheda dimenticata in fondo alla finestra non
+  deve tenere una connessione occupata.
+- **Dopo tre errori di fila si passa a un giro ogni quindici secondi.** Ci
+  sono reti a cui le connessioni lunghe non sopravvivono, e lì un canale che
+  si riapre in continuazione è peggio del sondaggio. Senza il ripiego la
+  funzione sarebbe «di solito funziona», che per un messaggio atteso non
+  basta.
+- **In sviluppo il canale si apre due volte e la prima si chiude subito**:
+  React monta e rimonta ogni componente, la pulizia dell'effetto fa il suo
+  lavoro. Nel pannello Rete si vede un `ERR_ABORTED` che non è un guasto.
+- **Chi aggiunge un intento a `request-detail.tsx` deve rispondere con
+  `changed()`**, non con un `return` scritto a mano: era ripetuto sette volte,
+  e dimenticarne uno dà una pagina che si aggiorna *quasi* sempre — il difetto
+  che nessuno segnala e per cui tutti smettono di fidarsi.
+- **Un service worker non deve intercettare `/api/stream`.** Un flusso
+  trattato come una richiesta normale si rompe in modo difficile da
+  diagnosticare: la connessione sembra aperta e non arriva mai niente.
+
+Il limite del processo unico è scritto in *Sicurezza → Cosa resta aperto*,
+accanto a quello del limite di frequenza: sono la stessa assunzione e si
+spostano insieme.
 
 ### Il QR e la consegna diretta
 
