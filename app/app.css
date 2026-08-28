@@ -62,7 +62,8 @@
 
 :root {
   --paper: #edeff2;
-  --card: #ffffff;
+  /*--card: #ffffff;*/
+  --card: #ac3434;
   --sunk: #e4e7ec;
   --ink: #16202e;
   /* 6,16:1 su card — le etichette piccole che portano informazione stanno
