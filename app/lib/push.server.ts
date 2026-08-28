@@ -37,6 +37,20 @@ export type PushMessage = {
 };
 
 /**
+ * EXPERIMENTAL — spento apposta, non per chiavi mancanti.
+ *
+ * Verificato il 28 agosto 2026: l'iscrizione arriva al server, il server la
+ * salva, `webpush.sendNotification` la manda senza sollevare un errore — ma
+ * su desktop (macOS + Brave, il caso provato) non compare mai a schermo. La
+ * causa non è stata isolata da remoto (permesso del sito concesso, servizi
+ * push di Google riattivati in Brave, nessun errore nei log). Finché non si
+ * riprende in mano con calma — magari direttamente su un telefono vero, che
+ * è comunque un passo ancora da fare — resta spento qui: una bandiera sola,
+ * una riga da girare quando si ricomincia.
+ */
+const PUSH_NOTIFICATIONS_ENABLED = false;
+
+/**
  * Le chiavi, lette una volta sola.
  *
  * Se mancano, le notifiche restano spente e tutto continua a funzionare via
@@ -46,6 +60,7 @@ export type PushMessage = {
 let configured: boolean | null = null;
 
 function ready(): boolean {
+  if (!PUSH_NOTIFICATIONS_ENABLED) return false;
   if (configured !== null) return configured;
 
   const publicKey = process.env.VAPID_PUBLIC_KEY;

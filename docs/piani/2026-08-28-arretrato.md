@@ -13,6 +13,14 @@ di tutte le altre a prescindere da cosa sembra più urgente.
 > notifiche push e scelta del canale nel profilo sono dentro alla 0.7. È
 > rimasta qui sotto perché il ragionamento che la riguarda serve ancora — in
 > particolare le prove su dispositivi veri, che restano da fare.
+>
+> **Aggiornamento del 28 agosto 2026: le notifiche push sono `EXPERIMENTAL`
+> e spente.** Chiavi VAPID impostate ovunque, giro provato per intero —
+> iscrizione salvata, `web-push` la manda senza errori — ma su desktop
+> (macOS + Brave) non compare mai niente a schermo, e la causa non si è
+> isolata da remoto. `PUSH_NOTIFICATIONS_ENABLED = false` in
+> `push.server.ts` la spegne con una bandiera sola. Da riprendere insieme
+> alle prove su dispositivi veri qui sotto, non prima.
 
 ---
 

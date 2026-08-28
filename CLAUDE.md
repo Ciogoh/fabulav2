@@ -139,11 +139,14 @@ verificato dal vivo, non solo compilato:**
   Tutti gli avvisi di una richiesta — nuova, decisa, annullata, i quattro
   promemoria, il riassunto — vivono in un posto solo,
   `lib/notifications.server.ts`.
-- **Fabula si installa, e ogni persona sceglie da dove essere avvisata** —
-  vedi *L'app installabile e le notifiche*. In due parole: icona sulla
-  schermata Home e finestra senza barra del browser; e nel profilo si sceglie
-  fra email, notifiche dell'app o entrambe, con l'email che resta comunque il
-  ripiego quando una notifica non parte.
+- **Fabula si installa.** Icona sulla schermata Home, finestra senza barra
+  del browser. Vedi *L'app installabile e le notifiche*.
+  **Le notifiche push sono `EXPERIMENTAL` e spente apposta** (`push.server.ts`,
+  `PUSH_NOTIFICATIONS_ENABLED = false`): l'iscrizione riesce e il server manda
+  senza errori, ma su desktop (macOS + Brave, verificato il 28 agosto 2026)
+  non compare mai a schermo, e la causa non è stata isolata da remoto. Finché
+  resta spenta, ogni avviso di prestito va per email — che è il ripiego
+  sempre esistito, non una funzione degradata.
 - **Pannello admin: oggetti, categorie e kit** (`/admin/assets`, tre schede),
   con ricerca, filtro, gruppi per categoria e spostamento in blocco. Una
   categoria si crea anche dal menu a tendina della scheda di un oggetto, senza
@@ -180,6 +183,12 @@ verificato dal vivo, non solo compilato:**
    locale, ma un iPhone e un Android in mano non li ha ancora visti nessuno —
    ed è il passo che trova più difetti di tutti gli altri messi insieme. Vedi
    *L'app installabile e le notifiche*, in fondo al capitolo.
+3. **Le notifiche push, `EXPERIMENTAL` e spente.** Il pacchetto arriva
+   davvero al browser (verificato dai log del server), ma su desktop non
+   compare mai a schermo — permesso concesso, servizi push di Google attivi
+   in Brave, nessun errore da nessuna parte. Prima di riaccenderle
+   (`PUSH_NOTIFICATIONS_ENABLED` in `push.server.ts`) vale la pena provarle
+   direttamente su un telefono vero, che è comunque il punto 2 qui sopra.
 
 La storia di come ci siamo arrivati sta in [`CHANGELOG.md`](./CHANGELOG.md), i
 ragionamenti dietro a ogni passo in [`docs/piani/`](./docs/piani/).
@@ -856,6 +865,17 @@ forma, stessa promessa che un errore non faccia mai fallire l'azione che l'ha
 innescato. Qui però una libreria (`web-push`) si paga da sola — una notifica
 va cifrata da capo a fondo con ECDH e `aes128gcm` e la chiave del server
 firmata come JWT VAPID, cioè crittografia vera, non una POST con un token.
+
+**`EXPERIMENTAL` — spento apposta, non per chiavi mancanti.** Il 28 agosto
+2026 le chiavi VAPID sono state impostate ovunque e il giro provato per
+intero: l'iscrizione arriva al server, il server la salva, `web-push` la
+manda senza sollevare errori — ma su desktop (macOS + Brave, il caso
+provato) non compare mai a schermo. Permesso del sito concesso, servizi
+push di Google riattivati in Brave, niente nei log: la causa non si è fatta
+trovare da remoto. `PUSH_NOTIFICATIONS_ENABLED` in `push.server.ts` la
+spegne con una bandiera sola, senza toccare il resto del giro — riportarla
+a `true` quando si riprende in mano, magari direttamente su un telefono
+vero.
 
 `lib/notifications.server.ts` è **l'unico posto che legge
 `User.notifyChannel`**, e quella singolarità è ciò che tiene in piedi il
