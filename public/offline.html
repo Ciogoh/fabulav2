@@ -1,0 +1,135 @@
+<!doctype html>
+<!--
+  La pagina che si vede quando la rete non c'è.
+
+  Deve bastare a se stessa: quando la si legge non c'è modo di scaricare un
+  foglio di stile, un carattere o un'immagine. Quindi stili in linea, logo
+  disegnato dentro al file, e niente che assomigli a una dipendenza.
+
+  Perché esiste: il service worker non mette in cache nessuna pagina di Fabula
+  (vedi la regola in cima a `sw.js`), quindi senza rete l'unica alternativa
+  sarebbe il dinosauro di Chrome dentro a una finestra che sembra un'app
+  rotta.
+
+  Le tre lingue stanno tutte qui e ne sceglie una lo script in fondo: da un
+  file statico non si può leggere né il cookie della lingua né il profilo, e
+  quattordici parole in tre lingue costano meno di un giro sul server che
+  comunque non si può fare.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fabula</title>
+    <style>
+      /* Gli stessi valori di `app/app.css`, copiati e non importati: al
+         momento in cui questa pagina serve, `app.css` non è raggiungibile.
+         Se i token cambiano col rebrand, cambiano anche qui — è l'unico posto
+         di Fabula in cui un colore è scritto due volte, ed è per forza. */
+      :root {
+        color-scheme: light dark;
+        --paper: #edeff2;
+        --card: #ffffff;
+        --ink: #16202e;
+        --muted: #586273;
+        --rule: #d3d9e2;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #0f131a;
+          --card: #161b24;
+          --ink: #e3e8ef;
+          --muted: #97a2b2;
+          --rule: #2a313e;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1.5rem;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+      }
+      main {
+        width: 100%;
+        max-width: 26rem;
+        text-align: center;
+        background: var(--card);
+        border: 1px solid var(--rule);
+        border-radius: 0.5rem;
+        padding: 2.5rem 1.75rem;
+      }
+      svg { width: 3.5rem; height: 3.5rem; }
+      h1 { margin: 1.25rem 0 0; font-size: 1.375rem; font-weight: 600; }
+      p { margin: 0.75rem 0 0; color: var(--muted); font-size: 0.9375rem; line-height: 1.5; }
+      button {
+        margin-top: 1.75rem;
+        min-height: 2.75rem;
+        padding: 0.5rem 1.25rem;
+        font: inherit;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--ink);
+        background: transparent;
+        border: 1px solid var(--rule);
+        border-radius: 0.25rem;
+        cursor: pointer;
+      }
+      button:hover { border-color: var(--ink); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg viewBox="0 0 512 512" role="img" aria-label="Fabula" xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(71.68 128.42) scale(2.2768)" fill="#ec008c">
+          <polygon points="161.98 0 161.98 27 80.99 27 80.99 53.99 134.98 53.99 134.98 80.99 80.99 80.99 80.99 134.99 0 134.99 0 80.99 26.99 80.99 26.99 107.99 53.99 107.99 53.99 27 26.99 27 26.99 0"/>
+        </g>
+      </svg>
+      <h1 id="title">No connection</h1>
+      <p id="body">
+        Fabula needs the network: the catalogue and the loans are never kept on
+        this device.
+      </p>
+      <button type="button" id="retry" onclick="location.reload()">Try again</button>
+    </main>
+
+    <script>
+      var TEXTS = {
+        en: {
+          title: "No connection",
+          body: "Fabula needs the network: the catalogue and the loans are never kept on this device.",
+          retry: "Try again",
+        },
+        it: {
+          title: "Senza connessione",
+          body: "Fabula ha bisogno della rete: il catalogo e i prestiti non restano mai su questo dispositivo.",
+          retry: "Riprova",
+        },
+        de: {
+          title: "Keine Verbindung",
+          body: "Fabula braucht das Netz: Katalog und Ausleihen werden nie auf diesem Gerät gespeichert.",
+          retry: "Erneut versuchen",
+        },
+      };
+
+      var lang = (navigator.language || "en").slice(0, 2).toLowerCase();
+      var text = TEXTS[lang] || TEXTS.en;
+      document.documentElement.lang = lang in TEXTS ? lang : "en";
+      document.getElementById("title").textContent = text.title;
+      document.getElementById("body").textContent = text.body;
+      document.getElementById("retry").textContent = text.retry;
+
+      /* Quando la rete torna, la pagina si ricarica da sola: chi ha il
+         telefono in mano nel corridoio dove non prende non deve accorgersi
+         del momento esatto in cui riprende. */
+      window.addEventListener("online", function () {
+        location.reload();
+      });
+    </script>
+  </body>
+</html>

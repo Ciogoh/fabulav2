@@ -26,7 +26,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Form, useFetcher, useNavigation } from "react-router";
+import { Form, useFetcher, useNavigation, useRevalidator } from "react-router";
 import type { Route } from "./+types/account";
 import { pageTitle } from "~/i18n/meta";
 import { db } from "~/lib/db.server";
@@ -41,6 +41,7 @@ import {
 import { useT } from "~/i18n/use-t";
 import { PageShell, PageTitle } from "~/components/page";
 import { Button, buttonClass } from "~/components/button";
+import { Select } from "~/components/select";
 import { Avatar, PersonName } from "~/components/person";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import {
@@ -48,6 +49,19 @@ import {
   ACCEPTED_IMAGE_TYPES,
   MAX_UPLOAD_BYTES,
 } from "~/lib/uploads.shared";
+import type { NotifyChannel } from "~/generated/prisma/enums";
+import { vapidPublicKey } from "~/lib/push.server";
+import { deviceLabel } from "~/lib/push.shared";
+import {
+  currentEndpoint,
+  disablePush,
+  enablePush,
+  pushPermission,
+  testPush,
+  type PushPermission,
+} from "~/lib/push.client";
+import { promptInstall, useInstallState } from "~/components/pwa";
+import { useFormatDay } from "~/i18n/use-t";
 
 export function meta({ matches }: Route.MetaArgs) {
   return [{ title: pageTitle(matches, "account.heading") }];
@@ -55,6 +69,23 @@ export function meta({ matches }: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await requireUser(request);
+
+  /* `notifyChannel` si legge qui e non da `CurrentUser`: questa è la
+     schermata che lo **modifica**, non una che decide dove mandare qualcosa.
+     Tenerlo fuori da `CurrentUser` è ciò che garantisce che l'unico posto a
+     consultarlo per spedire resti `notifications.server.ts` — e quindi che
+     il codice di accesso continui ad arrivare per email a chiunque. */
+  const [settings, devices] = await Promise.all([
+    db.user.findUniqueOrThrow({
+      where: { id: user.id },
+      select: { notifyChannel: true },
+    }),
+    db.pushSubscription.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, endpoint: true, userAgent: true, createdAt: true },
+    }),
+  ]);
 
   return {
     person: {
@@ -65,6 +96,21 @@ export async function loader({ request }: Route.LoaderArgs) {
       image: user.image,
     } satisfies Person,
     email: user.email,
+    notifyChannel: settings.notifyChannel,
+    devices: devices.map((device) => ({
+      id: device.id,
+      // Serve al browser per riconoscere **se stesso** nell'elenco. È il
+      // proprio indirizzo e non quello di nessun altro: non esce niente da
+      // qui che chi guarda non abbia già.
+      endpoint: device.endpoint,
+      label: deviceLabel(device.userAgent),
+      createdAt: device.createdAt,
+    })),
+    /* `null` significa «su questa installazione le notifiche non esistono»:
+       mancano le chiavi VAPID nel `.env`. Non è un guasto — tutti gli avvisi
+       partono via email, come prima — ma la sezione non va mostrata, o
+       offrirebbe un pulsante che non può funzionare. */
+    vapidPublicKey: vapidPublicKey(),
   };
 }
 
@@ -103,6 +149,30 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "removePhoto") {
     await db.user.update({ where: { id: user.id }, data: { image: null } });
     await deleteAvatarFile(user.image);
+    return { ok: true as const };
+  }
+
+  if (intent === "notifyChannel") {
+    const channel = String(form.get("channel") ?? "");
+    if (channel !== "EMAIL" && channel !== "PUSH" && channel !== "BOTH") {
+      return { ok: false as const, error: "account.notifyError" as TranslationKey };
+    }
+
+    await db.user.update({
+      where: { id: user.id },
+      data: { notifyChannel: channel satisfies NotifyChannel },
+    });
+    return { ok: true as const };
+  }
+
+  if (intent === "removeDevice") {
+    /* `deleteMany` con `userId` e non `delete` per id: l'id arriva dal
+       modulo, e conoscere quello di un'iscrizione altrui non deve bastare a
+       spegnere le notifiche a un'altra persona. Stessa regola dell'azione in
+       `api.push.tsx`. */
+    await db.pushSubscription.deleteMany({
+      where: { id: String(form.get("device") ?? ""), userId: user.id },
+    });
     return { ok: true as const };
   }
 
@@ -205,6 +275,13 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
             </p>
           </div>
         </Form>
+
+        {/* ----------------------------------------------- notifiche */}
+        <NotificationSettings
+          channel={loaderData.notifyChannel}
+          devices={loaderData.devices}
+          vapidPublicKey={loaderData.vapidPublicKey}
+        />
 
         {/* L'indirizzo non si cambia da qui: è l'identità con cui si entra, e
             spostarla vuol dire un codice di conferma sul nuovo indirizzo —
@@ -481,6 +558,309 @@ function Field({
         className="min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm"
       />
       {hint && <span className="text-[0.8rem] text-muted">{hint}</span>}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------- le notifiche */
+
+/**
+ * Dove ricevere gli avvisi di prestito, e su quali dispositivi.
+ *
+ * Due cose diverse nella stessa sezione, ed è la distinzione che l'intera
+ * schermata deve far capire:
+ *
+ *   **la preferenza è della persona** — email, notifiche, o entrambe;
+ *   **l'iscrizione è del dispositivo** — il telefono e il portatile sono due
+ *   righe, e si accendono uno per uno.
+ *
+ * Chi non le distingue accende le notifiche sul portatile, esce dall'ufficio
+ * e conclude che non funzionano.
+ *
+ * Il permesso ha tre stati e vanno detti tutti e tre, perché il terzo è una
+ * strada senza ritorno: **negato una volta, dal sito non si può più
+ * chiedere**. La finestra non compare nemmeno, e senza una riga che spieghi
+ * dove andare nelle impostazioni del sistema la persona preme un pulsante che
+ * non fa niente e conclude che è rotto.
+ *
+ * Su iPhone c'è un vincolo in più e viene prima di tutto: le notifiche web
+ * esistono solo se Fabula è stata **aggiunta alla schermata Home**. Non è una
+ * preferenza fra le altre, è il prerequisito — ed è la ragione per cui
+ * l'invito a installare vive qui dentro e non in una barra che galleggia.
+ */
+function NotificationSettings({
+  channel,
+  devices,
+  vapidPublicKey,
+}: {
+  channel: NotifyChannel;
+  devices: { id: string; endpoint: string; label: string | null; createdAt: string | Date }[];
+  vapidPublicKey: string | null;
+}) {
+  const t = useT();
+  const formatDay = useFormatDay();
+  const channelFetcher = useFetcher();
+  const revalidator = useRevalidator();
+  const install = useInstallState();
+
+  /* Tutto quello che segue si può sapere solo nel browser, quindi parte da
+     «non lo so» e si riempie dopo il primo render: leggerlo durante il render
+     sul server significherebbe disegnare la sezione due volte in due modi
+     diversi e vederla sfarfallare all'idratazione. */
+  const [permission, setPermission] = useState<PushPermission>("unsupported");
+  const [thisEndpoint, setThisEndpoint] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<TranslationKey | null>(null);
+
+  useEffect(() => {
+    setPermission(pushPermission());
+    void currentEndpoint().then(setThisEndpoint);
+    // Rileggere dopo ogni cambiamento dell'elenco: chi toglie l'iscrizione di
+    // questo dispositivo deve vedere ricomparire il pulsante «attiva».
+  }, [devices]);
+
+  // La preferenza si salva da sola al cambio, come il selettore della lingua
+  // nell'intestazione: un menu a tendina con accanto un pulsante «Salva» per
+  // un campo solo è una cerimonia che nessuno completa.
+  const savedChannel = channelFetcher.data !== undefined && channelFetcher.state === "idle";
+
+  const subscribedHere = thisEndpoint !== null && devices.some((d) => d.endpoint === thisEndpoint);
+
+  async function enable() {
+    if (!vapidPublicKey) return;
+    setBusy(true);
+    setNotice(null);
+
+    const result = await enablePush(vapidPublicKey);
+    setPermission(pushPermission());
+    setBusy(false);
+
+    if (result.ok) {
+      setThisEndpoint(result.endpoint);
+      // L'elenco dei dispositivi vive nel loader: senza questo, la riga nuova
+      // comparirebbe solo alla prossima visita.
+      void revalidator.revalidate();
+      return;
+    }
+
+    setNotice(
+      result.reason === "denied"
+        ? "account.notifyDenied"
+        : result.reason === "unsupported"
+          ? "account.notifyUnsupported"
+          : "account.notifyError"
+    );
+  }
+
+  async function removeThisDevice() {
+    setBusy(true);
+    await disablePush();
+    setThisEndpoint(null);
+    setBusy(false);
+    void revalidator.revalidate();
+  }
+
+  async function sendTest() {
+    setBusy(true);
+    setNotice(null);
+    const ok = await testPush();
+    setBusy(false);
+    setNotice(ok ? "account.notifyTestSent" : "account.notifyTestFailed");
+  }
+
+  /* Senza chiavi VAPID le notifiche non esistono su questa installazione:
+     mostrare il menu a tendina significherebbe offrire una scelta di cui due
+     valori su tre non fanno niente. */
+  if (!vapidPublicKey) return null;
+
+  return (
+    <section className="mt-10 border-t border-rule pt-8">
+      <h2 className="font-serif text-xl font-semibold">{t("account.notifyHeading")}</h2>
+      <p className="mt-2 text-sm text-muted">{t("account.notifyIntro")}</p>
+
+      {/* ------------------------------------------------ la preferenza */}
+      <channelFetcher.Form method="post" className="mt-6 max-w-xs">
+        <input type="hidden" name="intent" value="notifyChannel" />
+        <label
+          htmlFor="notifyChannel"
+          className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+        >
+          {t("account.notifyChannel")}
+        </label>
+        <div className="mt-1.5">
+          <Select
+            id="notifyChannel"
+            name="channel"
+            defaultValue={channel}
+            onChange={(event) => channelFetcher.submit(event.currentTarget.form)}
+          >
+            <option value="EMAIL">{t("account.notifyChannelEmail")}</option>
+            <option value="PUSH">{t("account.notifyChannelPush")}</option>
+            <option value="BOTH">{t("account.notifyChannelBoth")}</option>
+          </Select>
+        </div>
+        <p aria-live="polite" className="mt-1.5 text-[0.8rem] text-free">
+          {savedChannel ? t("account.saved") : ""}
+        </p>
+      </channelFetcher.Form>
+
+      {/* La riga che vale metà della schermata: senza, chi sceglie «solo
+          notifiche» ha ragione di temere di non ricevere più il codice per
+          entrare. */}
+      <p className="mt-3 max-w-prose text-[0.8rem] text-muted">
+        {t("account.notifyChannelHint")}
+      </p>
+
+      {/* ------------------------------------------------ i dispositivi */}
+      <h3 className="mt-8 font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+        {t("account.notifyDevices")}
+      </h3>
+
+      {devices.length === 0 ? (
+        <p className="mt-2 text-sm text-muted">{t("account.notifyNoDevices")}</p>
+      ) : (
+        <ul className="mt-2 flex flex-col divide-y divide-rule border-y border-rule">
+          {devices.map((device) => {
+            const isThisOne = device.endpoint === thisEndpoint;
+
+            return (
+              <li key={device.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3">
+                <span className="text-sm">
+                  {device.label ?? t("account.notifyUnknownDevice")}
+                  {isThisOne && (
+                    <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[0.7rem] text-accent">
+                      {t("account.notifyThisDevice")}
+                    </span>
+                  )}
+                </span>
+                <span className="text-[0.8rem] text-muted">
+                  {t("account.notifyAdded", { date: formatDay(device.createdAt) })}
+                </span>
+
+                <span className="ml-auto">
+                  {isThisOne ? (
+                    /* Su questo dispositivo non basta cancellare la riga: va
+                       disdetta anche l'iscrizione dentro al browser, o il
+                       servizio push continuerebbe a considerarla viva e il
+                       pulsante «attiva» ritroverebbe la vecchia. */
+                    <Button variant="danger" size="sm" onClick={removeThisDevice} disabled={busy}>
+                      {t("account.notifyRemove")}
+                    </Button>
+                  ) : (
+                    <RemoveDeviceButton id={device.id} label={t("account.notifyRemove")} />
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {/* ------------------------------------------------- le azioni */}
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        {!subscribedHere && permission !== "denied" && permission !== "unsupported" && (
+          /* Il permesso si può chiedere **solo** da un gesto vero della
+             persona: è un requisito dei browser, non una scelta di stile.
+             Chiederlo al caricamento della pagina lo fa negare a tutti. */
+          <Button variant="primary" onClick={enable} disabled={busy}>
+            {t("account.notifyEnable")}
+          </Button>
+        )}
+
+        {subscribedHere && (
+          <Button variant="secondary" onClick={sendTest} disabled={busy}>
+            {t("account.notifyTest")}
+          </Button>
+        )}
+      </div>
+
+      {permission === "denied" && (
+        <p className="mt-4 max-w-prose rounded bg-sunk px-3 py-2 text-sm text-muted">
+          {t("account.notifyDenied")}
+        </p>
+      )}
+
+      {permission === "unsupported" && !install.isIos && (
+        <p className="mt-4 max-w-prose text-sm text-muted">{t("account.notifyUnsupported")}</p>
+      )}
+
+      {notice && permission !== "denied" && (
+        <p aria-live="polite" className="mt-4 text-sm text-muted">
+          {t(notice)}
+        </p>
+      )}
+
+      {/* ------------------------------------------- installare l'app */}
+      <InstallInvitation state={install} />
+    </section>
+  );
+}
+
+/** Togliere un dispositivo che non è questo: solo la riga nel database, perché
+ * l'iscrizione dentro a quel browser la può disdire solo quel browser. Smette
+ * comunque di ricevere: è il server a non avere più il suo indirizzo. */
+function RemoveDeviceButton({ id, label }: { id: string; label: string }) {
+  const fetcher = useFetcher();
+
+  return (
+    <fetcher.Form method="post">
+      <input type="hidden" name="intent" value="removeDevice" />
+      <input type="hidden" name="device" value={id} />
+      <Button type="submit" variant="danger" size="sm" disabled={fetcher.state !== "idle"}>
+        {label}
+      </Button>
+    </fetcher.Form>
+  );
+}
+
+/**
+ * «Installa Fabula», due strade completamente diverse.
+ *
+ * Android e i desktop mandano un evento (`beforeinstallprompt`) e si può
+ * mostrare un pulsante vero. iOS non lo manda e non lo manderà: lì l'unica
+ * strada sono le istruzioni scritte — Condividi, poi Aggiungi alla schermata
+ * Home — e vanno mostrate **solo** su iOS e **solo** se non è già installata,
+ * o si finisce col dare istruzioni per una cosa già fatta.
+ */
+function InstallInvitation({ state }: { state: ReturnType<typeof useInstallState> }) {
+  const t = useT();
+  const [hidden, setHidden] = useState(false);
+
+  if (state.isInstalled || hidden) return null;
+
+  if (state.isIos) {
+    return (
+      <div className="mt-6 rounded border border-rule bg-sunk p-4">
+        <p className="text-sm font-medium">{t("account.installHeading")}</p>
+        {/* Su iPhone questa non è una comodità: senza l'icona sulla schermata
+            Home, le notifiche web non arrivano affatto. È un vincolo di
+            Apple, e va detto qui o la persona attiva le notifiche e aspetta
+            per sempre. */}
+        <p className="mt-1.5 text-[0.8rem] text-muted">{t("account.installIosWhy")}</p>
+        <p className="mt-2 text-sm">{t("account.installIosHow")}</p>
+        <Button variant="plain" size="sm" className="mt-2" onClick={() => setHidden(true)}>
+          {t("account.installDismiss")}
+        </Button>
+      </div>
+    );
+  }
+
+  if (!state.canPrompt) return null;
+
+  return (
+    <div className="mt-6 flex flex-wrap items-center gap-3 rounded border border-rule bg-sunk p-4">
+      <p className="text-sm">{t("account.installHeading")}</p>
+      <Button
+        variant="secondary"
+        size="sm"
+        className="ml-auto"
+        onClick={async () => {
+          const outcome = await promptInstall();
+          if (outcome !== "unavailable") setHidden(true);
+        }}
+      >
+        {t("account.installButton")}
+      </Button>
     </div>
   );
 }

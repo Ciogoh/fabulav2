@@ -79,6 +79,10 @@ async function loadAuthorized(userId: string, isAdminRole: boolean, id: string) 
       // richiesta deve vedere l'alias *e* il nome vero.
       user: {
         select: {
+          // Serve agli avvisi: un avviso appartiene a una persona — è la
+          // chiave con cui `deliver` trova il canale scelto e i dispositivi
+          // iscritti — e non a una casella di posta.
+          id: true,
           name: true,
           firstName: true,
           lastName: true,
@@ -333,8 +337,11 @@ export async function action({ request, params }: Route.ActionArgs) {
 
       try {
         await notifyRequesterCancelled({
-          to: req.user.email,
-          name: fullLabelOf(req.user),
+          to: {
+            id: req.user.id,
+            email: req.user.email,
+            name: fullLabelOf(req.user),
+          },
           itemNames: req.items.map((item) => item.asset.name),
           startDate: req.startDate,
           endDate: req.endDate,
@@ -384,8 +391,11 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     try {
       await notifyRequesterDecision({
-        to: req.user.email,
-        name: fullLabelOf(req.user),
+        to: {
+          id: req.user.id,
+          email: req.user.email,
+          name: fullLabelOf(req.user),
+        },
         itemNames: req.items.map((item) => item.asset.name),
         startDate: req.startDate,
         endDate: req.endDate,
@@ -437,12 +447,22 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   if (intent === "reminder") {
     try {
-      await sendReturnReminder({
-        to: req.user.email,
-        name: fullLabelOf(req.user),
+      /* `deliver` non solleva: restituisce `false`. Un promemoria che non
+         è arrivato deve dirlo a chi ha premuto il pulsante, o l'admin resta
+         convinto di aver sollecitato qualcuno che non ha saputo niente. */
+      const delivered = await sendReturnReminder({
+        to: {
+          id: req.user.id,
+          email: req.user.email,
+          name: fullLabelOf(req.user),
+        },
         itemNames: req.items.map((item) => item.asset.name),
         endDate: req.endDate,
+        requestId: req.id,
       });
+      if (!delivered) {
+        return { ok: false as const, error: "request.errorReminderFailed" as TranslationKey };
+      }
     } catch (error) {
       console.error("Invio promemoria fallito:", error);
       return { ok: false as const, error: "request.errorReminderFailed" as TranslationKey };

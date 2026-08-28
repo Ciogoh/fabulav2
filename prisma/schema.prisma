@@ -34,6 +34,21 @@ enum Language {
   DE
 }
 
+/// Da dove una persona vuole essere avvisata **dei prestiti**.
+///
+/// Non di tutto: il codice di accesso, la reimpostazione della password e le
+/// comunicazioni sulla piattaforma restano email per chiunque, qualunque cosa
+/// dica questo campo. Una notifica che non arriva è un fastidio; un codice di
+/// accesso che non arriva chiude fuori una persona.
+///
+/// Il valore predefinito è `EMAIL` di proposito: le notifiche sono
+/// interruzioni, e chi le vuole se le accende — non se le trova addosso.
+enum NotifyChannel {
+  EMAIL
+  PUSH
+  BOTH
+}
+
 model User {
   id    String @id @default(cuid())
   email String @unique
@@ -56,6 +71,11 @@ model User {
   alias String?
 
   language Language @default(EN)
+
+  /// Il canale scelto per gli avvisi di prestito. Lo legge un posto solo,
+  /// `notifications.server.ts`, e nessun altro deve cominciare a consultarlo:
+  /// è quella singolarità a garantire che l'accesso resti sempre via email.
+  notifyChannel NotifyChannel @default(EMAIL)
 
   /// `input: false` nella configurazione di Better Auth: senza quello chiunque
   /// potrebbe mandare `role=ADMIN` nella richiesta di registrazione e nominarsi
@@ -82,6 +102,44 @@ model User {
   sessions        Session[]
   accounts        Account[]
   adminActions    AdminAction[]
+
+  pushSubscriptions PushSubscription[]
+}
+
+/// Un'iscrizione alle notifiche push: **una per dispositivo**, non per
+/// persona. Il telefono e il portatile della stessa persona sono due righe, e
+/// nella schermata del profilo si vedono come due righe — la preferenza è
+/// della persona, l'iscrizione è del dispositivo, e confonderle porta a
+/// spegnere le notifiche dappertutto credendo di spegnerle qui.
+///
+/// Le righe morte si cancellano da sole: quando il servizio push del browser
+/// risponde 404 o 410 vuol dire che quel dispositivo non esiste più (app
+/// disinstallata, dati del browser puliti) e `push.server.ts` elimina la
+/// riga. Senza quella pulizia la tabella si riempie di indirizzi che
+/// falliscono per sempre.
+model PushSubscription {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// L'indirizzo che il servizio push del browser ci consegna. Unico per
+  /// costruzione: è lui a identificare il dispositivo, non `id`.
+  endpoint String @unique
+
+  /// Le due chiavi con cui si cifra il messaggio da capo a fondo. Senza,
+  /// il servizio push consegnerebbe una busta che il browser non sa aprire.
+  p256dh String
+  auth   String
+
+  /// Solo per far riconoscere il dispositivo nell'elenco del profilo:
+  /// «Chrome su Android» accanto a una data dice a chi legge quale dei suoi
+  /// due telefoni sta guardando. Non si usa per nient'altro.
+  userAgent String?
+
+  createdAt     DateTime  @default(now())
+  lastSuccessAt DateTime?
+
+  @@index([userId])
 }
 
 // ------------------------------------------------------- autenticazione

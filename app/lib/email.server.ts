@@ -66,10 +66,31 @@ export async function sendEmail({ to, subject, text }: SendArgs): Promise<void> 
   }
 }
 
-/** Gli indirizzi a cui notificare le nuove richieste. */
-export function adminEmails(): string[] {
+/**
+ * Gli indirizzi **in più** a cui mandare le nuove richieste.
+ *
+ * Prima era la lista dei destinatari, punto. Adesso i destinatari veri sono
+ * gli utenti con ruolo `ADMIN` letti dal database, ciascuno sul canale che ha
+ * scelto (`notifications.server.ts`), e `ADMIN_EMAILS` resta solo per chi non
+ * ha un account: la casella condivisa dell'associazione, il tesoriere che
+ * vuole sapere e basta.
+ *
+ * Gli indirizzi che coincidono con quello di un admin registrato **vengono
+ * scartati**, e non è un dettaglio: senza questo filtro chi ha scelto «solo
+ * notifiche» continuerebbe a ricevere la posta dalla porta di servizio, che è
+ * esattamente il problema che la preferenza doveva risolvere.
+ *
+ * Il confronto è insensibile alle maiuscole perché la parte a destra della
+ * chiocciola lo è per definizione, e perché un indirizzo scritto a mano in un
+ * `.env` non ha nessuna ragione di combaciare carattere per carattere con
+ * quello che una persona ha usato per registrarsi.
+ */
+export function extraAdminEmails(registered: string[]): string[] {
+  const known = new Set(registered.map((address) => address.trim().toLowerCase()));
+
   return (process.env.ADMIN_EMAILS ?? "")
     .split(",")
     .map((address) => address.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((address) => !known.has(address.toLowerCase()));
 }

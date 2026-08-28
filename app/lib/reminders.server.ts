@@ -47,6 +47,10 @@ async function runDailySweep(): Promise<void> {
       endDate: true,
       user: {
         select: {
+          // `id` perché un avviso appartiene a una persona e non a una
+          // casella: è la chiave con cui `deliver` trova il canale scelto e
+          // i dispositivi iscritti.
+          id: true,
           name: true,
           firstName: true,
           lastName: true,
@@ -63,21 +67,34 @@ async function runDailySweep(): Promise<void> {
 
   for (const req of dueRequests) {
     try {
-      await sendReturnReminder({
-        to: req.user.email,
-        // Nell'email il nome vero accanto all'alias: chi la riceve deve
-        // riconoscersi anche se l'alias se l'era dimenticato.
-        name: fullLabelOf(req.user),
+      const delivered = await sendReturnReminder({
+        to: {
+          id: req.user.id,
+          email: req.user.email,
+          // Il nome vero accanto all'alias: chi lo riceve deve riconoscersi
+          // anche se l'alias se l'era dimenticato.
+          name: fullLabelOf(req.user),
+        },
         itemNames: req.items.map((item) => item.asset.name),
         endDate: req.endDate,
+        requestId: req.id,
       });
-      await db.request.update({
-        where: { id: req.id },
-        data: { reminderSentAt: new Date() },
-      });
+
+      /* Si segna solo quello che è arrivato davvero. `deliver` non solleva
+         mai — restituisce `false` — quindi senza questo controllo un
+         promemoria mai partito risulterebbe fatto, e non ripartirebbe più:
+         `reminderSentAt` è definitivo. Meglio riprovare domani. */
+      if (delivered) {
+        await db.request.update({
+          where: { id: req.id },
+          data: { reminderSentAt: new Date() },
+        });
+      } else {
+        console.error(`Promemoria automatico non consegnato per la richiesta ${req.id}.`);
+      }
     } catch (error) {
-      // Una email che non parte non deve bloccare le altre richieste dovute
-      // oggi — riprova domani al prossimo giro, `reminderSentAt` resta nullo.
+      // Un guasto qui non deve bloccare le altre richieste dovute oggi —
+      // riprova domani al prossimo giro, `reminderSentAt` resta nullo.
       console.error(`Promemoria automatico fallito per la richiesta ${req.id}:`, error);
     }
   }

@@ -49,4 +49,7 @@ export default [
   route("api/stream", "routes/api.stream.tsx"),
   // Tutto l'accesso passa da un solo gestore di Better Auth.
   route("api/auth/*", "routes/api.auth.$.tsx"),
+  // Iscrizione e disiscrizione dalle notifiche push. Non passa da un modulo:
+  // il corpo è JSON, vedi il file.
+  route("api/push", "routes/api.push.tsx"),
 ] satisfies RouteConfig;

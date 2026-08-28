@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generata da scripts/icons.ts (`pnpm icons`). Non modificare a mano. -->
+<svg role="img" aria-label="Fabula" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  
+  <g transform="translate(71.68 102.39) scale(2.2758)" fill="#ec008c">
+    <polygon points="161.98 0 161.98 27 80.99 27 80.99 53.99 134.98 53.99 134.98 80.99 80.99 80.99 80.99 134.99 0 134.99 0 80.99 26.99 80.99 26.99 107.99 53.99 107.99 53.99 27 26.99 27 26.99 0"/>
+  </g>
+</svg>

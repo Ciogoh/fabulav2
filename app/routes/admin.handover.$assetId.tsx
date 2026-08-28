@@ -188,8 +188,11 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   try {
     await notifyDirectHandover({
-      to: recipient.email,
-      name: fullLabelOf(recipient),
+      to: {
+        id: recipient.id,
+        email: recipient.email,
+        name: fullLabelOf(recipient),
+      },
       itemNames: [asset.name],
       startDate: from,
       endDate: to,

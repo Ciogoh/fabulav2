@@ -19,8 +19,20 @@ import { adminCounts, unreadForUserIds } from "~/lib/inbox.server";
 import { PageShell } from "~/components/page";
 import { ButtonLink } from "~/components/button";
 import { versionLabel } from "~/lib/version";
+import { PwaRuntime } from "~/components/pwa";
 
 export const links: Route.LinksFunction = () => [
+  /* Il guscio installabile. Il manifesto dice al browser come si chiama
+     l'app, di che colore è la finestra e quali icone usare; senza, «Aggiungi
+     alla schermata Home» produce un segnalibro con uno screenshot dentro,
+     non un'applicazione. */
+  { rel: "manifest", href: "/manifest.webmanifest" },
+  /* iOS il manifesto lo legge solo a metà e le icone le prende da qui.
+     Il file è opaco di proposito: un PNG con canale alfa, su iOS, non
+     diventa trasparente — diventa nero. */
+  { rel: "apple-touch-icon", href: "/icons/apple-touch-icon-180.png" },
+  { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
+  { rel: "icon", href: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
@@ -117,6 +129,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        {/* Il colore della barra di sistema quando Fabula gira come app.
+            Due righe e non una: il manifesto ne accetta uno solo e sarebbe
+            per forza sbagliato per metà delle persone. I valori sono `--card`
+            dei due temi, presi da `app.css` — la barra deve continuare
+            l'intestazione, non annunciarsi. */}
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#161b24" />
+
+        {/* Quello che iOS legge al posto del manifesto. Il nome corto conta:
+            senza, sotto all'icona finisce il `<title>` della pagina da cui è
+            stata aggiunta, che di solito è lungo il doppio dello spazio. */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="Fabula" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
         <Meta />
         <Links />
       </head>
@@ -130,9 +158,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App({ loaderData }: Route.ComponentProps) {
+  const user = loaderData.user;
+
+  /* Il numero sul pallino dell'icona è **lo stesso** che il Centro mostra
+     nell'intestazione, non un conto suo. Due numeri diversi per la stessa
+     cosa — uno fuori sull'icona, uno dentro nella pagina — si contraddicono a
+     vicenda, e a quel punto non si crede più a nessuno dei due. */
+  const badgeCount = user?.inbox
+    ? user.inbox.pending + user.inbox.unread + user.inbox.overdue
+    : (user?.myUnreadCount ?? 0);
+
   return (
     <LangProvider lang={loaderData.lang}>
-      <SiteHeader user={loaderData.user ?? null} />
+      <PwaRuntime badgeCount={badgeCount} />
+      <SiteHeader user={user ?? null} />
       <Outlet />
     </LangProvider>
   );

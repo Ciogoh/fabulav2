@@ -23,6 +23,7 @@ import { authClient } from "~/lib/auth-client";
 import { ButtonLink } from "~/components/button";
 import { AdminBadge } from "~/components/admin-badge";
 import { Avatar, PersonName } from "~/components/person";
+import { Logo } from "~/components/logo";
 import type { Person } from "~/lib/person";
 
 export type HeaderUser = Person & {
@@ -93,10 +94,16 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-6 py-3">
         <NavLink
           to="/"
-          className="font-serif text-2xl font-semibold tracking-tight text-ink"
+          aria-label={t("app.name")}
+          className="inline-flex min-h-11 items-center text-ink"
         >
-          {t("app.name")}
-          <span className="text-accent">.</span>
+          {/* Il marchio vero al posto della scritta. Il punto colorato che
+              stava qui era un surrogato del logo, fatto quando il logo non
+              c'era; adesso c'è, e due segni d'identità accanto sono uno di
+              troppo. Il nome del collegamento non si perde: sta
+              nell'`aria-label` qui sopra — tradotto, come prima — quindi chi
+              naviga a orecchio continua a sentire «Fabula» e non «immagine». */}
+          <Logo className="h-6 w-auto" />
         </NavLink>
 
         {/* Sul telefono i collegamenti prendono una riga intera *sotto* al

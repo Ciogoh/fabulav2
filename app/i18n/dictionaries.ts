@@ -422,6 +422,39 @@ const en = {
   "inbox.returnTomorrow": "Coming back tomorrow",
   "inbox.overdue": "Overdue",
   "inbox.overdueEmpty": "Nothing overdue.",
+
+  /* PWA e notifiche push. La preferenza è della persona, l'iscrizione è del
+     dispositivo: sono due cose e i testi devono farlo capire, o si accendono
+     le notifiche sul portatile e si esce dall'ufficio. */
+  "account.notifyHeading": "Notifications",
+  "account.notifyIntro": "Choose where loan updates reach you, and on which devices.",
+  "account.notifyChannel": "Channel",
+  "account.notifyChannelEmail": "Email",
+  "account.notifyChannelPush": "App notifications",
+  "account.notifyChannelBoth": "Email and notifications",
+  "account.notifyChannelHint":
+    "This covers loan updates only. Sign-in codes, password resets and platform announcements always arrive by email.",
+  "account.notifyDevices": "Devices",
+  "account.notifyNoDevices": "No device receives notifications yet.",
+  "account.notifyUnknownDevice": "Unknown device",
+  "account.notifyThisDevice": "this one",
+  "account.notifyAdded": "added {date}",
+  "account.notifyRemove": "Remove",
+  "account.notifyEnable": "Turn on notifications on this device",
+  "account.notifyTest": "Send a test notification",
+  "account.notifyTestSent": "Sent. It should show up in a moment, even outside the browser.",
+  "account.notifyTestFailed":
+    "Nothing went out. This device may have lost its subscription \u2014 turn notifications on again.",
+  "account.notifyDenied":
+    "This browser blocks notifications from Fabula, and the site cannot ask again. Allow them in your browser or system settings, then come back.",
+  "account.notifyUnsupported": "This browser cannot show notifications.",
+  "account.notifyError": "That did not work. Try again.",
+  "account.installHeading": "Install Fabula",
+  "account.installIosWhy":
+    "On iPhone and iPad, notifications only work once Fabula is on the Home screen. Apple allows no other way.",
+  "account.installIosHow": "Share \u2192 Add to Home Screen.",
+  "account.installDismiss": "Not now",
+  "account.installButton": "Install",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -819,6 +852,41 @@ const it: Dictionary = {
   "inbox.returnTomorrow": "Torna domani",
   "inbox.overdue": "In ritardo",
   "inbox.overdueEmpty": "Niente in ritardo.",
+
+  /* PWA e notifiche push. La preferenza è della persona, l'iscrizione è del
+     dispositivo: sono due cose e i testi devono farlo capire, o si accendono
+     le notifiche sul portatile e si esce dall'ufficio. */
+  "account.notifyHeading": "Notifiche",
+  "account.notifyIntro":
+    "Scegli da dove ricevere gli avvisi di prestito, e su quali dispositivi.",
+  "account.notifyChannel": "Canale",
+  "account.notifyChannelEmail": "Email",
+  "account.notifyChannelPush": "Notifiche dell'app",
+  "account.notifyChannelBoth": "Email e notifiche",
+  "account.notifyChannelHint":
+    "Vale solo per gli avvisi di prestito. Il codice di accesso, la reimpostazione della password e le comunicazioni sulla piattaforma arrivano sempre per email.",
+  "account.notifyDevices": "Dispositivi",
+  "account.notifyNoDevices": "Nessun dispositivo riceve ancora le notifiche.",
+  "account.notifyUnknownDevice": "Dispositivo sconosciuto",
+  "account.notifyThisDevice": "questo",
+  "account.notifyAdded": "aggiunto il {date}",
+  "account.notifyRemove": "Togli",
+  "account.notifyEnable": "Attiva le notifiche su questo dispositivo",
+  "account.notifyTest": "Manda una notifica di prova",
+  "account.notifyTestSent":
+    "Mandata. Dovrebbe comparire fra un istante, anche fuori dal browser.",
+  "account.notifyTestFailed":
+    "Non \u00e8 partito niente. Questo dispositivo pu\u00f2 aver perso l'iscrizione: riattiva le notifiche.",
+  "account.notifyDenied":
+    "Questo browser ha bloccato le notifiche di Fabula, e il sito non pu\u00f2 richiederle. Sbloccale nelle impostazioni del browser o del sistema, poi torna qui.",
+  "account.notifyUnsupported": "Questo browser non sa mostrare le notifiche.",
+  "account.notifyError": "Non ha funzionato. Riprova.",
+  "account.installHeading": "Installa Fabula",
+  "account.installIosWhy":
+    "Su iPhone e iPad le notifiche funzionano solo se Fabula \u00e8 sulla schermata Home. Apple non prevede altre strade.",
+  "account.installIosHow": "Condividi \u2192 Aggiungi alla schermata Home.",
+  "account.installDismiss": "Non adesso",
+  "account.installButton": "Installa",
 };
 
 const de: Dictionary = {
@@ -1213,6 +1281,41 @@ const de: Dictionary = {
   "inbox.returnTomorrow": "Kommt morgen zurück",
   "inbox.overdue": "Überfällig",
   "inbox.overdueEmpty": "Nichts überfällig.",
+
+  /* PWA e notifiche push. La preferenza è della persona, l'iscrizione è del
+     dispositivo: sono due cose e i testi devono farlo capire, o si accendono
+     le notifiche sul portatile e si esce dall'ufficio. */
+  "account.notifyHeading": "Benachrichtigungen",
+  "account.notifyIntro":
+    "W\u00e4hle, wo dich Ausleih-Hinweise erreichen und auf welchen Ger\u00e4ten.",
+  "account.notifyChannel": "Kanal",
+  "account.notifyChannelEmail": "E-Mail",
+  "account.notifyChannelPush": "App-Benachrichtigungen",
+  "account.notifyChannelBoth": "E-Mail und Benachrichtigungen",
+  "account.notifyChannelHint":
+    "Gilt nur f\u00fcr Ausleih-Hinweise. Anmeldecode, Passwort-Zur\u00fccksetzung und Mitteilungen zur Plattform kommen immer per E-Mail.",
+  "account.notifyDevices": "Ger\u00e4te",
+  "account.notifyNoDevices": "Noch kein Ger\u00e4t erh\u00e4lt Benachrichtigungen.",
+  "account.notifyUnknownDevice": "Unbekanntes Ger\u00e4t",
+  "account.notifyThisDevice": "dieses",
+  "account.notifyAdded": "hinzugef\u00fcgt am {date}",
+  "account.notifyRemove": "Entfernen",
+  "account.notifyEnable": "Benachrichtigungen auf diesem Ger\u00e4t einschalten",
+  "account.notifyTest": "Testbenachrichtigung senden",
+  "account.notifyTestSent":
+    "Gesendet. Sie sollte gleich erscheinen, auch au\u00dferhalb des Browsers.",
+  "account.notifyTestFailed":
+    "Es ging nichts raus. Dieses Ger\u00e4t hat vielleicht sein Abo verloren \u2014 schalte die Benachrichtigungen neu ein.",
+  "account.notifyDenied":
+    "Dieser Browser blockiert Benachrichtigungen von Fabula, und die Seite kann nicht erneut fragen. Erlaube sie in den Browser- oder Systemeinstellungen und komm zur\u00fcck.",
+  "account.notifyUnsupported": "Dieser Browser kann keine Benachrichtigungen anzeigen.",
+  "account.notifyError": "Hat nicht geklappt. Versuch es noch einmal.",
+  "account.installHeading": "Fabula installieren",
+  "account.installIosWhy":
+    "Auf iPhone und iPad funktionieren Benachrichtigungen nur, wenn Fabula auf dem Home-Bildschirm liegt. Apple l\u00e4sst keinen anderen Weg zu.",
+  "account.installIosHow": "Teilen \u2192 Zum Home-Bildschirm.",
+  "account.installDismiss": "Jetzt nicht",
+  "account.installButton": "Installieren",
 };
 
 export const dictionaries: Record<Lang, Dictionary> = { en, it, de };
