@@ -9,9 +9,10 @@ riprende non si ricomincia dal ragionamento.
 — i backup — è l'unica che protegge da un danno che non si rimedia, e va prima
 di tutte le altre a prescindere da cosa sembra più urgente.
 
-> **La voce A è in corso.** Le notifiche push e la PWA le sta implementando
-> un'altra sessione mentre questo documento viene scritto: quando finisce, la
-> voce si segna ✅ e sparisce da qui.
+> **La voce A è stata fatta** subito dopo, in parallelo: PWA installabile,
+> notifiche push e scelta del canale nel profilo sono dentro alla 0.7. È
+> rimasta qui sotto perché il ragionamento che la riguarda serve ancora — in
+> particolare le prove su dispositivi veri, che restano da fare.
 
 ---
 

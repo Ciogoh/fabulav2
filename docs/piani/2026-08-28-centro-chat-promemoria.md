@@ -1,9 +1,11 @@
 # Fabula 0.7 — sei cose
 
-> **Stato al 28 agosto 2026.** Fasi 1–5 fatte e provate dal vivo; la Fase 6
-> (promemoria) è l'ultima e aspetta che `deliver()` esista — vedi
-> [l'arretrato](2026-08-28-arretrato.md), voce A, scritta in parallelo da
-> un'altra sessione.
+> **Stato al 28 agosto 2026: finito.** Tutte e sei le fasi sono dentro e
+> provate dal vivo, non solo compilate. La Fase 6 è nata direttamente sopra
+> `deliver()` — il dispatcher di canale della PWA, arrivato in parallelo —
+> quindi i quattro promemoria rispettano da subito il canale scelto da
+> ciascuno. Quello che resta della lista sta ne
+> [l'arretrato](2026-08-28-arretrato.md).
 >
 > | Fase | | Commit |
 > | --- | --- | --- |
@@ -12,7 +14,7 @@
 > | 3 · colori degli stati | ✅ | `Lo stato di un oggetto si vede da lontano` |
 > | 4 · il Centro | ✅ | `Il Centro: quello che aspetta un admin sta in un posto solo` |
 > | 5 · la chat dal vivo | ✅ | `La chat si aggiorna da sola, e il Centro con lei` |
-> | 6 · i promemoria | ⏳ | — |
+> | 6 · i promemoria | ✅ | `I promemoria diventano quattro, e sanno dire dove` |
 
 ## Contesto
 
