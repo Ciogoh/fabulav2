@@ -77,6 +77,14 @@ model User {
   /// è quella singolarità a garantire che l'accesso resti sempre via email.
   notifyChannel NotifyChannel @default(EMAIL)
 
+  /// Il token del calendario personale (`/cal/<token>.ics`): **è una
+  /// credenziale**, non un id. Chi ce l'ha vede i prestiti di questa persona,
+  /// posizioni comprese, senza fare l'accesso — così funziona un indirizzo
+  /// iCal, che i programmi di calendario scaricano da soli. Nullo finché la
+  /// sezione del profilo non è mai stata aperta: creato pigramente da
+  /// `getOrCreateCalendarToken` in `calendar-token.server.ts`.
+  calendarToken String? @unique
+
   /// `input: false` nella configurazione di Better Auth: senza quello chiunque
   /// potrebbe mandare `role=ADMIN` nella richiesta di registrazione e nominarsi
   /// amministratore da solo.

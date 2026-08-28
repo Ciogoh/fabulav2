@@ -4,8 +4,9 @@ export default [
   index("routes/catalogue.tsx"),
   route("items/:id", "routes/item.tsx"),
   route("calendar", "routes/calendar.tsx"),
-  // Il punto nel nome è letterale, non un separatore di segmenti.
-  route("calendar.ics", "routes/calendar[.]ics.tsx"),
+  // Niente esportazione iCal globale: solo quella personale, una per persona.
+  // Vedi Sicurezza in CLAUDE.md e il capitolo in cima al file di rotta.
+  route("cal/:token.ics", "routes/cal.$token[.]ics.tsx"),
   route("signin", "routes/signin.tsx"),
   route("welcome", "routes/welcome.tsx"),
   route("language", "routes/language.tsx"),

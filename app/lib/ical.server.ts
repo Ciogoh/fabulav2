@@ -4,10 +4,13 @@
  * Serve a incollare un indirizzo dentro a Google Calendar, Apple Calendario o
  * Outlook e vedersi comparire le occupazioni degli oggetti.
  *
- * **Nessun nome di persona finisce qui dentro.** Un indirizzo iCal è di fatto
- * pubblico: chi ce l'ha lo può passare a chiunque, e i programmi di calendario
- * lo scaricano senza autenticazione. Ogni evento dice soltanto quale oggetto è
- * occupato e quando.
+ * L'unico che lo usa è il calendario personale
+ * (`routes/cal.$token[.]ics.tsx`), uno per persona: c'è di proposito
+ * **nessuna esportazione globale**, o il collegamento di chiunque
+ * racconterebbe a chiunque altro le occupazioni di tutti. `buildCalendar`
+ * resta comunque generico — non sa niente di token o di persone, riceve solo
+ * ciò che il chiamante gli passa — e non deve mai ricevere il nome di una
+ * persona diversa dal proprietario del calendario.
  */
 
 const PRODID = "-//Material Matters//Fabula//IT";
@@ -23,6 +26,17 @@ export type CalendarEntry = {
   endDate: Date;
   /** Se l'oggetto è già stato ritirato. */
   pickedUp: boolean;
+  /** Dove ritirarlo e riportarlo. Solo il calendario personale la usa: quello
+   * pubblico non deve mai dire dov'è un oggetto (vedi Sicurezza in
+   * CLAUDE.md). */
+  location?: string | null;
+  /** La richiesta è ancora da approvare: l'evento nasce provvisorio. */
+  pending?: boolean;
+  /** Sovrascrive la riga generata da `pickedUp` — il calendario personale
+   * l'aggiunge per mettere il periodo e il collegamento alla richiesta. */
+  description?: string;
+  /** Aggiunge un avviso il giorno prima della scadenza. */
+  returnReminder?: boolean;
 };
 
 export function buildCalendar(
@@ -57,12 +71,39 @@ export function buildCalendar(
       `DTEND;VALUE=DATE:${toDateValue(addDays(entry.endDate, 1))}`,
       `SUMMARY:${escapeText(entry.assetName)}`,
       `DESCRIPTION:${escapeText(
-        entry.pickedUp ? "In uso." : "Prenotato."
+        entry.description ?? (entry.pickedUp ? "In uso." : "Prenotato.")
       )}`,
-      "STATUS:CONFIRMED",
-      "TRANSP:OPAQUE",
-      "END:VEVENT"
+      `STATUS:${entry.pending ? "TENTATIVE" : "CONFIRMED"}`,
+      "TRANSP:OPAQUE"
     );
+
+    if (entry.location) lines.push(`LOCATION:${escapeText(entry.location)}`);
+
+    // Un giorno prima della scadenza, non prima dell'inizio: per un prestito
+    // di un solo giorno l'avviso cadrebbe prima ancora del ritiro, quindi si
+    // salta piuttosto che avvisare troppo presto.
+    if (entry.returnReminder) {
+      const alarmDay = addDays(entry.endDate, -1);
+      if (alarmDay.getTime() >= entry.startDate.getTime()) {
+        const alarmAt = new Date(
+          Date.UTC(
+            alarmDay.getUTCFullYear(),
+            alarmDay.getUTCMonth(),
+            alarmDay.getUTCDate(),
+            8
+          )
+        );
+        lines.push(
+          "BEGIN:VALARM",
+          "ACTION:DISPLAY",
+          "DESCRIPTION:Da restituire domani.",
+          `TRIGGER;VALUE=DATE-TIME:${toUtcStamp(alarmAt)}`,
+          "END:VALARM"
+        );
+      }
+    }
+
+    lines.push("END:VEVENT");
   }
 
   lines.push("END:VCALENDAR");

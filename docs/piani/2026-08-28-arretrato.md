@@ -130,7 +130,24 @@ Poi, ciò che manca per chiamarlo fatto per bene — quasi tutto nei pannelli:
 
 ---
 
-### D. Il calendario personale, con il luogo di riconsegna
+### D. Il calendario personale, con il luogo di riconsegna — *fatto, 28 agosto 2026*
+
+> Costruito com'era disegnato qui sotto, con due scarti dichiarati rispetto al
+> piano originale:
+>
+> 1. **Niente pulsante «revoca» separato.** La sezione del profilo è sempre
+>    aperta, quindi un token tolto ne farebbe nascere subito uno nuovo — dire
+>    la verità su cosa succede davvero (rigenerare invalida il vecchio) è più
+>    chiaro che offrire una revoca che un istante dopo lascerebbe comunque un
+>    collegamento valido in vista.
+> 2. **Il `/calendar.ics` pubblico è stato tolto, non lasciato accanto al
+>    personale** — decisione presa a lavoro fatto: ognuno deve avere il
+>    proprio calendario, non uno condiviso da rileggersi cercando le proprie
+>    righe in mezzo a quelle di tutti. Uscito insieme: la sezione
+>    «Aggiungi al tuo calendario» in `/calendar` (`SubscribeBox`), le sue
+>    quattro chiavi di traduzione, e la rotta stessa. Per lo stesso motivo il
+>    feed `?scope=all` per gli admin, già facoltativo qui sotto, non si fa più:
+>    sarebbe di nuovo un calendario di tutti invece che il proprio.
 
 **Il difetto**: `/calendar.ics` è uno solo, pubblico, con **tutti** i prestiti.
 Chi lo aggiunge si riempie l'agenda delle occupazioni di chiunque e non vede da
@@ -154,11 +171,15 @@ oggetto**, altrimenti la `LOCATION` sarebbe una sola e mentirebbe.
 > **404 muto** per un token sbagliato (nessun messaggio che distingua
 > «inesistente» da «revocato»), e la revoca a un clic dal profilo.
 
-Il `/calendar.ics` pubblico **resta identico**: nessun nome, nessuna posizione.
+**Deciso dopo, non nel disegno originale**: il `/calendar.ics` pubblico è
+stato **rimosso** invece di restare accanto al personale — vedi il richiamo
+in cima al capitolo. Per lo stesso motivo cade anche l'idea qui sotto di un
+secondo feed per admin con tutti i prestiti: sarebbe stato di nuovo un
+calendario di tutti, quando l'obiettivo è che ognuno abbia il proprio.
 
-**Facoltativo**: un secondo feed per admin, `?scope=all`, con tutti i prestiti e
-il nome di chi li ha. Utile per il turno in magazzino, ma è il feed che se
-sfugge racconta a chiunque chi ha cosa.
+~~**Facoltativo**: un secondo feed per admin, `?scope=all`, con tutti i
+prestiti e il nome di chi li ha. Utile per il turno in magazzino, ma è il
+feed che se sfugge racconta a chiunque chi ha cosa.~~
 
 **Costo**: mezza giornata.
 

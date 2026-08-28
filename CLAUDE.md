@@ -37,7 +37,13 @@ verificato dal vivo, non solo compilato:**
 - Accesso: codice via email (principale), password, Google e **Microsoft**
   (entrambi spenti finché mancano le chiavi nel `.env`)
 - Email da Resend, dominio `fabulabz.com` verificato
-- Calendario a righe-oggetto per colonne-giorno, con esportazione iCal pubblica
+- Calendario a righe-oggetto per colonne-giorno, con esportazione iCal
+  **personale e solo personale**: `/cal/<token>.ics` dal profilo, i propri
+  prestiti — approvati e in attesa, questi ultimi provvisori — con posizione
+  e un avviso il giorno prima della scadenza. Deliberatamente **nessuna
+  esportazione globale**: un indirizzo solo con le occupazioni di tutti
+  avrebbe fatto vedere a ognuno l'agenda di chiunque altro invece della
+  propria. Vedi *Sicurezza* per la regola del token.
 - Intestazioni di sicurezza e limite di frequenza sull'accesso, provati
 - Profilo personale: foto, nome, cognome e alias, da `/account` (ci si arriva
   premendo il proprio nome in cima). **La foto si cambia premendo la foto** —
@@ -501,10 +507,23 @@ mandato dal browser, quindi non si indovina — ma chi ha l'indirizzo lo apre.
 Se un giorno servisse una foto davvero riservata, quella rotta va protetta,
 non basta un nome difficile.
 
-**Il feed iCal è pubblico per costruzione.** Un indirizzo `.ics` non può chiedere
-chi sei — i programmi di calendario lo scaricano e basta — quindi tutto ciò che
-contiene è pubblico. Solo nome dell'oggetto e date. Le richieste in attesa
-restano fuori.
+**Il feed iCal non ha una versione globale, apposta.** Un indirizzo `.ics`
+non può chiedere chi sei — i programmi di calendario lo scaricano e basta —
+quindi tutto ciò che contiene è di fatto pubblico. Un feed con le occupazioni
+di tutti sarebbe stato comunque innocuo (solo nome dell'oggetto e date), ma
+avrebbe risposto alla domanda sbagliata: ognuno vuole i **propri** impegni,
+non doversi cercare in mezzo a quelli di chiunque altro. Da qui **un feed per
+persona**, non uno condiviso.
+
+**`User.calendarToken` è una credenziale, non un id.** Il feed personale
+(`/cal/<token>.ics`, `routes/cal.$token[.]ics.tsx`) mostra posizioni e stato
+dei propri prestiti a chiunque abbia quell'indirizzo, senza login — così
+funziona un indirizzo iCal, e qui il contenuto non è innocuo come lo sarebbe
+stato in un feed globale. Da qui: `Cache-Control: private, no-store`,
+`X-Robots-Tag: noindex`, **404 muto** per un token sbagliato (la stessa
+risposta per «non è mai esistito» e per «è stato revocato»), mai loggare il
+token, e la rigenerazione a un clic dal profilo — che invalida il vecchio
+collegamento nello stesso istante in cui ne crea uno nuovo.
 
 **Ogni `redirect` verso un percorso che arriva dall'utente va filtrato**
 (`next`, `redirectTo`). Deve cominciare per `/` e **non** per `//`, altrimenti è
@@ -658,7 +677,8 @@ app/
     item.tsx            la scheda di un oggetto (pubblica)
     availability.tsx    sole risorse: «liberi in queste date?»
     calendar.tsx        la timeline oggetti × giorni, elenco sul telefono
-    calendar[.]ics.tsx  il feed iCal pubblico
+    cal.$token[.]ics.tsx  il feed iCal, uno per persona — il token è la
+      credenziale, niente esportazione globale
     uploads.tsx         serve le foto caricate, pubblico apposta (vedi Sicurezza)
     h.$code.tsx         l'indirizzo corto stampato sugli adesivi: rimanda alla consegna
 
@@ -723,6 +743,7 @@ app/
     reminders.server.ts      lo spazzatore orario del promemoria automatico
     email.server.ts          Resend, con ripiego a terminale
     ical.server.ts           generazione iCalendar
+    calendar-token.server.ts il token del calendario personale: crea, rigenera
     uploads.server.ts        foto degli oggetti (due file) e avatar (uno)
     person.ts                alias, nome per esteso, etichetta per gli admin
     request-status.ts        le etichette dei quattro stati, in un posto solo

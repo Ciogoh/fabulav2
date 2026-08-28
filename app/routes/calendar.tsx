@@ -13,9 +13,8 @@
  */
 
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { useEffect, useState } from "react";
 import { PageShell, PageTitle } from "~/components/page";
-import { Button, ButtonLink } from "~/components/button";
+import { ButtonLink } from "~/components/button";
 import type { Route } from "./+types/calendar";
 import { db } from "~/lib/db.server";
 import {
@@ -330,8 +329,6 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
           </p>
           </>
         )}
-
-          <SubscribeBox />
       </PageShell>
     </main>
   );
@@ -556,54 +553,6 @@ function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
     <ButtonLink to={to} variant="quiet" size="sm">
       {children}
     </ButtonLink>
-  );
-}
-
-/**
- * L'indirizzo da incollare in Google Calendar.
- *
- * Si costruisce nel browser da `location.origin`: dietro al tunnel Cloudflare
- * il server non conosce il dominio pubblico, e stamparlo dal lato server
- * darebbe a tutti un indirizzo `localhost` che non funziona per nessuno.
- */
-function SubscribeBox() {
-  const t = useT();
-  const [copied, setCopied] = useState(false);
-  // Comincia vuoto anche nel browser: leggere `window.location` durante il
-  // primo render darebbe un HTML diverso da quello mandato dal server (che
-  // non conosce il dominio pubblico dietro al tunnel Cloudflare) e React
-  // segnalerebbe un errore di hydration. Si riempie subito dopo, in un
-  // effetto — stesso schema di `useCart` in use-cart.ts.
-  const [url, setUrl] = useState("");
-  useEffect(() => {
-    setUrl(`${window.location.origin}/calendar.ics`);
-  }, []);
-
-  return (
-    <section className="mt-10 rounded border border-rule bg-card p-5">
-      <h2 className="text-sm font-semibold">{t("calendar.subscribe")}</h2>
-      <p className="mt-1 max-w-prose text-sm text-muted">
-        {t("calendar.subscribeHint")}
-      </p>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded bg-sunk px-3 py-2 font-mono text-xs">
-          {url || "…"}
-        </code>
-        <Button
-          variant="secondary"
-          disabled={!url}
-          onClick={() => {
-            void navigator.clipboard.writeText(url).then(() => {
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
-            });
-          }}
-        >
-          {copied ? t("calendar.copied") : t("calendar.copy")}
-        </Button>
-      </div>
-    </section>
   );
 }
 

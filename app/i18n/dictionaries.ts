@@ -121,7 +121,7 @@ const en = {
   "nav.calendar": "Calendar",
 
   "calendar.heading": "Calendar",
-  "calendar.intro": "When each item is taken. Add it to your own calendar with the link below.",
+  "calendar.intro": "When each item is taken. Your own loans have their own calendar — find the link in your profile.",
   "calendar.today": "Today",
   "calendar.previous": "Earlier",
   "calendar.next": "Later",
@@ -132,10 +132,6 @@ const en = {
   "calendar.showingAllCount": "All {total} items",
   "calendar.timelineHint": "Scroll sideways for later days.",
   "calendar.empty": "Nothing booked in this period.",
-  "calendar.subscribe": "Add to your calendar",
-  "calendar.subscribeHint": "Paste this address into Google Calendar, Apple Calendar or Outlook. It shows what is taken and when — never who has it.",
-  "calendar.copy": "Copy link",
-  "calendar.copied": "Copied",
 
   "state.requested": "Requested",
 
@@ -455,6 +451,17 @@ const en = {
   "account.installIosHow": "Share \u2192 Add to Home Screen.",
   "account.installDismiss": "Not now",
   "account.installButton": "Install",
+  "account.calendarHeading": "Personal calendar",
+  "account.calendarIntro":
+    "A private link with only your own loans — add it to Google Calendar, Apple Calendar or Outlook.",
+  "account.calendarUrlLabel": "Your personal calendar link",
+  "account.calendarCopy": "Copy link",
+  "account.calendarCopied": "Copied.",
+  "account.calendarHint":
+    "Anyone with this link can see your loans, including where to pick them up. Keep it to yourself — if it leaks, regenerate it below.",
+  "account.calendarRegenerate": "Regenerate link",
+  "account.calendarRegenerateConfirm":
+    "The old link stops working right away, everywhere you've added it. Continue?",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -551,7 +558,7 @@ const it: Dictionary = {
   "nav.calendar": "Calendario",
 
   "calendar.heading": "Calendario",
-  "calendar.intro": "Quando ogni oggetto è occupato. Con il collegamento qui sotto lo aggiungi al tuo calendario.",
+  "calendar.intro": "Quando ogni oggetto è occupato. I tuoi prestiti hanno un calendario tutto loro — trovi il collegamento nel profilo.",
   "calendar.today": "Oggi",
   "calendar.previous": "Prima",
   "calendar.next": "Dopo",
@@ -562,10 +569,6 @@ const it: Dictionary = {
   "calendar.showingAllCount": "Tutti i {total} oggetti",
   "calendar.timelineHint": "Scorri di lato per i giorni successivi.",
   "calendar.empty": "Niente di prenotato in questo periodo.",
-  "calendar.subscribe": "Aggiungi al tuo calendario",
-  "calendar.subscribeHint": "Incolla questo indirizzo in Google Calendar, Calendario di Apple o Outlook. Mostra cosa è occupato e quando — mai chi ce l'ha.",
-  "calendar.copy": "Copia il collegamento",
-  "calendar.copied": "Copiato",
 
   "state.requested": "Richiesto",
 
@@ -887,6 +890,17 @@ const it: Dictionary = {
   "account.installIosHow": "Condividi \u2192 Aggiungi alla schermata Home.",
   "account.installDismiss": "Non adesso",
   "account.installButton": "Installa",
+  "account.calendarHeading": "Calendario personale",
+  "account.calendarIntro":
+    "Un collegamento privato con solo i tuoi prestiti — aggiungilo a Google Calendar, Calendario di Apple o Outlook.",
+  "account.calendarUrlLabel": "Il tuo collegamento personale al calendario",
+  "account.calendarCopy": "Copia collegamento",
+  "account.calendarCopied": "Copiato.",
+  "account.calendarHint":
+    "Chiunque abbia questo collegamento vede i tuoi prestiti, comprese le posizioni per ritirarli. Non condividerlo — se è finito nelle mani sbagliate, rigeneralo qui sotto.",
+  "account.calendarRegenerate": "Rigenera collegamento",
+  "account.calendarRegenerateConfirm":
+    "Il vecchio collegamento smette subito di funzionare, ovunque l'avevi aggiunto. Continuare?",
 };
 
 const de: Dictionary = {
@@ -980,7 +994,7 @@ const de: Dictionary = {
   "nav.calendar": "Kalender",
 
   "calendar.heading": "Kalender",
-  "calendar.intro": "Wann welcher Gegenstand belegt ist. Mit dem Link unten fügst du ihn deinem Kalender hinzu.",
+  "calendar.intro": "Wann welcher Gegenstand belegt ist. Deine eigenen Ausleihen haben einen eigenen Kalender — den Link findest du in deinem Profil.",
   "calendar.today": "Heute",
   "calendar.previous": "Früher",
   "calendar.next": "Später",
@@ -991,10 +1005,6 @@ const de: Dictionary = {
   "calendar.timelineHint": "Seitlich scrollen für spätere Tage.",
   "calendar.showBusy": "Nur Gegenstände mit Buchungen",
   "calendar.empty": "In diesem Zeitraum ist nichts gebucht.",
-  "calendar.subscribe": "Zu deinem Kalender hinzufügen",
-  "calendar.subscribeHint": "Füge diese Adresse in Google Kalender, Apple Kalender oder Outlook ein. Sie zeigt, was belegt ist und wann — nie, wer es hat.",
-  "calendar.copy": "Link kopieren",
-  "calendar.copied": "Kopiert",
 
   "state.requested": "Angefragt",
 
@@ -1316,6 +1326,17 @@ const de: Dictionary = {
   "account.installIosHow": "Teilen \u2192 Zum Home-Bildschirm.",
   "account.installDismiss": "Jetzt nicht",
   "account.installButton": "Installieren",
+  "account.calendarHeading": "Persönlicher Kalender",
+  "account.calendarIntro":
+    "Ein privater Link nur mit deinen eigenen Ausleihen — füge ihn zu Google Kalender, Apple Kalender oder Outlook hinzu.",
+  "account.calendarUrlLabel": "Dein persönlicher Kalenderlink",
+  "account.calendarCopy": "Link kopieren",
+  "account.calendarCopied": "Kopiert.",
+  "account.calendarHint":
+    "Wer diesen Link hat, sieht deine Ausleihen, einschließlich der Abholorte. Behalte ihn für dich — falls er in falsche Hände gerät, erzeuge ihn unten neu.",
+  "account.calendarRegenerate": "Link erneuern",
+  "account.calendarRegenerateConfirm":
+    "Der alte Link funktioniert sofort nicht mehr, überall wo du ihn hinzugefügt hast. Fortfahren?",
 };
 
 export const dictionaries: Record<Lang, Dictionary> = { en, it, de };

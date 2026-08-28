@@ -18,7 +18,7 @@ I nomi dei file cominciano con la data in cui il piano è stato scritto.
 | [La foto del profilo si cambia premendo la foto](2026-08-24-foto-profilo-premibile.md) — l'invito era il «Scegli file» del browser, cioè nessun invito | ✅ fatto |
 | [PWA installabile e notifiche al posto delle email](2026-08-24-pwa-notifiche.md) — il guscio, il motore push, la scelta del canale nel profilo | ✅ fatto — il prerequisito del rebrand è caduto: dipendeva dal logo, non dall'interfaccia. Resta la prova su dispositivi veri |
 | [Il Centro, la chat dal vivo e i promemoria](2026-08-28-centro-chat-promemoria.md) — sei cose che rendono la piattaforma usabile da volontari che si alternano | ✅ fatto |
-| [L'arretrato](2026-08-28-arretrato.md) — calendario personale, guide e manuali, backup su R2, tunnel, Telegram, documenti, CI: cosa resta e come si fa | ⏳ da fare |
+| [L'arretrato](2026-08-28-arretrato.md) — calendario personale, guide e manuali, backup su R2, tunnel, Telegram, documenti, CI: cosa resta e come si fa | 🔄 in corso — la voce D (calendario personale) è fatta |
 
 ## Come si aggiunge un piano
 

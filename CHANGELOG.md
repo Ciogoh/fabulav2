@@ -14,6 +14,27 @@ la prova su iPhone e Android veri di quello che la 0.7.0 ha aggiunto.
 
 ---
 
+## 0.8.0 — 28 agosto 2026
+
+**Il calendario personale, uno per persona e non uno per tutti.**
+`/calendar.ics` era uno solo, pubblico, con **tutti** i prestiti
+dell'associazione insieme: chi lo aggiungeva a Google Calendar si ritrovava
+l'agenda di chiunque e non trovava da nessuna parte i propri. Dal profilo,
+ora, un collegamento — `/cal/<token>.ics` — mostra solo i propri: approvati e
+in attesa, questi ultimi provvisori (`STATUS:TENTATIVE`), con dove ritirare e
+riportare ogni oggetto e un avviso il giorno prima della scadenza. Un evento
+per oggetto e non per richiesta, perché una richiesta con pezzi in due
+magazzini avrebbe portato una sola posizione che ne avrebbe smentita metà. Il
+collegamento **è una credenziale** e non un id — chi ce l'ha vede quei
+prestiti senza fare l'accesso — quindi `Cache-Control: private, no-store`,
+mai indicizzato, 404 muto per un token sbagliato, e un pulsante nel profilo
+che lo rigenera invalidando il vecchio nello stesso istante. **Il vecchio
+`/calendar.ics` pubblico è stato tolto**, non lasciato accanto al nuovo:
+l'obiettivo non era aggiungere un secondo calendario, era che ognuno avesse
+il proprio invece di doversi cercare in mezzo a quello di tutti.
+
+---
+
 ## 0.7.0 — 28 agosto 2026
 
 Il ciclo del prestito funzionava già da capo a fondo. Quello che mancava era
