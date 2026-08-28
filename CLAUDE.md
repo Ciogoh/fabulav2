@@ -100,10 +100,38 @@ verificato dal vivo, non solo compilato:**
   `routes/api.stream.tsx`, `lib/use-live.ts`): la chat di una richiesta e il
   Centro. Vedi *Il canale dal vivo*.
 
-- **Promemoria di riconsegna**: automatico, uno spazzatore orario in-process
-  con guardia sul giorno già fatto (`lib/reminders.server.ts`, avviato dal
-  loader radice), più il pulsante a mano nel dettaglio. Tutte le email di una
-  richiesta — nuova, decisa, annullata, promemoria — vivono in un posto solo,
+- **Promemoria automatici, quattro** (`lib/reminders.server.ts`, uno
+  spazzatore orario in-process avviato dal loader radice), più il pulsante a
+  mano nel dettaglio: `PICKUP` il giorno prima del ritiro, `RETURN_SOON` il
+  giorno prima della scadenza, `RETURN_DUE` il giorno stesso, `OVERDUE` a 1, 3
+  e 7 giorni di ritardo — e poi basta, perché un promemoria che continua per
+  sempre smette di essere letto e a quel punto ci vuole una telefonata. Ai
+  ritardi si aggiunge **un riassunto solo al giorno** per gli admin: dieci
+  avvisi di fila sono dieci avvisi che si cestinano insieme.
+
+  **Tutti dicono anche dove**: gli oggetti sono raggruppati per
+  `Asset.location`, perché una richiesta con pezzi in due magazzini riassunta
+  in un indirizzo solo manda qualcuno a cercare una cosa dove non c'è. La
+  posizione sta **solo nelle email** — nelle notifiche push non vanno luoghi.
+
+  **La finestra 8–20 ora di Roma non è una rifinitura ma una correzione.**
+  Tutto ragiona in giorni UTC e il giro parte al primo passaggio dopo la
+  mezzanotte UTC, cioè all'una o alle due di notte in Italia. Finché erano
+  email passava inosservato; con le notifiche push è una suoneria alle 2, cioè
+  il modo più rapido per farle spegnere a tutti. Fuori dalla finestra il giro
+  esce subito e riprova l'ora dopo, perché il guardiano sta sul **giorno**.
+
+  **Il guardiano è `ReminderLog`, non un timestamp.**
+  `Request.reminderSentAt` sapeva dire *se* era partito qualcosa, non *quale*
+  dei quattro. La chiave unica `[requestId, kind, dayKey]` rende lo spazzatore
+  ripetibile: il processo può ripartire tre volte nello stesso pomeriggio
+  senza mandare due volte lo stesso avviso. E **la riga si scrive dopo
+  l'invio, solo se è arrivato qualcosa** (`deliver` restituisce `false` invece
+  di sollevare): un promemoria mai partito che risulta fatto è peggio di un
+  promemoria in ritardo di un'ora.
+
+  Tutti gli avvisi di una richiesta — nuova, decisa, annullata, i quattro
+  promemoria, il riassunto — vivono in un posto solo,
   `lib/notifications.server.ts`.
 - **Pannello admin: oggetti, categorie e kit** (`/admin/assets`, tre schede),
   con ricerca, filtro, gruppi per categoria e spostamento in blocco. Una

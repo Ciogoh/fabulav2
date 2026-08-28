@@ -96,7 +96,10 @@ async function loadAuthorized(userId: string, isAdminRole: boolean, id: string) 
           assetId: true,
           pickedUpAt: true,
           returnedAt: true,
-          asset: { select: { name: true } },
+          // `location` serve al promemoria a mano, che dice **dove**
+          // riportare. Non esce da qui verso il browser: il loader più
+          // sotto sceglie campo per campo e non la include.
+          asset: { select: { name: true, location: true } },
           fromKit: { select: { name: true } },
         },
       },
@@ -456,9 +459,10 @@ export async function action({ request, params }: Route.ActionArgs) {
           email: req.user.email,
           name: fullLabelOf(req.user),
         },
-        itemNames: req.items.map((item) => item.asset.name),
+        items: req.items.map((item) => item.asset),
         endDate: req.endDate,
         requestId: req.id,
+        origin: new URL(request.url).origin,
       });
       if (!delivered) {
         return { ok: false as const, error: "request.errorReminderFailed" as TranslationKey };

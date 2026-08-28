@@ -284,21 +284,26 @@ export async function notifyDirectHandover(
  */
 export async function sendReturnReminder(params: {
   to: Recipient;
-  itemNames: string[];
+  /* Con la posizione, come gli altri tre: era l'unico dei quattro promemoria
+     che diceva *cosa* riportare senza dire **dove**, e la posizione è metà
+     della risposta — soprattutto quando i pezzi stanno in due magazzini. */
+  items: Array<{ name: string; location: string | null }>;
   endDate: Date;
-  requestId?: string;
+  requestId: string;
+  origin: string;
 }): Promise<boolean> {
   return deliver(params.to, {
     subject: "Fabula: return reminder",
     text:
       `Hi ${params.to.name},\n\n` +
-      `A reminder: please return by ${formatDay(params.endDate)}:\n` +
-      `${params.itemNames.join(", ")}\n`,
+      `A reminder: please bring back by ${formatDay(params.endDate)}:\n` +
+      `${placesBlock(params.items)}\n` +
+      `\n${requestLink(params.origin, params.requestId)}`,
     push: {
       title: "Return reminder",
-      body: `Due ${formatDay(params.endDate)} · ${params.itemNames.length} ${params.itemNames.length === 1 ? "item" : "items"}`,
-      url: params.requestId ? `/requests/${params.requestId}` : "/requests",
-      tag: params.requestId ? `request:${params.requestId}` : undefined,
+      body: `Due ${formatDay(params.endDate)} · ${params.items.length} ${params.items.length === 1 ? "item" : "items"}`,
+      url: `/requests/${params.requestId}`,
+      tag: `request:${params.requestId}`,
     },
   });
 }

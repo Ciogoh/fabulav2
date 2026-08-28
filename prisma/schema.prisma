@@ -333,9 +333,6 @@ model Request {
   decidedById String?
   decidedBy   User?     @relation("DecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
 
-  /// Quando è partito il promemoria automatico di riconsegna. Evita di
-  /// mandarlo due volte se il processo riparte lo stesso giorno.
-  reminderSentAt DateTime?
 
   /// L'ultima volta che un admin ha aperto questa richiesta, e l'ultima volta
   /// che l'ha aperta chi l'ha fatta.
@@ -356,8 +353,9 @@ model Request {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items    RequestItem[]
-  messages Message[]
+  items     RequestItem[]
+  messages  Message[]
+  reminders ReminderLog[]
 
   @@index([userId])
   @@index([status, startDate, endDate])
@@ -394,6 +392,45 @@ model Message {
   body      String
   createdAt DateTime @default(now())
 
+  @@index([requestId])
+}
+
+/// I quattro momenti in cui Fabula scrive a chi ha in prestito qualcosa.
+///
+/// `OVERDUE` è l'unico che si ripete — a 1, 3 e 7 giorni, poi basta: un
+/// promemoria che continua per sempre smette di essere letto, e a quel punto
+/// la strada non è più automatica, è una telefonata.
+enum ReminderKind {
+  /// Da domani puoi ritirare.
+  PICKUP
+  /// Domani scade.
+  RETURN_SOON
+  /// Scade oggi.
+  RETURN_DUE
+  /// È scaduto e non è tornato.
+  OVERDUE
+}
+
+/// Quali promemoria sono già partiti, e quando.
+///
+/// Sostituisce `Request.reminderSentAt`, che era **un timestamp solo**: sapeva
+/// dire *se* era partito qualcosa, non *quale* dei quattro — e con quattro
+/// promemoria diversi quella è l'unica domanda che conta.
+///
+/// `dayKey` è il giorno UTC in forma `2026-08-28`, e non si ricava da `sentAt`
+/// perché è **metà della chiave**: è ciò che rende lo spazzatore ripetibile.
+/// Il processo può ripartire tre volte nello stesso pomeriggio senza che
+/// nessuno riceva due volte lo stesso avviso, e senza che un avviso mai
+/// partito risulti fatto per sempre.
+model ReminderLog {
+  id        String       @id @default(cuid())
+  requestId String
+  request   Request      @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  kind      ReminderKind
+  dayKey    String
+  sentAt    DateTime     @default(now())
+
+  @@unique([requestId, kind, dayKey])
   @@index([requestId])
 }
 
