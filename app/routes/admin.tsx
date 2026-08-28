@@ -43,6 +43,7 @@ import { requireAdmin } from "~/lib/session.server";
 import { formatDay, todayUtc } from "~/lib/availability.server";
 import { unreadForAdminIds } from "~/lib/inbox.server";
 import { useFormatDay, useT } from "~/i18n/use-t";
+import { useLive } from "~/lib/use-live";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import type { Person } from "~/lib/person";
 
@@ -295,6 +296,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function AdminInbox({ loaderData }: Route.ComponentProps) {
   const { view, pending, unread, soon, overdue, overdueFirst } = loaderData;
   const t = useT();
+
+  /* Il Centro è la pagina che un admin tiene aperta in un angolo dello
+     schermo mentre fa altro: se non si aggiorna da sola, dice il falso per
+     tutto il tempo in cui nessuno la ricarica. */
+  useLive("/api/stream");
 
   const counts = {
     approvare: pending.length,

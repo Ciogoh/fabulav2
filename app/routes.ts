@@ -44,6 +44,9 @@ export default [
   // Chi tiene su la piattaforma chiede qui se è viva: Coolify per decidere se
   // il container nuovo può prendere il traffico, il tunnel per lo stesso.
   route("healthz", "routes/healthz.tsx"),
+  // Il canale che tiene aggiornata una pagina senza ricaricarla: ci passano
+  // colpetti, mai contenuti. Vedi il blocco in cima al file.
+  route("api/stream", "routes/api.stream.tsx"),
   // Tutto l'accesso passa da un solo gestore di Better Auth.
   route("api/auth/*", "routes/api.auth.$.tsx"),
 ] satisfies RouteConfig;

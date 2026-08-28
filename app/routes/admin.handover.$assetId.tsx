@@ -35,6 +35,7 @@ import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
 import { logAdminAction } from "~/lib/audit.server";
 import { notifyDirectHandover } from "~/lib/notifications.server";
+import { publishAdminChange } from "~/lib/events.server";
 import { fullLabelOf } from "~/lib/person";
 import {
   formatDay,
@@ -179,6 +180,11 @@ export async function action({ request, params }: Route.ActionArgs) {
     targetId: created.id,
     detail: `${asset.name} → ${fullLabelOf(recipient)} (${formatDay(from)} → ${formatDay(to)})`,
   });
+
+  /* Una consegna diretta nasce già approvata e già ritirata: nel Centro
+     compare fra le cose che torneranno, e chi ha un'altra scheda aperta lo
+     vede senza ricaricare. */
+  publishAdminChange();
 
   try {
     await notifyDirectHandover({

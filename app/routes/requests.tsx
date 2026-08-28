@@ -24,6 +24,7 @@ import {
 } from "~/lib/availability.server";
 import { notifyAdminsNewRequest } from "~/lib/notifications.server";
 import { unreadForUserIds } from "~/lib/inbox.server";
+import { publishAdminChange } from "~/lib/events.server";
 import { REQUEST_STATUS_LABELS } from "~/lib/request-status";
 import { useFormatDay, useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
@@ -166,6 +167,10 @@ export async function action({ request }: Route.ActionArgs) {
     },
     select: { id: true },
   });
+
+  /* Il Centro di chi è di turno lo sa subito, senza ricaricare — e lo sa
+     comunque, anche se l'email qui sotto non parte. */
+  publishAdminChange();
 
   try {
     await notifyAdminsNewRequest({

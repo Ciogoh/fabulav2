@@ -36,6 +36,8 @@ import { AdminBadge } from "~/components/admin-badge";
 import { PersonInline, PersonName } from "~/components/person";
 import { fullLabelOf, type Person } from "~/lib/person";
 import { DateRangeFields, daysBetweenInclusive } from "~/components/date-range-fields";
+import { publishRequestChange } from "~/lib/events.server";
+import { useLive } from "~/lib/use-live";
 import { MAX_ORDINARY_SPAN_DAYS as ORDINARY_SPAN } from "~/lib/availability.shared";
 
 export function meta({ matches }: Route.MetaArgs) {
@@ -217,6 +219,22 @@ async function markSeen(
   await db.request.update({ where: { id: req.id }, data });
 }
 
+/**
+ * La risposta di ogni intento che ha scritto qualcosa — e la campanella.
+ *
+ * Sta in una funzione sola perché gli intenti sono sette e il `return` era
+ * scritto sette volte: aggiungerne un ottavo dimenticando la campanella
+ * darebbe una pagina che si aggiorna dal vivo **quasi** sempre, che è il tipo
+ * di difetto che nessuno segnala e tutti smettono di fidarsi.
+ *
+ * Sul canale non passa niente di quello che è cambiato: vedi
+ * `lib/events.server.ts`.
+ */
+function changed(requestId: string, intent: string) {
+  publishRequestChange(requestId);
+  return { ok: true as const, intent };
+}
+
 export async function action({ request, params }: Route.ActionArgs) {
   const user = await requireUser(request);
   const isAdmin = user.role === "ADMIN";
@@ -234,7 +252,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     await db.message.create({
       data: { requestId: req.id, authorId: user.id, body: body.slice(0, 2000) },
     });
-    return { ok: true as const, intent };
+    return changed(req.id, intent);
   }
 
   // editDates e cancel: chi ha fatto la richiesta o un admin — stessa
@@ -289,7 +307,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         decidedById: null,
       },
     });
-    return { ok: true as const, intent };
+    return changed(req.id, intent);
   }
 
   if (intent === "cancel") {
@@ -327,7 +345,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         console.error("Notifica di annullamento fallita:", error);
       }
     }
-    return { ok: true as const, intent };
+    return changed(req.id, intent);
   }
 
   // Tutto il resto è riservato agli admin. `requireAdmin` protegge anche chi
@@ -340,7 +358,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       where: { id: req.id },
       data: { adminNote: note || null },
     });
-    return { ok: true as const, intent };
+    return changed(req.id, intent);
   }
 
   if (intent === "approve" || intent === "reject") {
@@ -378,7 +396,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     } catch (error) {
       console.error("Notifica di decisione fallita:", error);
     }
-    return { ok: true as const, intent };
+    return changed(req.id, intent);
   }
 
   if (intent === "pickup" || intent === "return") {
@@ -414,7 +432,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       detail: `${item.asset.name} — ${fullLabelOf(req.user)}`,
     });
 
-    return { ok: true as const, intent };
+    return changed(req.id, intent);
   }
 
   if (intent === "reminder") {
@@ -429,7 +447,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       console.error("Invio promemoria fallito:", error);
       return { ok: false as const, error: "request.errorReminderFailed" as TranslationKey };
     }
-    return { ok: true as const, intent };
+    return changed(req.id, intent);
   }
 
   return { ok: false as const, error: "request.errorGeneric" as TranslationKey };
@@ -440,6 +458,12 @@ export default function RequestDetail({ loaderData }: Route.ComponentProps) {
     loaderData;
   const t = useT();
   const formatDayLabel = useFormatDay();
+
+  /* La chat si aggiorna da sola: è qui che ci si accorda su un ritiro, e una
+     pagina che mostra la conversazione di dieci minuti fa è peggio che non
+     mostrarla — chi la guarda crede di essere aggiornato. Vale anche per le
+     decisioni: chi ha chiesto vede l'approvazione senza ricaricare. */
+  useLive(`/api/stream?request=${id}`);
 
   const canManage = isOwner || Boolean(admin);
   const canEditOrCancel = canManage && (status === "PENDING" || status === "APPROVED");
