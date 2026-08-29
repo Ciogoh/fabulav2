@@ -87,28 +87,45 @@ verificato dal vivo, non solo compilato:**
   vecchi restano e rimandano qui, perché un segnalibro non deve smettere di
   funzionare per una riorganizzazione nostra.
 
-  **Una coda e un'agenda, non quattro sezioni.** La prima versione tagliava
+  **Tre blocchi, e nessuno si disegna se è vuoto.** La prima versione tagliava
   lo stesso lavoro in quattro elenchi con quattro pastiglie per filtrarli, e
   in una giornata tranquilla spendeva metà schermo in intestazioni vuote per
-  mostrare una riga. Adesso: una **coda** in cima — da approvare, messaggi non
-  letti, ritardi — e sotto l'**agenda** di oggi e domani, che compare solo se
-  ha qualcosa. Le due non si fondono, e non è una sfumatura: la coda si
-  svuota, l'agenda si legge. Un ritiro di domani non aspetta niente da te
-  adesso, e metterlo in una lista che stai cercando di finire vuol dire
+  mostrare una riga. Adesso: **Messaggi da leggere**, **Da fare**, e sotto
+  l'**agenda** di «oggi e domani». Quando è tutto vuoto, una riga sola lo dice
+  una volta per tutte.
+
+  **L'agenda non si fonde con le altre due, e non è una sfumatura**: le prime
+  due si svuotano, l'agenda si legge. Un ritiro di domani non aspetta niente
+  da te adesso, e metterlo in una lista che stai cercando di finire vuol dire
   metterci una riga che non si può finire.
 
   **Una riga per richiesta, non per motivo.** I motivi sono marcatori sulla
-  riga, e una richiesta in ritardo che ha anche un messaggio non letto compare
-  **una volta con due marcatori** — prima erano due righe in due sezioni, cioè
-  due cose da fare per una sola da aprire. Il ritardo è l'unico marcatore
-  pieno (`Pill tone="alarm"`): è l'unica cosa lì dentro che è già andata
-  storta.
+  riga: una richiesta da approvare *che* ha anche un messaggio compare **una
+  volta con due marcatori** — prima erano due righe in due sezioni, cioè due
+  cose da fare per una sola da aprire. Il ritardo è l'unico marcatore pieno
+  (`Pill tone="alarm"`): è l'unica cosa lì dentro che è già andata storta, e
+  un lavoro normale che grida quanto un problema toglie forza al problema.
+  A destra dei marcatori c'è **una** data sola, scelta dal motivo più urgente:
+  tre indicazioni di tempo sulla stessa riga non si leggono, si scavalcano.
 
-  **L'ordine non è per gravità ma per chi sta aspettando te**: su un ritardo
-  il tempo è già passato e nessuno è fermo davanti a una tua azione, su una
-  richiesta in attesa c'è una persona che aspetta. Quindi da approvare,
-  messaggi, ritardi — e a parità, chi aspetta da più tempo. Unica eccezione,
-  dichiarata: un ritardo oltre la settimana sale in cima.
+  **Il taglio fra i due blocchi è «c'è un messaggio da leggere», non «di che
+  tipo è».** In *Messaggi* ci finisce **tutto** ciò che ha una riga di chat non
+  letta, anche se è pure da approvare o in ritardo: una sezione «Messaggi» che
+  ne contiene solo una parte è peggio che non averla — si risponde a una
+  conversazione su tre e ci si crede a posto. La conseguenza è anche la
+  ragione: **si legge prima di agire**, perché quel messaggio è spesso la
+  risposta alla cosa che stavi per fare, e sollecitare qualcuno che ti ha
+  appena scritto è il modo più veloce per far smettere di scrivere.
+
+  **L'ordine non è per gravità ma per chi sta aspettando te.** Messaggi prima,
+  poi Da fare; dentro a ogni blocco, prima le approvazioni, poi i ritardi, e a
+  parità chi aspetta da più tempo. Unica eccezione, dichiarata: un ritardo
+  oltre la settimana fa passare *Da fare* davanti a tutto.
+
+  **L'indirizzo email sparisce sotto ai 640px.** Non è la regola 6 che si
+  allenta — quella parla di nomi, e `PersonInline` porta nome e cognome per
+  esteso anche a un lettore di schermo. Su un telefono l'indirizzo si prendeva
+  una riga intera per ogni voce dell'elenco.
 
   **Nessuna azione qui dentro**: ogni riga porta al dettaglio. Approvare da un
   elenco significa approvare senza aver letto.

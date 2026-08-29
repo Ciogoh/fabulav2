@@ -102,6 +102,17 @@ export async function loader({ request }: Route.LoaderArgs) {
  */
 export function headers(): HeadersInit {
   return {
+    // Il documento non va mai in cache: contiene i nomi (con l'impronta)
+    // dei file in `/assets/*` prodotti dalla build **corrente**. Un rilascio
+    // sostituisce quei file per intero — quelli vecchi non restano sul
+    // server — quindi un HTML vecchio servito da una cache intermedia (o
+    // ricevuto durante la finestra di scambio fra container in Coolify)
+    // punta a un file che non esiste più: la pagina arriva senza foglio di
+    // stile, con l'HTML però perfettamente valido. `no-cache` forza sempre
+    // una richiesta di conferma al server, che a quel punto risponde con
+    // l'HTML e i nomi giusti. Gli `/assets/*` restano cacheable per un anno
+    // (`immutable`, impostato da Vite): solo il documento va rivalidato.
+    "Cache-Control": "no-cache",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Content-Security-Policy": "frame-ancestors 'none'",

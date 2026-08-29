@@ -14,6 +14,42 @@ la prova su iPhone e Android veri di quello che la 0.7.0 ha aggiunto.
 
 ---
 
+## 0.9.2 — 29 agosto 2026
+
+**I messaggi tornano ad avere una sezione loro**, che nella 0.9.1 erano finiti
+dentro alla coda come marcatore. La coda unica risolveva il problema giusto —
+niente più righe doppie — ma toglieva il posto dove si va per **rispondere**,
+che è un gesto diverso dal decidere: si legge, si scrive, e finisce lì.
+
+Il taglio però non è «i messaggi da una parte e il resto dall'altra», ed è la
+sola cosa da capire: **il criterio è «c'è una riga di chat non letta», non
+«di che tipo è la richiesta»**. In *Messaggi da leggere* ci finisce tutto ciò
+che ne ha una, anche quando è pure da approvare o in ritardo — con quei motivi
+scritti sulla riga come marcatori, così il quadro intero si vede da lì. Una
+sezione «Messaggi» che ne contenesse solo una parte sarebbe peggio che non
+averla: si risponde a una conversazione su tre e ci si crede a posto.
+
+La conseguenza è anche la ragione: **si legge prima di agire.** Quel messaggio
+è spesso la risposta alla cosa che stavi per fare — «passo giovedì a
+riportarlo» risponde al ritardo — e sollecitare qualcuno che ti ha appena
+scritto è il modo più veloce per fargli smettere di scrivere. Da qui l'ordine:
+Messaggi, poi Da fare, poi l'agenda; con l'eccezione dichiarata di sempre, un
+ritardo oltre la settimana fa passare *Da fare* davanti.
+
+Nessuna richiesta compare due volte fra i due blocchi, che è il difetto da cui
+è nata questa pagina. E nessun blocco si disegna se è vuoto: quando non c'è
+niente, una riga sola lo dice una volta per tutte, invece di tre intestazioni
+che dicono «niente» ognuna per conto suo.
+
+**L'indirizzo email sparisce sotto ai 640px.** Su un telefono si prendeva una
+riga intera in ogni voce dell'elenco — tre righe su una schermata da tre — per
+dire una cosa che il nome accanto dice già. Non è la regola 6 che si allenta:
+quella parla di nomi, e `PersonInline` continua a portare nome e cognome per
+esteso anche a un lettore di schermo. L'indirizzo serve a scrivere a qualcuno,
+e si scrive dal dettaglio, dove quella riga porta.
+
+---
+
 ## 0.9.1 — 29 agosto 2026
 
 **Il Centro era una tassonomia, non un elenco di cose da fare.** Quattro

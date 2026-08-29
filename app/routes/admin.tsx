@@ -322,9 +322,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     });
   }
 
-  /* L'ordine, calcolato qui una volta sola invece che a schermo. `rank` è la
-     regola scritta in cima — chi sta aspettando te — e `waiting` è lo
-     spareggio: a parità di motivo, chi aspetta da più tempo sta sopra. */
+  /* L'ordine dentro a un blocco. `rank` è la regola scritta in cima — chi sta
+     aspettando te — e `waiting` è lo spareggio: a parità di motivo, chi
+     aspetta da più tempo sta sopra. */
   const rows = [...queue.values()]
     .map((row) => {
       const late = row.reasons.find(
@@ -351,11 +351,38 @@ export async function loader({ request }: Route.LoaderArgs) {
                 : Math.round((Date.now() - Date.parse(reason.createdAt)) / 86_400_000)
           )
         ),
+        hasUnread: row.reasons.some((reason) => reason.kind === "unread"),
+        escalated: Boolean(late && late.daysLate > OVERDUE_ESCALATION_DAYS),
       };
     })
     .sort((a, b) => a.rank - b.rank || b.waiting - a.waiting);
 
-  return { queue: rows, agenda: soonRows };
+  /* **Il taglio è «c'è un messaggio da leggere», non «di che tipo è».**
+     Una sezione «Messaggi» che ne contiene solo una parte è peggio che non
+     averla: si risponde a una conversazione su tre e ci si crede a posto.
+     Quindi ci finisce **tutto** ciò che ha una riga di chat non letta, anche
+     quando è pure da approvare o in ritardo — e quei motivi restano scritti
+     sulla riga come marcatori, così da lì si vede lo stesso il quadro intero.
+
+     La conseguenza è anche la ragione: **si legge prima di agire.** Quel
+     messaggio è spesso la risposta alla cosa che stavi per fare — «passo
+     giovedì a riportarlo» risponde al ritardo — e sollecitare qualcuno che
+     ti ha appena scritto è il modo più veloce per far smettere di scrivere.
+
+     Nessuna richiesta compare due volte, che è il difetto da cui è nata
+     questa pagina. */
+  const messages = rows.filter((row) => row.hasUnread);
+  const todo = rows.filter((row) => !row.hasUnread);
+
+  return {
+    messages,
+    todo,
+    agenda: soonRows,
+    /* L'eccezione dichiarata di sempre, che con i blocchi torna a essere un
+       ordine di blocchi: un ritardo oltre la settimana non è più normale
+       amministrazione, e passa davanti anche alla lettura. */
+    todoFirst: todo.some((row) => row.escalated),
+  };
 }
 
 /** Perché una richiesta sta nella coda. Una riga può averne più d'uno. */
@@ -377,7 +404,7 @@ type QueueRow = Holder & {
 };
 
 export default function AdminInbox({ loaderData }: Route.ComponentProps) {
-  const { queue, agenda } = loaderData;
+  const { messages, todo, agenda, todoFirst } = loaderData;
   const t = useT();
 
   /* Il Centro è la pagina che un admin tiene aperta in un angolo dello
@@ -385,58 +412,93 @@ export default function AdminInbox({ loaderData }: Route.ComponentProps) {
      tutto il tempo in cui nessuno la ricarica. */
   useLive("/api/stream");
 
+  /* Messaggi prima, perché **si legge prima di agire** — a meno che ci sia
+     un ritardo oltre la settimana, che è l'eccezione dichiarata di sempre.
+     Una regola sola, visibile e spiegabile, non un riordinamento intelligente
+     che sposta le cose sotto le dita di chi le sta guardando. */
+  const blocks = todoFirst
+    ? ([
+        ["todo", todo],
+        ["messages", messages],
+      ] as const)
+    : ([
+        ["messages", messages],
+        ["todo", todo],
+      ] as const);
+
+  const nothing =
+    messages.length === 0 && todo.length === 0 && agenda.length === 0;
+
   return (
     <main>
       <PageShell width="narrow" className="pb-24 pt-8">
         <PageTitle title={t("inbox.heading")} />
 
-        {/* La coda. Nessuna intestazione sopra: **è** la pagina, e un titolo
-            che ripete quello che si legge nel titolo grande è una riga in più
-            fra chi guarda e la prima cosa da fare. */}
-        {queue.length === 0 ? (
-          <p className="mt-8 text-muted">{t("inbox.allClear")}</p>
-        ) : (
-          <ul className="mt-6 flex flex-col gap-3">
-            {queue.map((row) => (
-              <QueueEntry key={row.id} row={row} />
-            ))}
-          </ul>
+        {nothing && <p className="mt-8 text-muted">{t("inbox.allClear")}</p>}
+
+        {/* **Una sezione vuota non si disegna.** Erano quattro intestazioni
+            con sotto tre righe che dicono «niente»: metà schermo speso per
+            raccontare che non c'è nulla da fare. L'assenza di messaggi si
+            vede benissimo dal fatto che non ce ne sono, e quando tutto è
+            vuoto la riga qui sopra lo dice una volta per tutte. */}
+        {blocks.map(([name, rows]) =>
+          rows.length === 0 ? null : (
+            <Section
+              key={name}
+              label={t(name === "messages" ? "inbox.messages" : "inbox.todo")}
+            >
+              {rows.map((row) => (
+                <QueueEntry key={row.id} row={row} />
+              ))}
+            </Section>
+          )
         )}
 
-        {/* L'agenda, e solo se c'è qualcosa. Una sezione vuota che dice
-            «niente da consegnare né da ricevere» è una riga che nessuno ha
-            chiesto: l'assenza di consegne oggi si vede benissimo dal fatto
-            che non ce ne sono. */}
         {agenda.length > 0 && (
-          <section className="mt-10 border-t border-rule pt-6">
-            <h2 className="eyebrow">{t("inbox.soon")}</h2>
-            <ul className="mt-3 flex flex-col gap-2">
-              {agenda.map((r) => (
-                <Row key={`${r.id}-${r.kind}`} to={`/requests/${r.id}`}>
-                  <Head
-                    left={
-                      <span className="eyebrow">
-                        {t(
-                          r.kind === "pickup"
-                            ? r.when === "today"
-                              ? "inbox.pickupToday"
-                              : "inbox.pickupTomorrow"
-                            : r.when === "today"
-                              ? "inbox.returnToday"
-                              : "inbox.returnTomorrow"
-                        )}
-                      </span>
-                    }
-                  />
-                  <Who holder={r.holder} email={r.holderEmail} />
-                  <Items names={r.itemNames} />
-                </Row>
-              ))}
-            </ul>
-          </section>
+          <Section label={t("inbox.soon")}>
+            {agenda.map((r) => (
+              <Row key={`${r.id}-${r.kind}`} to={`/requests/${r.id}`}>
+                <Head
+                  left={
+                    <span className="eyebrow">
+                      {t(
+                        r.kind === "pickup"
+                          ? r.when === "today"
+                            ? "inbox.pickupToday"
+                            : "inbox.pickupTomorrow"
+                          : r.when === "today"
+                            ? "inbox.returnToday"
+                            : "inbox.returnTomorrow"
+                      )}
+                    </span>
+                  }
+                />
+                <Who holder={r.holder} email={r.holderEmail} />
+                <Items names={r.itemNames} />
+              </Row>
+            ))}
+          </Section>
         )}
       </PageShell>
     </main>
+  );
+}
+
+/** Un blocco con la sua etichetta. Esiste solo quando ha qualcosa dentro:
+ *  chi lo disegna controlla prima, così il titolo e il filo di separazione
+ *  non compaiono mai da soli. */
+function Section({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-8 border-t border-rule pt-6 first-of-type:mt-6 first-of-type:border-t-0 first-of-type:pt-0">
+      <h2 className="eyebrow">{label}</h2>
+      <ul className="mt-3 flex flex-col gap-3">{children}</ul>
+    </section>
   );
 }
 
@@ -455,7 +517,7 @@ export default function AdminInbox({ loaderData }: Route.ComponentProps) {
 function QueueEntry({
   row,
 }: {
-  row: Route.ComponentProps["loaderData"]["queue"][number];
+  row: Route.ComponentProps["loaderData"]["messages"][number];
 }) {
   const t = useT();
 
@@ -577,14 +639,24 @@ function Due({ date }: { date: string }) {
   );
 }
 
-/* Una frase sola e non tre riquadri affiancati: da telefono il `flex
-   flex-wrap` staccava l'avatar dal nome a fine riga. */
+/**
+ * Una frase sola e non tre riquadri affiancati: da telefono il `flex
+ * flex-wrap` staccava l'avatar dal nome a fine riga.
+ *
+ * **L'indirizzo sparisce sotto ai 640px.** Su un telefono si prendeva una
+ * riga intera in ogni riga dell'elenco — tre righe su una schermata da tre
+ * voci — per dire una cosa che il nome accanto dice già. Non è la regola 6
+ * che si allenta: quella parla di **nomi** (si vede chi è davvero, non solo
+ * l'alias), e `PersonInline` continua a portare nome e cognome per esteso
+ * anche a un lettore di schermo. L'indirizzo serve a scrivere a qualcuno, e
+ * si scrive dal dettaglio — dove porta questa riga.
+ */
 function Who({ holder, email }: { holder: Person; email: string }) {
   const t = useT();
   return (
     <p className="mt-2 text-sm">
-      {t("requests.admin.requestedBy")} <PersonInline person={holder} />{" "}
-      <span className="text-muted">({email})</span>
+      {t("requests.admin.requestedBy")} <PersonInline person={holder} />
+      <span className="hidden text-muted sm:inline"> ({email})</span>
     </p>
   );
 }
