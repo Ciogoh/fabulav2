@@ -70,9 +70,10 @@ Nessuna delle due è un difetto: sono due scelte da riprendere in mano.
 
 - L'elenco oggetti dell'admin mette nome e azione su due righe, e una riga di
   oggetto è alta 120px: venti oggetti sono otto schermate.
-- Il Centro con due sezioni vuote su quattro spende metà schermo per dire che
-  non c'è niente da fare. Le sezioni vuote potrebbero raccogliersi in una riga
-  sola in fondo, invece di stare ognuna al suo posto.
+- ~~Il Centro con due sezioni vuote su quattro spende metà schermo per dire
+  che non c'è niente da fare.~~ **Fatto nella 0.9.1**, e più a fondo di così:
+  le sezioni sono sparite del tutto, sostituite da una coda con i motivi come
+  marcatori sulla riga e da un'agenda che compare solo se ha qualcosa.
 - Il nome dell'oggetto sul calendario si tronca con `title=`, che col dito non
   esiste. Stesso difetto già corretto sulle barre, non ancora sulla colonna
   dei nomi.
