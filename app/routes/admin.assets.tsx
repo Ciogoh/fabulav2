@@ -233,7 +233,7 @@ export default function AdminAssets({ loaderData }: Route.ComponentProps) {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={t("assets.searchPlaceholder")}
                 aria-label={t("catalogue.search")}
-                className="min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm"
+                className="field"
               />
 
               <CategoryChips
@@ -264,7 +264,7 @@ export default function AdminAssets({ loaderData }: Route.ComponentProps) {
               <div className="mt-6 flex flex-col gap-6">
                 {groupsOf(visible).map((group) => (
                   <section key={group.slug}>
-                    <h2 className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+                    <h2 className="eyebrow">
                       {group.name ?? t("assets.noCategory")}
                       <span className="ml-2 tabular-nums">{group.assets.length}</span>
                     </h2>
@@ -512,7 +512,7 @@ function Chip({
         .join(" ")}
     >
       {label}
-      <span className="font-mono text-[0.65rem]">{count}</span>
+      <span className="font-mono text-2xs">{count}</span>
     </Link>
   );
 }
@@ -563,7 +563,7 @@ function AssetItem({
       <Link to={`/admin/assets/${asset.id}`} className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium hover:text-accent">{asset.name}</p>
         {showCategory && (
-          <p className="font-mono text-[0.65rem] uppercase tracking-wider text-muted">
+          <p className="font-mono text-2xs uppercase tracking-wider text-muted">
             {asset.category?.name ?? t("assets.noCategory")}
           </p>
         )}
@@ -575,13 +575,13 @@ function AssetItem({
           cosa per cui si è aperta la pagina. */}
       <div className="flex w-full items-center justify-end gap-3 sm:w-auto">
         {archived ? (
-          <span className="font-mono text-[0.65rem] uppercase tracking-wider text-muted">
+          <span className="font-mono text-2xs uppercase tracking-wider text-muted">
             {t("assets.archivedBadge")}
           </span>
         ) : (
           <>
         {!pendingBookable && (
-          <span className="font-mono text-[0.65rem] uppercase tracking-wider text-muted">
+          <span className="font-mono text-2xs uppercase tracking-wider text-muted">
             {t("state.notBookable")}
           </span>
         )}

@@ -14,7 +14,8 @@ import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/request-detail";
 import { PageShell } from "~/components/page";
-import { buttonClass } from "~/components/button";
+import { Button, buttonClass } from "~/components/button";
+import { useConfirm } from "~/components/confirm";
 import { pageTitle } from "~/i18n/meta";
 import { db } from "~/lib/db.server";
 import { requireAdmin, requireUser } from "~/lib/session.server";
@@ -500,7 +501,7 @@ export default function RequestDetail({ loaderData }: Route.ComponentProps) {
           <h1 className="font-serif text-2xl font-semibold tracking-tight">
             {formatDayLabel(startDate)} — {formatDayLabel(endDate)}
           </h1>
-          <span className="rounded-full bg-sunk px-2.5 py-1 font-mono text-[0.68rem] font-medium uppercase tracking-wider text-muted">
+          <span className="rounded-full bg-sunk px-2.5 py-1 font-mono text-2xs font-medium uppercase tracking-wider text-muted">
             {t(REQUEST_STATUS_LABELS[status])}
           </span>
         </div>
@@ -565,6 +566,7 @@ function RequestActions({
     daysBetweenInclusive(startDate, endDate) > ORDINARY_SPAN
   );
   const [purpose, setPurpose] = useState(initialPurpose ?? "");
+  const confirm = useConfirm();
 
   useEffect(() => {
     if (editFetcher.state === "idle" && editFetcher.data?.ok) {
@@ -588,9 +590,10 @@ function RequestActions({
         {canCancel && (
           <cancelFetcher.Form
             method="post"
-            onSubmit={(event) => {
-              if (!window.confirm(t("request.confirmCancel"))) event.preventDefault();
-            }}
+            onSubmit={confirm.ask({
+              title: t("request.confirmCancel"),
+              confirmLabel: t("request.cancelRequest"),
+            })}
           >
             <input type="hidden" name="intent" value="cancel" />
             <button
@@ -607,6 +610,8 @@ function RequestActions({
       {cancelFetcher.data && !cancelFetcher.data.ok && (
         <p className="text-sm text-out">{t(cancelFetcher.data.error)}</p>
       )}
+
+      {confirm.dialog}
 
       {editing && (
         <editFetcher.Form
@@ -637,13 +642,9 @@ function RequestActions({
           )}
 
           <div className="flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className="text-sm text-muted underline underline-offset-4 hover:text-ink"
-            >
+            <Button variant="plain" onClick={() => setEditing(false)}>
               {t("request.cancel")}
-            </button>
+            </Button>
             <button
               type="submit"
               disabled={editFetcher.state !== "idle"}
@@ -688,7 +689,7 @@ function ItemRow({
       <span>
         {item.name}
         {item.fromKitName && (
-          <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-wider text-muted">
+          <span className="ml-2 font-mono text-2xs uppercase tracking-wider text-muted">
             {item.fromKitName}
           </span>
         )}
@@ -696,11 +697,11 @@ function ItemRow({
 
       <span className="flex items-center gap-2">
         {item.returned ? (
-          <span className="font-mono text-[0.65rem] uppercase tracking-wider text-muted">
+          <span className="font-mono text-2xs uppercase tracking-wider text-muted">
             {t("requests.item.returned")}
           </span>
         ) : item.pickedUp ? (
-          <span className="font-mono text-[0.65rem] uppercase tracking-wider text-held">
+          <span className="font-mono text-2xs uppercase tracking-wider text-held">
             {t("requests.item.pickedUp")}
           </span>
         ) : null}
@@ -712,7 +713,7 @@ function ItemRow({
             <button
               type="submit"
               disabled={fetcher.state !== "idle"}
-              className={buttonClass("quiet", "sm", "font-mono text-[0.62rem] uppercase tracking-wider")}
+              className={buttonClass("quiet", "sm", "font-mono text-2xs uppercase tracking-wider")}
             >
               {t("requests.admin.markPickedUp")}
             </button>
@@ -725,7 +726,7 @@ function ItemRow({
             <button
               type="submit"
               disabled={fetcher.state !== "idle"}
-              className={buttonClass("quiet", "sm", "font-mono text-[0.62rem] uppercase tracking-wider")}
+              className={buttonClass("quiet", "sm", "font-mono text-2xs uppercase tracking-wider")}
             >
               {t("requests.admin.markReturned")}
             </button>
@@ -754,7 +755,7 @@ function AdminSection({
 
   return (
     <section className="mt-8 rounded border border-rule bg-card p-4">
-      <span className="font-mono text-[0.66rem] uppercase tracking-widest text-muted">
+      <span className="eyebrow">
         {t("requests.admin.heading")}
       </span>
 
@@ -768,23 +769,25 @@ function AdminSection({
         <div className="mt-4 flex gap-2">
           <decisionFetcher.Form method="post">
             <input type="hidden" name="intent" value="approve" />
-            <button
+            <Button
               type="submit"
-              disabled={decisionFetcher.state !== "idle"}
-              className={buttonClass("primary", "sm")}
+              variant="primary"
+              size="sm"
+              busy={decisionFetcher.state !== "idle"}
             >
               {t("requests.admin.approve")}
-            </button>
+            </Button>
           </decisionFetcher.Form>
           <decisionFetcher.Form method="post">
             <input type="hidden" name="intent" value="reject" />
-            <button
+            <Button
               type="submit"
-              disabled={decisionFetcher.state !== "idle"}
-              className={buttonClass("danger", "sm")}
+              variant="danger"
+              size="sm"
+              busy={decisionFetcher.state !== "idle"}
             >
               {t("requests.admin.reject")}
-            </button>
+            </Button>
           </decisionFetcher.Form>
         </div>
       )}
@@ -817,7 +820,7 @@ function AdminSection({
         <input type="hidden" name="intent" value="note" />
         <label
           htmlFor={`note-${id}`}
-          className="font-mono text-[0.66rem] uppercase tracking-widest text-muted"
+          className="eyebrow"
         >
           {t("requests.admin.note")}
         </label>
@@ -826,7 +829,7 @@ function AdminSection({
           name="note"
           rows={3}
           defaultValue={admin.note ?? ""}
-          className="min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm"
+          className="field-area"
         />
         <button
           type="submit"
@@ -867,7 +870,7 @@ function ChatSection({ id, messages }: { id: string; messages: ChatMessage[] }) 
 
   return (
     <section className="mt-8 border-t border-rule pt-4">
-      <span className="font-mono text-[0.66rem] uppercase tracking-widest text-muted">
+      <span className="eyebrow">
         {t("requests.chat.heading")}
       </span>
 
@@ -898,7 +901,7 @@ function ChatSection({ id, messages }: { id: string; messages: ChatMessage[] }) 
                   </span>
                 )}
               </span>
-              <span className="shrink-0 font-mono text-[0.62rem] text-muted">
+              <span className="shrink-0 font-mono text-2xs text-muted">
                 {new Date(message.createdAt).toLocaleString(lang, {
                   day: "numeric",
                   month: "short",
@@ -928,16 +931,12 @@ function ChatSection({ id, messages }: { id: string; messages: ChatMessage[] }) 
             rows={2}
             required
             placeholder={t("requests.chat.placeholder")}
-            className="min-h-11 w-full rounded border border-rule bg-card px-3 py-2 text-sm"
+            className="field w-full"
           />
         </div>
-        <button
-          type="submit"
-          disabled={fetcher.state !== "idle"}
-          className={buttonClass("primary")}
-        >
+        <Button type="submit" variant="primary" busy={fetcher.state !== "idle"}>
           {t("requests.chat.send")}
-        </button>
+        </Button>
       </fetcher.Form>
       {fetcher.data && !fetcher.data.ok && (
         <p className="mt-2 text-sm text-out">{t(fetcher.data.error)}</p>

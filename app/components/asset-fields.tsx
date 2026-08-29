@@ -9,8 +9,8 @@ import { useT } from "~/i18n/use-t";
 import { Select } from "~/components/select";
 import { MAX_CATEGORY_NAME, NEW_CATEGORY } from "~/lib/categories";
 
-/** Scritta a mano in otto punti: vedi la nota in CLAUDE.md sulle convenzioni. */
-const FIELD = "min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm";
+/** Il tessuto di un campo vive in `app.css` (`@utility field`). */
+const FIELD = "field";
 
 export type AssetDefaults = {
   name?: string;
@@ -120,7 +120,7 @@ function CategoryField({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor="categoryId"
-        className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+        className="eyebrow"
       >
         {t("assets.category")}
       </label>
@@ -169,7 +169,7 @@ function Field({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={name}
-        className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+        className="eyebrow"
       >
         {label}
       </label>

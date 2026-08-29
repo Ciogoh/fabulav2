@@ -14,6 +14,121 @@ la prova su iPhone e Android veri di quello che la 0.7.0 ha aggiunto.
 
 ---
 
+## 0.9.0 — 29 agosto 2026
+
+**Il tema si sceglie.** Dal profilo, sotto *Aspetto*: chiaro, scuro o
+automatico. Fino a ieri decideva solo il sistema operativo, il che va bene
+finché le due risposte coincidono — ma un magazzino con la luce al neon si
+legge meglio in chiaro anche se il telefono è in scuro dalle sette di sera, e
+non c'era modo di dirlo.
+
+È una preferenza del **dispositivo** e non della persona: solo cookie, nessuna
+colonna nuova, nessuna migrazione. La lingua sta sul profilo perché ha un
+consumatore lato server — le email si scrivono nella lingua di chi le riceve,
+anche quando quella persona non è davanti allo schermo — mentre il tema non lo
+legge nessuno tranne il browser che sta disegnando la pagina in quel momento.
+E volere Fabula scura sul telefono e chiara sul portatile non è un capriccio:
+è il caso normale.
+
+Il cookie si legge **nel loader di `root.tsx`**, non nel browser, e diventa
+`data-theme` sull'`<html>` che parte: non esiste nessun istante in cui la
+pagina sia del colore sbagliato. Con la scelta in `localStorage` e uno script
+che la applica, chi apre Fabula al buio si prende un lampo bianco in faccia a
+ogni caricamento. Per la stessa ragione il colore della barra di sistema
+smette di essere due righe con la media query quando la scelta è stata fatta:
+chi tiene il telefono in chiaro e Fabula in scuro si sarebbe ritrovato la
+barra bianca sopra a una pagina nera.
+
+Sotto, i colori hanno smesso di essere due elenchi identici a ottanta righe di
+distanza: **ogni token dichiara adesso le due tinte sulla stessa riga**, con
+`light-dark()`. Da lì veniva la regola «ogni colore va definito anche fuori dal
+blocco del tema scuro, o sparisce nel tema chiaro» — una regola che esiste per
+ricordarsi di scrivere due volte la stessa cosa è il sintomo, non la cura, e i
+rapporti di contrasto stavano annotati accanto a un valore e andavano
+ricalcolati accanto all'altro, che nessuno vedeva. Adesso li vede tutti e due.
+Il prezzo è dichiarato in `app.css`: `light-dark()` chiede Safari 17.5 e
+Chrome 123, metà 2024, poco sopra al gradino che Tailwind 4 già impone.
+
+**Rifinitura d'insieme, telefono e scrivania.** Niente di nuovo da usare: le
+stesse schermate, guardate una accanto all'altra invece che una alla volta.
+Da lì è venuto fuori che tre cose avevano smesso di avere un posto solo,
+esattamente come era successo ai pulsanti prima della 0.5, e che quattro
+difetti si vedevano solo col dito o solo da tastiera.
+
+**La scala dei corpi era diventata dieci misure a occhio.** `text-[0.6rem]`,
+`0.62`, `0.65`, `0.66`, `0.68`, `0.7`, `0.8`, `0.82`, `0.9`, `0.95`: 108
+volte in venti file, nessuna scelta, tutte cresciute ritoccando la schermata
+del momento. Si vedeva mettendo due pagine vicine — la stessa etichetta in
+maiuscoletto era 9,6px sul calendario, 10,4px nell'intestazione, 10,9px sul
+catalogo. Ora sono due passi in più a quelli di Tailwind (`text-2xs` 11px,
+`text-md` 15px) e nient'altro, **con 11px come pavimento**: sotto, un
+maiuscoletto spaziato smette di leggersi a braccio teso, che è la distanza a
+cui si guarda un telefono in magazzino. Le tre misure che ci stavano sotto
+erano tutte etichette che portano informazione — la categoria di un oggetto,
+chi ha in mano cosa, il conteggio del Centro.
+
+Insieme sono nate due utility in `app.css`: `eyebrow`, l'etichetta in
+maiuscoletto scritta a mano 64 volte, e `field`, il tessuto di un campo che
+diciotto input su settanta si riscrivevano da soli — tre dei quali sbagliando
+l'altezza, 38px invece di 44.
+
+**Otto voci di menu non sono una barra, sono un elenco.** Con un admin
+l'intestazione arrivava a **269px su uno schermo da 375: un terzo dello
+schermo prima di vedere un oggetto**, su quattro righe. Le otto voci però non
+pesano uguale, e la gerarchia era già scritta nel prodotto: il Centro è il
+lavoro di un turno, soci-oggetti-scanner-registro sono amministrazione. Il
+Centro resta in vista con la sua pastiglia, gli altri quattro entrano in un
+menu «Gestione» — a ogni misura di schermo, perché anche sul desktop otto
+collegamenti in fila si leggevano come otto posti da controllare, che è il
+difetto che il Centro esiste per togliere. Sotto ai 640px sparisce anche il
+proprio nome accanto all'avatar. **169px, due righe.**
+
+**Le finestre di conferma erano del sistema operativo.** Otto
+`window.confirm()`, e per Fabula sono un corpo estraneo in tre modi: i due
+pulsanti non sono tradotti (un socio con Fabula in tedesco vedeva la domanda
+in tedesco e «OK/Annulla» nella lingua del sistema), «OK» non dice mai cosa
+sta per succedere, e il processo si blocca. Adesso sono un dialogo nostro —
+stesso guscio del foglio della richiesta, ora estratto in
+`components/dialog.tsx` — con il **verbo dell'azione** sul pulsante di
+conferma e la sesta variante di `Button`, `destructive`: dentro a una
+conferma il pulsante che distrugge è l'azione principale di quel dialogo, e
+con la fattura del `danger` quieto restava meno vistoso di «Annulla». Ne è
+sparito anche uno **doppio** — due finestre di sistema in fila prima di
+mandare un link di reimpostazione password: due domande consecutive non fanno
+leggere di più, fanno premere «OK» due volte senza guardare. Sono diventate
+una domanda con sotto la conseguenza.
+
+**Un pulsante spento non è un'attesa.** L'unico segnale che qualcosa stesse
+viaggiando era il pulsante che si disabilitava — che vuol dire anche «non si
+può premere», cioè il contrario, e non dice che finirà. `Button` ha ora uno
+stato `busy` con cerchietto e `aria-busy`, ed è l'unica animazione
+dell'applicazione. Sotto `prefers-reduced-motion` rallenta invece di
+fermarsi: un indicatore immobile dice «si è bloccato», che è peggio di dove
+si era partiti.
+
+**Il calendario, tre difetti.** Le intestazioni dei giorni non erano
+appiccicate: dopo sei oggetti le date erano uscite dallo schermo e restavano
+barre colorate senza sapere di che giorno fossero — ora il riquadro scorre da
+sé nei due versi e mesi e giorni restano in cima. Le barre erano velature
+all'1,15:1 sul fondo della scheda, cioè invisibili da lontano proprio dove la
+barra **è** il dato: un contorno di un pixel nella tinta piena, come già
+aveva `REQUESTED` tratteggiato. E l'etichetta si troncava in «RESER…» su ogni
+prenotazione corta — un troncamento che non lascia leggere niente non è un
+ripiego, è rumore: ora si accorcia a gradini e sotto ai tre giorni sparisce,
+con il nome per esteso sempre disponibile a un lettore di schermo e non solo
+al passaggio del mouse, che sul telefono non esiste.
+
+**Il resto, piccolo ma vero.** Nel Centro un messaggio non letto adesso dice
+**quando** — il dato arrivava già dal loader e finiva nel nulla, e uno di
+dieci minuti fa e uno di quattro giorni fa erano la stessa riga. Nella scheda
+di un kit i pezzi sbarrati dicono perché lo sono, invece di lasciare che un
+kit da quattro aggiunga tre oggetti senza spiegarsi. Sul catalogo l'anello di
+fuoco stava intorno al titolo e non intorno alla scheda, che è ciò che si
+apre. E quattro pulsanti si erano riscritti a mano invece di passare da
+`Button`.
+
+---
+
 ## 0.8.0 — 28 agosto 2026
 
 **Il calendario personale, uno per persona e non uno per tutti.**

@@ -13,12 +13,13 @@
  * toglierli tutti in un colpo.
  */
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useFetcher, useNavigate } from "react-router";
 import type { loader as availabilityLoader } from "~/routes/availability";
 import type { action as createRequestAction } from "~/routes/requests";
 import { useT } from "~/i18n/use-t";
 import { Button, ButtonLink } from "~/components/button";
+import { Dialog } from "~/components/dialog";
 import { DateRangeFields, daysBetweenInclusive } from "~/components/date-range-fields";
 import { MAX_ORDINARY_SPAN_DAYS } from "~/lib/availability.shared";
 import type { CartEntry, useCart } from "~/lib/use-cart";
@@ -41,7 +42,7 @@ export function CartBar({
     <div className="sticky bottom-0 z-30 border-t border-rule bg-card">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-4 gap-y-3 px-6 py-3">
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+          <p className="eyebrow">
             {t("cart.heading")}
             {/* Il conteggio è già dentro al pulsante: sullo stretto ripeterlo
                 mandava l'intestazione della barra a capo. */}
@@ -90,6 +91,13 @@ export function CartBar({
 
 /* --------------------------------------------------------- il foglio */
 
+/**
+ * Le regole di un modale — fuoco intrappolato e restituito, Escape, click sul
+ * velo, pagina dietro che non scorre — vivono in `components/dialog.tsx`.
+ * Stavano qui dentro finché il modale era uno solo; adesso ce n'è anche uno
+ * di conferma, e valgono per tutti e due.
+ */
+
 function RequestDialog({
   entries,
   today,
@@ -107,7 +115,6 @@ function RequestDialog({
   const navigate = useNavigate();
   const fetcher = useFetcher<typeof createRequestAction>();
   const availability = useFetcher<typeof availabilityLoader>();
-  const panelRef = useRef<HTMLDivElement>(null);
   const headingId = useId();
 
   const [from, setFrom] = useState(today);
@@ -144,79 +151,12 @@ function RequestDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state, fetcher.data]);
 
-  /**
-   * Le regole di un dialogo modale, che prima mancavano tutte: il focus entra
-   * dentro, ci resta finché il foglio è aperto, e torna da dove era partito
-   * alla chiusura. Senza, col solo tasto Tab si finiva a navigare il catalogo
-   * dietro al foglio senza vedere dove si era.
-   */
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    document.body.dataset.dialogOpen = "true";
-
-    // Sul primo campo, non sulla ✕: il foglio si apre per scegliere le date,
-    // e chi arriva da tastiera deve trovarsi già dove si scrive.
-    const panel = panelRef.current;
-    const first =
-      panel?.querySelector<HTMLElement>("input, select, textarea") ??
-      panel?.querySelector<HTMLElement>("button, a[href], [tabindex]");
-    first?.focus();
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-        return;
-      }
-      if (event.key !== "Tab" || !panel) return;
-
-      const focusable = [
-        ...panel.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        ),
-      ].filter((element) => element.offsetParent !== null);
-      if (focusable.length === 0) return;
-
-      const first = focusable[0]!;
-      const last = focusable[focusable.length - 1]!;
-      const active = document.activeElement;
-
-      if (event.shiftKey && (active === first || !panel.contains(active))) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      delete document.body.dataset.dialogOpen;
-      previous?.focus();
-    };
-  }, [onClose]);
-
   const result = fetcher.data && !fetcher.data.ok ? fetcher.data : null;
   const span = daysBetweenInclusive(from, to);
   const tooLong = !longer && span > MAX_ORDINARY_SPAN_DAYS;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={headingId}
-      // Velo nero, non `bg-ink/50`: nel tema scuro `--ink` è chiaro, quindi il
-      // velo *schiariva* la pagina dietro invece di spegnerla.
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div
-        ref={panelRef}
-        className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-y-auto rounded-t border border-rule bg-card p-5 sm:rounded"
-      >
+    <Dialog onClose={onClose} labelledBy={headingId} panelClassName="max-w-md">
         <div className="flex items-start justify-between gap-4">
           <h2 id={headingId} className="font-serif text-xl font-semibold">
             {t("request.heading")}
@@ -247,7 +187,7 @@ function RequestDialog({
                   {entry.name}
                 </span>
                 {conflict && (
-                  <span className="rounded-full bg-out-bg px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-out">
+                  <span className="rounded-full bg-out-bg px-2 py-0.5 font-mono text-2xs font-medium uppercase tracking-wider text-out">
                     {t("request.taken")}
                   </span>
                 )}
@@ -287,7 +227,7 @@ function RequestDialog({
           {/* L'esito del controllo, nel punto in cui si scelgono le date. */}
           <p
             aria-live="polite"
-            className={`text-[0.8rem] ${
+            className={`text-xs ${
               takenEntries.length > 0 ? "text-out" : "text-muted"
             }`}
           >
@@ -329,13 +269,13 @@ function RequestDialog({
             <Button
               type="submit"
               variant="primary"
-              disabled={busy || tooLong || takenEntries.length > 0}
+              busy={busy}
+              disabled={tooLong || takenEntries.length > 0}
             >
               {t("request.submit")}
             </Button>
           </div>
         </fetcher.Form>
-      </div>
-    </div>
+    </Dialog>
   );
 }

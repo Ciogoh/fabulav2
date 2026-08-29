@@ -10,6 +10,9 @@ export default [
   route("signin", "routes/signin.tsx"),
   route("welcome", "routes/welcome.tsx"),
   route("language", "routes/language.tsx"),
+  // Chiaro, scuro o automatico. Cookie e basta: è una preferenza del
+  // dispositivo, non della persona — vedi `lib/theme.ts`.
+  route("theme", "routes/theme.tsx"),
   route("account", "routes/account.tsx"),
   route("requests", "routes/requests.tsx"),
   // Sole risorse: il foglio della richiesta chiede da qui se gli oggetti

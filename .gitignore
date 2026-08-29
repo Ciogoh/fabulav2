@@ -24,3 +24,12 @@
 # installare niente.
 graphify-out/*
 !graphify-out/GRAPH_REPORT.md
+
+# Le skill di Claude Code installate da fuori (design, brand, slides,
+# ui-ux-pro-max…): sono pacchetti di terze parti, quattro megabyte solo la
+# prima, e si reinstallano da sole. Restano dentro al repo le due scritte per
+# Fabula — `add-i18n-key` e `prisma-migration` — che parlano di questo
+# progetto e di nessun altro, e l'eccezione le tiene tracciate.
+.claude/skills/*
+!.claude/skills/add-i18n-key/
+!.claude/skills/prisma-migration/

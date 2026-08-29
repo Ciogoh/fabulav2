@@ -42,7 +42,7 @@ import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
 import { formatDay, todayUtc } from "~/lib/availability.server";
 import { unreadForAdminIds } from "~/lib/inbox.server";
-import { useFormatDay, useT } from "~/i18n/use-t";
+import { useFormatDay, useLang, useT } from "~/i18n/use-t";
 import { useLive } from "~/lib/use-live";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import type { Person } from "~/lib/person";
@@ -348,7 +348,7 @@ export default function AdminInbox({ loaderData }: Route.ComponentProps) {
 
         {shown.map((name) => (
           <section key={name} id={name} className="mt-10">
-            <h2 className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+            <h2 className="eyebrow">
               {t(SECTION_LABELS[name])}
             </h2>
 
@@ -385,7 +385,21 @@ export default function AdminInbox({ loaderData }: Route.ComponentProps) {
                 {name === "messaggi" &&
                   unread.map((r) => (
                     <Row key={r.id} to={`/requests/${r.id}`}>
-                      <Who holder={r.holder} email={r.holderEmail} />
+                      {/* **Quando**, che è metà della decisione e mancava.
+                          Il dato era già qui — `lastMessage.createdAt`
+                          arrivava dal loader e finiva nel nulla — ma a schermo
+                          un messaggio non letto di dieci minuti fa e uno di
+                          quattro giorni fa erano la stessa riga, e la coda si
+                          smaltiva nell'ordine sbagliato. Le altre tre sezioni
+                          dicono tutte da quanto si aspetta: questa no. */}
+                      <Head
+                        left={<Who holder={r.holder} email={r.holderEmail} />}
+                        right={
+                          r.lastMessage ? (
+                            <MessageTime at={r.lastMessage.createdAt} />
+                          ) : null
+                        }
+                      />
                       {r.lastMessage && (
                         <p className="mt-1 line-clamp-2 text-sm">
                           {r.lastMessage.body}
@@ -400,7 +414,7 @@ export default function AdminInbox({ loaderData }: Route.ComponentProps) {
                     <Row key={`${r.id}-${r.kind}`} to={`/requests/${r.id}`}>
                       <Head
                         left={
-                          <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+                          <span className="eyebrow">
                             {t(
                               r.kind === "pickup"
                                 ? r.when === "today"
@@ -486,7 +500,7 @@ function Chip({
       {label}
       {count !== undefined && count > 0 && (
         <span
-          className={`rounded-full px-1.5 py-0.5 font-mono text-[0.65rem] font-medium ${
+          className={`rounded-full px-1.5 py-0.5 font-mono text-2xs font-medium ${
             tone === "out" ? "bg-out-bg text-out" : "bg-accent-soft text-accent"
           }`}
         >
@@ -522,7 +536,7 @@ function Head({ left, right }: { left: React.ReactNode; right?: React.ReactNode 
 function Pill({ tone, children }: { tone: "accent" | "out"; children: React.ReactNode }) {
   return (
     <span
-      className={`rounded-full px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider ${
+      className={`rounded-full px-2 py-0.5 font-mono text-2xs font-medium uppercase tracking-wider ${
         tone === "out" ? "bg-out-bg text-out" : "bg-sunk text-muted"
       }`}
     >
@@ -534,7 +548,7 @@ function Pill({ tone, children }: { tone: "accent" | "out"; children: React.Reac
 function Dates({ from, to }: { from: string; to: string }) {
   const formatDayLabel = useFormatDay();
   return (
-    <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+    <span className="eyebrow">
       {formatDayLabel(from)} — {formatDayLabel(to)}
     </span>
   );
@@ -544,7 +558,7 @@ function Due({ date }: { date: string }) {
   const t = useT();
   const formatDayLabel = useFormatDay();
   return (
-    <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+    <span className="eyebrow">
       {t("overdue.dueOn", { date: formatDayLabel(date) })}
     </span>
   );
@@ -564,4 +578,20 @@ function Who({ holder, email }: { holder: Person; email: string }) {
 
 function Items({ names }: { names: string[] }) {
   return <p className="mt-1 text-sm text-muted">{names.join(" · ")}</p>;
+}
+
+/** Giorno e ora, come nella chat: la stessa informazione scritta due volte in
+ *  due forme diverse costringe a rileggerla ogni volta. */
+function MessageTime({ at }: { at: string }) {
+  const lang = useLang();
+  return (
+    <span className="mt-2 shrink-0 font-mono text-2xs text-muted">
+      {new Date(at).toLocaleString(lang, {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })}
+    </span>
+  );
 }

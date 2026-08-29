@@ -81,7 +81,7 @@ export default function AdminKits({ loaderData }: Route.ComponentProps) {
                   <Link to={`/admin/kits/${kit.id}`} className="block p-3">
                     <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                       <p className="text-sm font-medium hover:text-accent">{kit.name}</p>
-                      <span className="font-mono text-[0.65rem] uppercase tracking-wider text-muted">
+                      <span className="font-mono text-2xs uppercase tracking-wider text-muted">
                         {t("kit.itemCount", { count: names.length })}
                       </span>
                     </div>

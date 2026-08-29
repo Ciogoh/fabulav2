@@ -82,8 +82,8 @@ export function PersonInline({
 }
 
 const SIZES = {
-  sm: "h-7 w-7 text-[0.6rem]",
-  md: "h-9 w-9 text-[0.7rem]",
+  sm: "h-7 w-7 text-2xs",
+  md: "h-9 w-9 text-2xs",
   lg: "h-24 w-24 text-xl",
 } as const;
 

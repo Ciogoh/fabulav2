@@ -18,7 +18,7 @@
 import { useMemo, useState } from "react";
 import { useT } from "~/i18n/use-t";
 
-const FIELD = "min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm";
+const FIELD = "field";
 
 export type KitAssetOption = {
   id: string;
@@ -45,7 +45,7 @@ export function KitFields({
   return (
     <>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="name" className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+        <label htmlFor="name" className="eyebrow">
           {t("kits.name")}
         </label>
         <input
@@ -62,7 +62,7 @@ export function KitFields({
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="description"
-          className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+          className="eyebrow"
         >
           {t("kits.description")}
         </label>
@@ -111,7 +111,7 @@ function AssetPicker({
 
   return (
     <fieldset className="flex flex-col gap-1.5">
-      <legend className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+      <legend className="eyebrow">
         {t("kits.pieces")}
       </legend>
 
@@ -133,7 +133,7 @@ function AssetPicker({
                 si saprebbe più quanti pezzi ha il kit che si sta montando. */}
             <span
               aria-live="polite"
-              className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+              className="eyebrow"
             >
               {t("kits.chosenCount", { count: chosen.size })}
             </span>
@@ -145,7 +145,7 @@ function AssetPicker({
 
               return (
                 <div key={group.key} className={visible ? undefined : "hidden"}>
-                  <p className="sticky top-0 border-b border-rule bg-sunk px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-wider text-muted">
+                  <p className="sticky top-0 border-b border-rule bg-sunk px-3 py-1.5 font-mono text-2xs uppercase tracking-wider text-muted">
                     {group.name ?? t("assets.noCategory")}
                   </p>
 

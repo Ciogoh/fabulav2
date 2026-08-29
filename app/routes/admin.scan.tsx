@@ -485,7 +485,7 @@ export default function Scan() {
           <div className="mt-4">
             <label
               htmlFor="camera"
-              className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+              className="eyebrow"
             >
               {t("scan.camera")}
             </label>

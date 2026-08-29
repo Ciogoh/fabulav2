@@ -16,6 +16,7 @@ import { useRef, useState } from "react";
 import { Link, useFetcher, useNavigate, useSearchParams } from "react-router";
 import { PageShell, PageTitle } from "~/components/page";
 import { Button, ButtonLink } from "~/components/button";
+import { useConfirm } from "~/components/confirm";
 import type { Route } from "./+types/calendar";
 import { db } from "~/lib/db.server";
 import {
@@ -196,7 +197,7 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
               due angoli opposti, e il numero sembrava una nota a piè di pagina
               invece della spiegazione del filtro. */}
           <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-            <span className="font-mono text-[0.7rem] uppercase tracking-widest">
+            <span className="font-mono text-2xs uppercase tracking-widest">
               {showAll
                 ? t("calendar.showingAllCount", { total: totalAssets })
                 : t("calendar.showingCount", {
@@ -223,11 +224,23 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
               visibili. Sotto ai 640px si legge lo stesso dato come elenco. */}
           <AgendaList rows={rows} isAdmin={isAdmin} />
 
-          <div className="mt-4 hidden overflow-x-auto rounded border border-rule bg-card sm:block">
+          {/* Il riquadro scorre da sé nei due versi, e non è una raffinatezza:
+              perché le due righe di intestazione possano restare appiccicate
+              serve un antenato che scorra davvero in verticale. Prima c'era
+              solo `overflow-x-auto`, la pagina intera scorreva sotto, e dopo
+              sei oggetti i giorni erano usciti dallo schermo — restavano barre
+              colorate senza più sapere di che data fossero. Il tetto è in
+              `svh` perché su iOS `vh` conta anche la barra del browser che si
+              ritira, e il riquadro sbordava di quel tanto. */}
+          <div className="mt-4 hidden max-h-[min(70svh,42rem)] overflow-auto rounded border border-rule bg-card sm:block">
             <div
               className="min-w-max"
               style={{ ["--day" as string]: "30px" }}
             >
+              {/* Mesi e giorni sono un blocco solo, appiccicato in cima: due
+                  `sticky` fratelli avrebbero avuto bisogno di conoscere
+                  l'altezza del primo per calcolare il `top` del secondo. */}
+              <div className="sticky top-0 z-30 bg-card">
               {/* I mesi attraversati dalla finestra, con una riga divisoria
                   dove uno finisce e comincia il successivo. */}
               <div className="flex border-b border-rule">
@@ -241,7 +254,7 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
                   {monthSegments.map((segment, index) => (
                     <div
                       key={segment.key}
-                      className={`truncate px-1.5 py-1 text-center font-mono text-[0.62rem] uppercase tracking-widest text-muted ${
+                      className={`truncate px-1.5 py-1 text-center eyebrow ${
                         index > 0 ? "border-l border-rule" : ""
                       }`}
                       style={{ gridColumn: `${segment.startIndex + 1} / span ${segment.span}` }}
@@ -271,11 +284,11 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
                         key={day}
                         className={`py-2 text-center ${isWeekend ? "bg-sunk" : ""}`}
                       >
-                        <div className="font-mono text-[0.6rem] uppercase text-muted">
+                        <div className="font-mono text-2xs uppercase text-muted">
                           {weekday.format(date)}
                         </div>
                         <div
-                          className={`font-mono text-[0.7rem] tabular-nums ${
+                          className={`font-mono text-2xs tabular-nums ${
                             isToday
                               ? "font-medium text-accent"
                               : "text-muted"
@@ -288,6 +301,7 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
                   })}
                 </div>
               </div>
+              </div>
 
               {/* Una riga per oggetto */}
               {rows.map((row) => (
@@ -296,11 +310,11 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
                       perdeva il suo nome, e restavano barre colorate senza più
                       sapere di che oggetto fossero. */}
                   <div className="sticky left-0 z-20 w-52 shrink-0 border-r border-rule bg-card px-3 py-2">
-                    <div className="truncate text-[0.82rem] font-medium" title={row.name}>
+                    <div className="truncate text-sm font-medium" title={row.name}>
                       {row.name}
                     </div>
                     {row.category && (
-                      <div className="font-mono text-[0.6rem] uppercase tracking-wider text-muted">
+                      <div className="font-mono text-2xs uppercase tracking-wider text-muted">
                         {row.category.name}
                       </div>
                     )}
@@ -346,7 +360,7 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
 
-          <p className="mt-2 hidden font-mono text-[0.68rem] uppercase tracking-widest text-muted sm:block">
+          <p className="mt-2 hidden eyebrow sm:block">
             {t("calendar.timelineHint")}
           </p>
           </>
@@ -379,9 +393,9 @@ function AgendaList({
     <ul className="mt-4 flex flex-col gap-3 sm:hidden">
       {rows.map((row) => (
         <li key={row.id} className="rounded border border-rule bg-card p-4">
-          <div className="text-[0.9rem] font-medium">{row.name}</div>
+          <div className="text-md font-medium">{row.name}</div>
           {row.category && (
-            <div className="font-mono text-[0.62rem] uppercase tracking-wider text-muted">
+            <div className="font-mono text-2xs uppercase tracking-wider text-muted">
               {row.category.name}
             </div>
           )}
@@ -398,12 +412,12 @@ function AgendaList({
 
               const content = (
                 <>
-                  <span className="font-mono text-[0.8rem] tabular-nums">
+                  <span className="font-mono text-xs tabular-nums">
                     {dates}
                   </span>
                   <span
                     title={title}
-                    className={`rounded-full px-2 py-0.5 font-mono text-[0.62rem] uppercase tracking-wider ${BAR_STYLES[bar.state]}`}
+                    className={`rounded-full px-2 py-0.5 font-mono text-2xs uppercase tracking-wider ${BAR_STYLES[bar.state]}`}
                   >
                     {label}
                   </span>
@@ -439,6 +453,16 @@ function AgendaList({
 /**
  * Le tre barre si distinguono per **riempimento** prima che per tinta.
  *
+ * **Il bordo non è una rifinitura: è il contrasto.** Le velature (`--held-bg`
+ * fa 1,15:1 sul bianco della scheda) rendono leggibile il testo *dentro* alla
+ * barra e invisibile la barra stessa — e su una timeline la barra **è** il
+ * dato, non il suo contenitore. Da lontano, un mese senza prenotazioni e un
+ * mese pieno si somigliavano. Un contorno di un pixel nella tinta piena porta
+ * il bordo sopra al 3:1 che serve a un segno non testuale, senza trasformare
+ * trentacinque colonne in un muro di colore — che è la ragione per cui il
+ * riempimento era velato. `REQUESTED` ce l'aveva già, tratteggiato: le altre
+ * due erano rimaste indietro.
+ *
  * `REQUESTED` non è un'occupazione: è un «forse», e finché un admin non
  * decide l'oggetto resta prenotabile da chiunque altro. Il tratteggio lo dice
  * dal disegno — si legge anche in bianco e nero e anche da chi non distingue
@@ -451,8 +475,8 @@ function AgendaList({
 const BAR_STYLES: Record<OccupancyState, string> = {
   REQUESTED:
     "bg-[repeating-linear-gradient(45deg,var(--sunk)_0_4px,var(--rule)_4px_8px)] text-muted border border-dashed border-muted",
-  RESERVED: "bg-held-bg text-held",
-  IN_USE: "bg-out-bg text-out",
+  RESERVED: "bg-held-bg text-held border border-held",
+  IN_USE: "bg-out-bg text-out border border-out",
 };
 
 const BAR_LABELS = {
@@ -489,6 +513,24 @@ function Bar({
   const title = holderFull
     ? `${t(BAR_LABELS[state])} · ${holderFull}`
     : label;
+
+  /**
+   * **Quanto testo ci sta davvero, invece di quanto ne vorremmo.**
+   *
+   * Una colonna è larga 30px: su una prenotazione di due giorni restano 48px
+   * netti, e «RESERVED · SAMU126» ne chiede più del doppio. Fin qui la
+   * risposta era `truncate`, cioè «RESER…» — una parola mozzata che non dice
+   * né lo stato né chi, e che occupa comunque tutta la barra impedendo di
+   * vederne il colore. Un troncamento che non lascia leggere niente non è un
+   * ripiego, è rumore.
+   *
+   * Quindi il testo si accorcia **a gradini**, e sotto ai tre giorni sparisce
+   * del tutto: lì la barra dice quello che sa dire — dove comincia, dove
+   * finisce, di che colore è — e il resto sta nel nome accessibile, che c'è
+   * sempre e per intero. Il suggerimento del passaggio del mouse da solo non
+   * bastava: col dito e da tastiera non esiste (regola 6).
+   */
+  const shown = length >= 8 ? label : length >= 3 ? t(BAR_LABELS[state]) : null;
   // Niente angolo arrotondato sul lato che continua fuori dalla finestra:
   // insieme alla freccia, dice a colpo d'occhio che la barra è tagliata, non
   // che il prestito finisce lì.
@@ -497,11 +539,14 @@ function Bar({
   } ${continuesAfter ? "" : "rounded-r"}`;
   const style = { gridColumn: `${offset + 1} / span ${length}` };
   const content = (
-    <span className="truncate font-mono text-[0.6rem] uppercase tracking-wider">
-      {continuesBefore && "‹ "}
-      {label}
-      {continuesAfter && " ›"}
-    </span>
+    <>
+      <span aria-hidden="true" className="truncate font-mono text-2xs uppercase tracking-wider">
+        {continuesBefore && "‹ "}
+        {shown}
+        {continuesAfter && " ›"}
+      </span>
+      <span className="sr-only">{title}</span>
+    </>
   );
 
   // Solo l'admin può aprire il dettaglio: al pubblico la barra resta un
@@ -537,7 +582,7 @@ function Legend() {
             aria-hidden="true"
             className={`inline-block h-3 w-6 rounded ${BAR_STYLES[state]}`}
           />
-          <span className="font-mono text-[0.68rem] uppercase tracking-wider text-muted">
+          <span className="font-mono text-2xs uppercase tracking-wider text-muted">
             {t(BAR_LABELS[state])}
           </span>
         </span>
@@ -598,6 +643,7 @@ function PersonalCalendarBox({ url }: { url: string }) {
   const fetcher = useFetcher();
   const inputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
+  const confirm = useConfirm();
 
   async function copy() {
     try {
@@ -633,25 +679,33 @@ function PersonalCalendarBox({ url }: { url: string }) {
         </Button>
       </div>
 
-      <p className="mt-3 max-w-prose text-[0.8rem] text-muted">
+      <p className="mt-3 max-w-prose text-xs text-muted">
         {t("calendar.personalHint")}
       </p>
 
-      <fetcher.Form method="post" className="mt-4">
+      {/* La conferma sta sul modulo e non sul pulsante: è l'invio a dover
+          essere trattenuto, e un `onClick` che chiama `preventDefault` sul
+          click funziona finché il pulsante è l'unico modo di mandare il
+          modulo — con Invio dentro a un campo non passerebbe di lì. */}
+      <fetcher.Form
+        method="post"
+        className="mt-4"
+        onSubmit={confirm.ask({
+          title: t("calendar.personalRegenerateConfirm"),
+          confirmLabel: t("calendar.personalRegenerate"),
+        })}
+      >
         <Button
           type="submit"
           variant="danger"
           size="sm"
           disabled={fetcher.state !== "idle"}
-          onClick={(event) => {
-            if (!window.confirm(t("calendar.personalRegenerateConfirm"))) {
-              event.preventDefault();
-            }
-          }}
         >
           {t("calendar.personalRegenerate")}
         </Button>
       </fetcher.Form>
+
+      {confirm.dialog}
     </section>
   );
 }

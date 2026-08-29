@@ -84,9 +84,9 @@ export function DateRangeFields({
   const overLimit = span > MAX_ORDINARY_SPAN_DAYS;
 
   const label =
-    "font-mono text-[0.68rem] uppercase tracking-widest text-muted";
+    "eyebrow";
   const field =
-    "min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm";
+    "field";
 
   return (
     <>
@@ -132,7 +132,7 @@ export function DateRangeFields({
       <p
         id={hintId}
         aria-live="polite"
-        className={`text-[0.8rem] ${
+        className={`text-xs ${
           overLimit && !longer ? "text-out" : "text-muted"
         }`}
       >
@@ -161,9 +161,9 @@ export function DateRangeFields({
           value={purpose}
           aria-describedby={purposeHintId}
           onChange={(event) => onPurposeChange(event.target.value)}
-          className="rounded border border-rule bg-card px-3 py-2 text-sm"
+          className="field-area"
         />
-        <p id={purposeHintId} className="text-[0.8rem] text-muted">
+        <p id={purposeHintId} className="text-xs text-muted">
           {longer ? t("request.purposeHintRequired") : t("request.purposeHint")}
         </p>
       </div>

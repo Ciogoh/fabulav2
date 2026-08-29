@@ -122,7 +122,7 @@ export default function Item({ loaderData }: Route.ComponentProps) {
 
             <div className="flex min-w-0 flex-1 flex-col gap-3">
               {asset.category && (
-                <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+                <span className="eyebrow">
                   {asset.category.name}
                 </span>
               )}
@@ -171,7 +171,7 @@ export default function Item({ loaderData }: Route.ComponentProps) {
           </div>
 
           <section className="mt-10">
-            <h2 className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+            <h2 className="eyebrow">
               {t("item.taken")}
             </h2>
 
@@ -182,7 +182,7 @@ export default function Item({ loaderData }: Route.ComponentProps) {
                 {bookings.map((booking) => (
                   <li
                     key={booking.id}
-                    className="rounded border border-rule bg-card px-3 py-2 font-mono text-[0.8rem] tabular-nums"
+                    className="rounded border border-rule bg-card px-3 py-2 font-mono text-xs tabular-nums"
                   >
                     {formatDayLabel(booking.startDate)} —{" "}
                     {formatDayLabel(booking.endDate)}

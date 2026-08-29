@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/signin";
 import { PageShell } from "~/components/page";
-import { buttonClass } from "~/components/button";
+import { Button, buttonClass } from "~/components/button";
 import { pageTitle } from "~/i18n/meta";
 import { authClient } from "~/lib/auth-client";
 import { getUser } from "~/lib/session.server";
@@ -221,7 +221,7 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
                 setError(null);
                 setStep({ name: "password" });
               }}
-              className="mt-6 text-sm text-muted underline underline-offset-4 hover:text-ink"
+              className={buttonClass("plain", "md", "mt-6")}
             >
               {t("signin.havePassword")}
             </button>
@@ -352,7 +352,7 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
                 setError(null);
                 setStep({ name: "email" });
               }}
-              className="mt-6 text-sm text-muted underline underline-offset-4 hover:text-ink"
+              className={buttonClass("plain", "md", "mt-6")}
             >
               {t("signin.useCode")}
             </button>
@@ -387,7 +387,7 @@ function Field({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={name}
-        className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+        className="eyebrow"
       >
         {label}
       </label>
@@ -417,13 +417,9 @@ function Submit({
   busyLabel: string;
 }) {
   return (
-    <button
-      type="submit"
-      disabled={busy}
-      className={buttonClass("primary")}
-    >
+    <Button type="submit" variant="primary" busy={busy}>
       {busy ? busyLabel : label}
-    </button>
+    </Button>
   );
 }
 
@@ -431,7 +427,7 @@ function Divider({ label }: { label: string }) {
   return (
     <div className="my-6 flex items-center gap-4">
       <span className="h-px flex-1 bg-rule" />
-      <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+      <span className="eyebrow">
         {label}
       </span>
       <span className="h-px flex-1 bg-rule" />

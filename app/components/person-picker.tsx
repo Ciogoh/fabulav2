@@ -23,7 +23,7 @@ import { Avatar, PersonName } from "~/components/person";
 import { displayNameOf, fullNameOf, type Person } from "~/lib/person";
 import { useT } from "~/i18n/use-t";
 
-const FIELD = "min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm";
+const FIELD = "field";
 
 export type PickablePerson = Person & { id: string; email: string };
 
@@ -51,7 +51,7 @@ export function PersonPicker({
 
   return (
     <fieldset className="flex flex-col gap-1.5">
-      <legend className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+      <legend className="eyebrow">
         {label}
       </legend>
 
@@ -87,7 +87,7 @@ export function PersonPicker({
                       <PersonName person={person} className="font-medium" />
                       {/* L'indirizzo sotto al nome e non accanto: su un
                           telefono, accanto, spingerebbe il nome fuori. */}
-                      <span className="block truncate text-[0.8rem] text-muted">
+                      <span className="block truncate text-xs text-muted">
                         {person.email}
                       </span>
                     </span>

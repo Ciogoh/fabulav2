@@ -29,6 +29,88 @@
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Spectral", Georgia, serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /**
+   * La scala dei corpi — la terza cosa che aveva smesso di avere un posto
+   * solo, dopo i pulsanti e le larghezze di pagina.
+   *
+   * Erano **dieci** misure scritte a mano dentro alle classi
+   * (`text-[0.6rem]`, `0.62`, `0.65`, `0.66`, `0.68`, `0.7`, `0.8`, `0.82`,
+   * `0.9`, `0.95`), 108 volte in venti file: nessuno le aveva scelte, erano
+   * cresciute una alla volta ritoccando a occhio la schermata che si stava
+   * facendo. Il risultato si vedeva mettendo due pagine vicine — la stessa
+   * etichetta in maiuscoletto era 9,6px sul calendario, 10,4px
+   * nell'intestazione, 10,9px sul catalogo.
+   *
+   * Ora sono due passi in più a quelli di Tailwind, e nient'altro:
+   *
+   *   2xs  11px  etichette in maiuscoletto, pastiglie, righe di dato
+   *   xs   12px  aiuti sotto ai campi, note
+   *   sm   14px  testo dell'interfaccia (già di Tailwind)
+   *   md   15px  titoli di scheda dentro a un elenco
+   *   base 16px  testo lungo (già di Tailwind)
+   *
+   * **11px è il pavimento, e non è un'opinione.** Sotto, un maiuscoletto
+   * spaziato smette di leggersi a braccio teso — che è la distanza a cui si
+   * guarda un telefono in magazzino, non quella a cui si disegna una
+   * schermata. Le tre misure che ci stavano sotto (9,6 · 9,9 · 10,4px)
+   * erano tutte etichette che portano informazione: categoria di un oggetto,
+   * chi ha in mano cosa sul calendario, il conteggio del Centro.
+   */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: calc(1 / 0.6875);
+  --text-md: 0.9375rem;
+  --text-md--line-height: calc(1.375 / 0.9375);
+}
+
+/**
+ * L'etichetta in maiuscoletto: mono, minuscola, spaziata, in `--muted`.
+ *
+ * È il segno più ripetuto dell'interfaccia — 64 volte in venti file — e fino
+ * a ieri era scritto a mano ogni volta, con cinque corpi diversi e due
+ * spaziature diverse. Sta qui per la stessa ragione per cui i pulsanti stanno
+ * in `button.tsx`: quando cambierà il carattere del marchio, questa riga è
+ * l'unico posto da toccare.
+ *
+ * Il colore resta separabile: `eyebrow text-ink` funziona, perché la classe
+ * dichiara `--muted` come colore e non lo impone con `!important`.
+ */
+@utility eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  line-height: calc(1 / 0.6875);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+/**
+ * Il tessuto di un campo: bordo, fondo, respiro e altezza minima da pollice.
+ *
+ * Diciotto campi su settanta se lo scrivevano da soli, carattere per
+ * carattere, e i tre che se lo erano scritto male erano alti 38px invece di
+ * 44. `Select` lo aveva già interiorizzato; input e textarea no.
+ *
+ * `field-sm` è la versione senza altezza minima, per i textarea, che crescono
+ * per conto loro con `rows`.
+ */
+@utility field {
+  min-height: calc(var(--spacing) * 11);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule);
+  background: var(--card);
+  padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+  font-size: var(--text-sm);
+  line-height: calc(1.25 / 0.875);
+}
+
+@utility field-area {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--rule);
+  background: var(--card);
+  padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+  font-size: var(--text-sm);
+  line-height: calc(1.5 / 0.875);
 }
 
 @theme inline {
@@ -60,80 +142,112 @@
   --color-admin-rule: var(--admin-rule);
 }
 
-:root {
-  --paper: #edeff2;
-  --card: #ffffff;
-  --sunk: #e4e7ec;
-  --ink: #16202e;
-  /* 6,16:1 su card — le etichette piccole che portano informazione stanno
-     qui, non su `--faint`. */
-  --muted: #586273;
-  /* Solo decorazione: monogrammi segnaposto, celle vuote, separatori. */
-  --faint: #6e7787;
-  --rule: #d3d9e2;
-  --accent: #2e4ea8;
-  --accent-soft: #e2e8f6;
-  --on-accent: #ffffff; /* 7,58:1 su --accent */
+/**
+ * I colori, e la ragione per cui adesso stanno su una riga sola.
+ *
+ * Erano due elenchi identici a ottanta righe di distanza — `:root` per il
+ * chiaro, `@media (prefers-color-scheme: dark)` per lo scuro — e da lì veniva
+ * la regola scritta in `CLAUDE.md`: «ogni colore va definito anche fuori dal
+ * blocco del tema scuro, o sparisce nel tema chiaro». Una regola che esiste
+ * per ricordarsi di scrivere due volte la stessa cosa è il sintomo, non la
+ * cura: i rapporti di contrasto stavano annotati accanto a un valore e
+ * dovevano essere ricalcolati accanto all'altro, che nessuno vedeva.
+ *
+ * `light-dark()` toglie il doppione: **ogni token dichiara le due tinte una
+ * accanto all'altra**, e a scegliere quale vale è `color-scheme`. Da qui
+ * anche il fatto che il tema esplicito costi tre righe in tutto invece di un
+ * terzo elenco.
+ *
+ * `color-scheme: light dark` su `:root` vuol dire «segui il sistema», ed è il
+ * comportamento di sempre. `data-theme` — scritto dal server, vedi
+ * `lib/theme.server.ts` — lo inchioda su uno dei due.
+ *
+ * **Il prezzo, dichiarato**: `light-dark()` chiede Safari 17.5, Chrome 123,
+ * Firefox 120 (metà 2024). Alza di poco il gradino che Tailwind 4 già impone
+ * (Safari 16.4), e su un browser più vecchio non degrada — la pagina resta
+ * senza colori. Per una piattaforma di soci su telefoni di questi anni è un
+ * prezzo che si paga; se un giorno non lo fosse, la via d'uscita è tornare a
+ * due elenchi, non a un terzo.
+ *
+ * Le due regole di sempre restano valide e non cambiano:
+ *
+ * 1. **Ogni token semantico dice una cosa sola.** `--out` significa
+ *    «indisponibile o guasto» e nient'altro: quando serviva un fondo per la
+ *    modalità admin è stato preso in prestito `--out-bg`, e per mesi
+ *    l'intestazione ha detto «errore» a chiunque avesse i permessi. Se serve
+ *    un colore nuovo, si aggiunge un token nuovo.
+ * 2. **Il testo sopra un fondo pieno usa `--on-accent`, mai `white`.**
+ *    Nel tema scuro l'accento è chiaro, quindi sopra ci va inchiostro scuro:
+ *    bianco su `#86a4ee` fa 2,45:1 e non si legge.
+ *
+ * I rapporti indicati sono calcolati sul fondo su cui il colore viene davvero
+ * usato, e adesso valgono per tutti e due i temi perché stanno accanto a
+ * tutti e due i valori. Sotto AA (4,5:1) non si scende per il testo.
+ */
 
-  --free: #15704b;
-  --free-bg: #dff0e6;
+:root {
+  /* «Segui il sistema». `data-theme` qui sotto la sovrascrive. */
+  color-scheme: light dark;
+
+  /*                     chiaro     scuro   */
+  --paper: light-dark(#edeff2, #0f131a);
+  --card: light-dark(#ffffff, #161b24);
+  --sunk: light-dark(#e4e7ec, #1b212c);
+  --ink: light-dark(#16202e, #e3e8ef);
+  /* 6,16:1 e 6,68:1 su --card — le etichette piccole che portano
+     informazione stanno qui, non su `--faint`. */
+  --muted: light-dark(#586273, #97a2b2);
+  /* Solo decorazione: monogrammi segnaposto, celle vuote, separatori. */
+  --faint: light-dark(#6e7787, #7b8595);
+  --rule: light-dark(#d3d9e2, #2a313e);
+  --accent: light-dark(#2e4ea8, #86a4ee);
+  --accent-soft: light-dark(#e2e8f6, #1d2740);
+  --on-accent: light-dark(#ffffff, #0f131a); /* 7,58:1 in entrambi */
+
+  --free: light-dark(#15704b, #5bc793);
+  --free-bg: light-dark(#dff0e6, #14291f);
   /* La versione piena, per il badge del catalogo: lì la domanda è «lo prendo
-     adesso?» e una velatura non la risponde da lontano. Nel tema chiaro il
-     fondo è il verde stesso e sopra ci va bianco. */
-  --free-solid: #15704b;
-  --on-free: #ffffff; /* 6,08:1 su --free-solid */
-  --held: #8a5700; /* 5,12:1 su --held-bg */
-  --held-bg: #f6ead3;
-  --out: #a9383a;
-  --out-bg: #f6e1e1;
-  --out-solid: #a9383a;
-  --on-out: #ffffff; /* 6,34:1 su --out-solid */
+     adesso?» e una velatura non la risponde da lontano. */
+  --free-solid: light-dark(#15704b, #5bc793);
+  /* Stessa trappola di `--on-accent`: nel tema scuro il colore di stato è
+     chiaro, quindi sopra ci va inchiostro e non bianco. 6,08:1 e 8,85:1. */
+  --on-free: light-dark(#ffffff, #0f131a);
+  --held: light-dark(#8a5700, #e0ac55); /* 5,12:1 su --held-bg */
+  --held-bg: light-dark(#f6ead3, #2b2214);
+  --out: light-dark(#a9383a, #ec8480);
+  --out-bg: light-dark(#f6e1e1, #2e1a1b);
+  --out-solid: light-dark(#a9383a, #ec8480);
+  --on-out: light-dark(#ffffff, #0f131a); /* 6,34:1 e 7,25:1 */
   /* «Non prestabile»: non è un guasto e non è un allarme, è assenza di
      stato. Neutro di proposito, così il rosso resta libero. */
-  --idle: #4d5666; /* 5,97:1 su --idle-bg */
-  --idle-bg: #e4e7ec;
+  --idle: light-dark(#4d5666, #a6b0be); /* 5,97:1 e 6,49:1 su --idle-bg */
+  --idle-bg: light-dark(#e4e7ec, #242b37);
 
   /* La modalità admin. Non è uno stato del prestito: si vede da un fondo
      appena più caldo, non dal colore dell'errore. */
-  --admin-bg: #f2f0ec;
-  --admin-rule: #ddd8d0;
+  --admin-bg: light-dark(#f2f0ec, #191d26);
+  --admin-rule: light-dark(#ddd8d0, #333a47);
+}
 
+/**
+ * La scelta esplicita, che è tutta qui.
+ *
+ * L'attributo lo scrive il server leggendo il cookie (`lib/theme.server.ts`),
+ * quindi arriva già dentro all'HTML: **non esiste nessun istante in cui la
+ * pagina sia del colore sbagliato.** Con la preferenza in `localStorage` e un
+ * `<script>` che la applica, chi apre Fabula al buio si prende un lampo
+ * bianco in faccia a ogni caricamento.
+ *
+ * Non c'è nessuna regola per `auto`: «automatico» è l'assenza di attributo,
+ * cioè `:root` qui sopra. Un terzo caso da scrivere sarebbe stato un terzo
+ * caso da tenere allineato.
+ */
+:root[data-theme="light"] {
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #0f131a;
-    --card: #161b24;
-    --sunk: #1b212c;
-    --ink: #e3e8ef;
-    --muted: #97a2b2; /* 6,68:1 su card */
-    --faint: #7b8595;
-    --rule: #2a313e;
-    --accent: #86a4ee;
-    --accent-soft: #1d2740;
-    --on-accent: #0f131a; /* 7,58:1 su --accent */
-
-    --free: #5bc793;
-    --free-bg: #14291f;
-    /* Stessa trappola di `--on-accent`: nel tema scuro il colore di stato è
-       chiaro, quindi sopra ci va inchiostro e non bianco. */
-    --free-solid: #5bc793;
-    --on-free: #0f131a; /* 8,85:1 su --free-solid */
-    --held: #e0ac55;
-    --held-bg: #2b2214;
-    --out: #ec8480;
-    --out-bg: #2e1a1b;
-    --out-solid: #ec8480;
-    --on-out: #0f131a; /* 7,25:1 su --out-solid */
-    --idle: #a6b0be; /* 6,49:1 su --idle-bg */
-    --idle-bg: #242b37;
-
-    --admin-bg: #191d26;
-    --admin-rule: #333a47;
-
-    color-scheme: dark;
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 html {
@@ -153,7 +267,10 @@ body[data-dialog-open="true"] {
   overflow: hidden;
 }
 
-/* I campi data nativi restano leggibili anche sul fondo scuro. */
+/* I campi data nativi restano leggibili anche sul fondo scuro.
+   Qui `light-dark()` non si può usare: è definita per i colori, e questo è un
+   numero. Tre righe invece di una, e il tema esplicito va ripetuto — ma è una
+   proprietà sola, non ventiquattro. */
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="month"]::-webkit-calendar-picker-indicator {
   filter: invert(var(--date-icon-invert, 0));
@@ -161,10 +278,13 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 }
 
 @media (prefers-color-scheme: dark) {
-  input[type="date"]::-webkit-calendar-picker-indicator,
-  input[type="month"]::-webkit-calendar-picker-indicator {
+  :root:not([data-theme="light"]) {
     --date-icon-invert: 1;
   }
+}
+
+:root[data-theme="dark"] {
+  --date-icon-invert: 1;
 }
 
 /* Un anello di focus uguale ovunque, visibile su entrambi i temi. Il doppio
@@ -182,5 +302,19 @@ input[type="month"]::-webkit-calendar-picker-indicator {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /**
+   * L'eccezione, e una sola.
+   *
+   * La regola qui sopra azzera ogni durata, e su un indicatore di attesa
+   * questo lo **ferma**: un cerchietto immobile non dice più «sto lavorando»,
+   * dice «si è bloccato», che è peggio del pulsante spento da cui eravamo
+   * partiti. Chi chiede meno movimento chiede di non essere disorientato da
+   * spostamenti larghi, non di perdere il segnale che il sistema è vivo. Qui
+   * il giro rallenta invece di sparire.
+   */
+  [data-busy-spinner] {
+    animation-duration: 1.6s !important;
   }
 }

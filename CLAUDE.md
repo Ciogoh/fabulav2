@@ -239,7 +239,7 @@ Tre pezzi della stessa storia: **il piano dice cosa vogliamo fare, il
 ### La riga
 
 ```
-Fabula 0.5.1 · build 35 · 2026-08-24
+Fabula 0.9.0 · build 41 · 2026-08-29
 ```
 
 Si vede in fondo a `/admin/log` e nella schermata di errore — dove sapere quale
@@ -398,7 +398,22 @@ pulsante primario andava corretto in dodici punti.
 
 - I pulsanti si prendono da `components/button.tsx` (`Button`, `ButtonLink`,
   o `buttonClass()` quando serve la sola classe su un elemento esistente).
-  Cinque varianti, due misure: se ne serve una sesta, si aggiunge lì.
+  **Sei** varianti, due misure: se ne serve una settima, si aggiunge lì.
+  `danger` è il distruttivo **quieto**, quello che sta in mezzo a una pagina;
+  `destructive` è pieno e serve solo dentro alla finestra di conferma, dove
+  quel pulsante è l'azione principale del dialogo.
+  `<Button busy>` mette cerchietto e `aria-busy` e spegne il pulsante: usalo
+  ovunque l'invio faccia un giro di rete, perché **spento da solo non è
+  un'attesa** — vuol dire anche «non si può premere», che è il contrario, e
+  non promette che finirà.
+- **Nessuna misura di carattere si scrive a mano.** La scala sta in `app.css`
+  (`--text-2xs` 11px e `--text-md` 15px sopra a quella di Tailwind) e **11px
+  è il pavimento**: sotto, un maiuscoletto spaziato non si legge a braccio
+  teso. Se ti ritrovi a scrivere `text-[0.64rem]`, la misura giusta è già lì.
+- L'etichetta in maiuscoletto — mono, minuscola, spaziata, `--muted` — è
+  `eyebrow` (`@utility` in `app.css`), non quattro classi in fila. Il tessuto
+  di un campo è `field`, e `field-area` per i textarea, che non hanno altezza
+  minima perché crescono con `rows`.
 - Le pagine si avvolgono in `components/page.tsx`. `wide` per griglie e
   calendario, `narrow` per elenchi e dettagli — che è un **tetto di misura
   dentro** alla colonna larga, non un secondo contenitore centrato, così il
@@ -407,6 +422,17 @@ pulsante primario andava corretto in dodici punti.
 - Ogni rotta ha il suo `meta`, costruito con `pageTitle()` di `i18n/meta.ts`.
   Restituivano tutte `{ title: "Fabula" }`: schede, cronologia, segnalibri e
   lettori di schermo non distinguevano una pagina dall'altra.
+- **Un dialogo modale è `components/dialog.tsx`**, non una trappola del fuoco
+  riscritta: fuoco che entra, ci resta e torna da dove era partito, Escape,
+  click sul velo, pagina dietro che non scorre. Il velo si scrive
+  `bg-black/60` e mai `bg-ink/50` — nel tema scuro `--ink` è chiaro e quel
+  velo *schiarisce* la pagina invece di spegnerla.
+- **Mai `window.confirm`.** Non traduce i suoi due pulsanti, «OK» non dice
+  cosa sta per succedere, e blocca il processo. Si usa `useConfirm()`
+  (`components/confirm.tsx`): il modulo resta quello di prima, cambia solo
+  chi decide se l'invio parte, e il pulsante di conferma **porta il verbo
+  dell'azione**. Due domande in fila non fanno leggere di più: se c'è una
+  conseguenza da dire, va nel corpo della stessa finestra.
 - I menu a tendina si prendono da `components/select.tsx`. Un `<select>` nudo
   si porta dietro la freccia del sistema operativo, che accanto a un campo
   disegnato da noi si vede che viene da un altro mondo: `Select` la sostituisce
@@ -631,11 +657,28 @@ Collletttivo. Layout minimale, contenuto prima della decorazione.
 Mattone **non sta su Google Fonts**: va scaricato e servito da `public/fonts/`.
 Non inventare un accento diverso dal rosso.
 
-### I token, e le due regole che li tengono in piedi
+### I token, il tema, e le due regole che li tengono in piedi
 
 I colori sono tutti in `app/app.css`, quindi il cambio è quasi solo una
-sostituzione di valori. **Ogni colore va definito anche fuori dal blocco del
-tema scuro**, o sparisce nel tema chiaro.
+sostituzione di valori. **Ogni token dichiara le due tinte sulla stessa riga**
+con `light-dark(chiaro, scuro)`: non ci sono più due elenchi da tenere
+allineati, e il rapporto di contrasto annotato accanto vale per tutti e due i
+valori perché li vede tutti e due.
+
+*(La vecchia regola era «ogni colore va definito anche fuori dal blocco del
+tema scuro, o sparisce nel tema chiaro». Non serve più, ed è sparita con i due
+elenchi che la rendevano necessaria — se la trovi citata da qualche parte,
+quella citazione è vecchia.)*
+
+**Il tema si può anche scegliere**, dal profilo: chiaro, scuro o automatico
+(`lib/theme.ts`, `lib/theme.server.ts`, `routes/theme.tsx`). È una preferenza
+del **dispositivo** e non della persona — solo cookie, nessuna colonna, nessuna
+migrazione — perché nessuno la legge lato server e volere lo scuro sul telefono
+e il chiaro sul portatile è il caso normale. Il cookie si legge nel loader di
+`root.tsx` e diventa `data-theme` sull'`<html>` **prima che la pagina parta**:
+con la scelta in `localStorage` chi apre Fabula al buio si prende un lampo
+bianco a ogni caricamento. `auto` non mette nessun attributo — l'automatico è
+l'assenza di `data-theme`, non un terzo caso da tenere allineato.
 
 **Il rosso del marchio e il rosso «occupato» si scontreranno**, ed è la sola
 cosa da sapere prima di iniziare il rebrand. La difesa è già in piedi e va

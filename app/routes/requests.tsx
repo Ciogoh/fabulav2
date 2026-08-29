@@ -216,7 +216,7 @@ export default function MyRequests({ loaderData }: Route.ComponentProps) {
                   className="block rounded border border-rule bg-card p-4 hover:border-accent"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+                    <span className="eyebrow">
                       {formatDayLabel(r.startDate)} — {formatDayLabel(r.endDate)}
                     </span>
                     <span className="flex items-center gap-2">
@@ -224,11 +224,11 @@ export default function MyRequests({ loaderData }: Route.ComponentProps) {
                           che fa aprire la riga, lo stato è ciò che si legge
                           una volta dentro. */}
                       {r.hasUnread && (
-                        <span className="rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-accent">
+                        <span className="rounded-full bg-accent-soft px-2 py-0.5 font-mono text-2xs font-medium uppercase tracking-wider text-accent">
                           {t("nav.myRequestsUnread")}
                         </span>
                       )}
-                      <span className="rounded-full bg-sunk px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-muted">
+                      <span className="rounded-full bg-sunk px-2 py-0.5 font-mono text-2xs font-medium uppercase tracking-wider text-muted">
                         {t(REQUEST_STATUS_LABELS[r.status])}
                       </span>
                     </span>

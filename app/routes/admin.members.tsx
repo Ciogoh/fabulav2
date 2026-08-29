@@ -10,6 +10,7 @@ import { useFetcher } from "react-router";
 import type { Route } from "./+types/admin.members";
 import { PageShell } from "~/components/page";
 import { buttonClass } from "~/components/button";
+import { useConfirm } from "~/components/confirm";
 import { pageTitle } from "~/i18n/meta";
 import { Avatar, PersonName } from "~/components/person";
 import { db } from "~/lib/db.server";
@@ -161,6 +162,7 @@ function MemberRow({ user, isSelf }: { user: MemberRow; isSelf: boolean }) {
   const roleFetcher = useFetcher<typeof action>();
   const resetFetcher = useFetcher<typeof action>();
   const isAdmin = user.role === "ADMIN";
+  const confirm = useConfirm();
 
   return (
     <li className="rounded border border-rule bg-card p-4">
@@ -174,11 +176,11 @@ function MemberRow({ user, isSelf }: { user: MemberRow; isSelf: boolean }) {
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <roleFetcher.Form
           method="post"
-          onSubmit={(event) => {
-            if (!window.confirm(t("members.confirmToggle"))) {
-              event.preventDefault();
-            }
-          }}
+          onSubmit={confirm.ask({
+            title: t("members.confirmToggle"),
+            confirmLabel: isAdmin ? t("members.removeAdmin") : t("members.makeAdmin"),
+            tone: isAdmin ? "danger" : "primary",
+          })}
         >
           <input type="hidden" name="intent" value="toggleRole" />
           <input type="hidden" name="userId" value={user.id} />
@@ -191,16 +193,18 @@ function MemberRow({ user, isSelf }: { user: MemberRow; isSelf: boolean }) {
           </button>
         </roleFetcher.Form>
 
+        {/* Erano due finestre di sistema in fila. Due domande consecutive non
+            fanno leggere di più: fanno premere «OK» due volte senza guardare.
+            La seconda diceva la conseguenza, ed è esattamente ciò che qui sta
+            sotto alla domanda, dove si legge insieme e non dopo. */}
         <resetFetcher.Form
           method="post"
-          onSubmit={(event) => {
-            if (
-              !window.confirm(t("members.confirmResetStep1")) ||
-              !window.confirm(t("members.confirmResetStep2"))
-            ) {
-              event.preventDefault();
-            }
-          }}
+          onSubmit={confirm.ask({
+            title: t("members.confirmResetStep1"),
+            body: t("members.confirmResetStep2"),
+            confirmLabel: t("members.sendReset"),
+            tone: "primary",
+          })}
         >
           <input type="hidden" name="intent" value="sendReset" />
           <input type="hidden" name="userId" value={user.id} />
@@ -223,6 +227,8 @@ function MemberRow({ user, isSelf }: { user: MemberRow; isSelf: boolean }) {
           <span className="text-sm text-out">{t(resetFetcher.data.error)}</span>
         )}
       </div>
+
+      {confirm.dialog}
     </li>
   );
 }

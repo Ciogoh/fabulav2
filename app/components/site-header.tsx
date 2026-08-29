@@ -4,6 +4,26 @@
  * Volutamente scarna. Chi arriva deve trovarsi davanti il catalogo, non una
  * barra di navigazione da studiare.
  *
+ * ## Otto collegamenti non sono una barra, sono un elenco
+ *
+ * Con un admin la riga arrivava a otto voci tutte dello stesso peso, e su uno
+ * schermo da 375px l'intestazione era alta **269px: un terzo dello schermo
+ * prima di vedere un oggetto**, su quattro righe. Il `flex-wrap` aggiunto a
+ * suo tempo aveva tolto lo scorrimento orizzontale, non il volume.
+ *
+ * Le otto voci però non pesano uguale, e la gerarchia era già scritta nel
+ * prodotto: **il Centro è il lavoro di un turno** — ci si torna dieci volte
+ * al giorno — mentre soci, oggetti, scanner e registro sono amministrazione,
+ * dove si va quando si ha una cosa precisa da fare. Quindi il Centro resta
+ * una voce in vista con la sua pastiglia, e le altre quattro entrano in un
+ * menu solo (`ManageMenu`). **A ogni misura di schermo, non solo sul
+ * telefono**: sul desktop otto collegamenti in fila si leggevano come otto
+ * posti da controllare, che è lo stesso difetto che il Centro esiste per
+ * togliere.
+ *
+ * Il nome della persona sparisce sotto ai 640px e resta l'avatar: da soli,
+ * nome e ruolo prendevano metà larghezza per dire a qualcuno chi è lui.
+ *
  * Due difetti veri, corretti qui:
  *
  * - Il `<nav>` era `flex` senza `flex-wrap`. Con i sei collegamenti di un
@@ -23,6 +43,7 @@ import { authClient } from "~/lib/auth-client";
 import { ButtonLink } from "~/components/button";
 import { AdminBadge } from "~/components/admin-badge";
 import { Avatar, PersonName } from "~/components/person";
+import { displayNameOf } from "~/lib/person";
 import { Logo } from "~/components/logo";
 import type { Person } from "~/lib/person";
 
@@ -69,7 +90,7 @@ function InboxLink({ inbox }: { inbox: HeaderUser["inbox"] }) {
             unread: inbox?.unread ?? 0,
             overdue: inbox?.overdue ?? 0,
           })}
-          className={`ml-1.5 rounded-full px-1.5 py-0.5 font-mono text-[0.65rem] font-medium ${
+          className={`ml-1.5 rounded-full px-1.5 py-0.5 font-mono text-2xs font-medium ${
             hasOverdue ? "bg-out-bg text-out" : "bg-accent-soft text-accent"
           }`}
         >
@@ -139,18 +160,7 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
             <span className="flex flex-wrap items-center gap-x-5 gap-y-1">
               <span className="hidden h-4 w-px bg-admin-rule sm:inline-block" />
               <InboxLink inbox={user.inbox} />
-              <NavLink to="/admin/members" className={LINK}>
-                {t("nav.adminMembers")}
-              </NavLink>
-              <NavLink to="/admin/assets" className={LINK}>
-                {t("nav.adminAssets")}
-              </NavLink>
-              <NavLink to="/admin/scan" className={LINK}>
-                {t("nav.adminScan")}
-              </NavLink>
-              <NavLink to="/admin/log" className={LINK}>
-                {t("nav.adminLog")}
-              </NavLink>
+              <ManageMenu />
             </span>
           )}
         </nav>
@@ -294,7 +304,7 @@ function LanguageMenu() {
             nascosto accanto, ed è quello che viene annunciato. */}
         <span
           aria-hidden="true"
-          className="font-mono text-[0.7rem] uppercase tracking-widest"
+          className="font-mono text-2xs uppercase tracking-widest"
         >
           {active}
         </span>
@@ -413,8 +423,16 @@ function ProfileMenu({ user }: { user: HeaderUser }) {
         className="flex min-h-11 items-center gap-2 rounded px-1 text-sm text-muted hover:text-ink aria-expanded:text-ink"
       >
         <Avatar person={user} size="sm" />
-        <PersonName person={user} />
-        {user.isAdmin && <AdminBadge />}
+        {/* Sotto ai 640px resta l'avatar: il proprio nome scritto per esteso
+            nella barra è l'informazione che chi guarda ha meno bisogno di
+            leggere, e su un telefono costava due voci di menu. Il nome del
+            controllo non si perde — sta nel testo per soli lettori di
+            schermo qui sotto. */}
+        <span className="hidden sm:contents">
+          <PersonName person={user} />
+          {user.isAdmin && <AdminBadge />}
+        </span>
+        <span className="sr-only sm:hidden">{displayNameOf(user)}</span>
         <svg
           aria-hidden="true"
           viewBox="0 0 12 12"
@@ -456,6 +474,99 @@ function ProfileMenu({ user }: { user: HeaderUser }) {
             >
               {t("nav.signOut")}
             </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+/**
+ * Le quattro voci di amministrazione, raccolte in un menu.
+ *
+ * Non è una scorciatoia per far stare le cose: è la gerarchia che c'era già.
+ * Soci, oggetti, scanner e registro sono posti in cui si va **con una cosa
+ * precisa da fare** — aggiungere un socio, correggere una scheda, scoprire
+ * chi ha segnato un ritiro — mentre il Centro è il lavoro che arriva da solo.
+ * Tenerli in fila con lo stesso peso faceva sembrare otto le cose da
+ * controllare a ogni apertura, e ne rimane una.
+ *
+ * Il pulsante si accende quando si è dentro a una di quelle pagine
+ * (`aria-current`): un menu chiuso che non dice «sei qui dentro» è un modo
+ * per non sapere più dove si è. Stessa disclosure degli altri due — Escape,
+ * click fuori, fuoco che esce col Tab — quindi qui non si ripete il perché.
+ */
+const MANAGE = [
+  { to: "/admin/members", key: "nav.adminMembers" },
+  { to: "/admin/assets", key: "nav.adminAssets" },
+  { to: "/admin/scan", key: "nav.adminScan" },
+  { to: "/admin/log", key: "nav.adminLog" },
+] as const;
+
+function ManageMenu() {
+  const t = useT();
+  const location = useLocation();
+  const { open, setOpen, wrapRef, triggerRef, openedByHover } = useDisclosure();
+  const inside = MANAGE.some((entry) => location.pathname.startsWith(entry.to));
+
+  return (
+    <div
+      ref={wrapRef}
+      className="relative"
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "mouse") return;
+        openedByHover.current = true;
+        setOpen(true);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== "mouse") return;
+        openedByHover.current = false;
+        setOpen(false);
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-current={inside ? "true" : undefined}
+        onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
+        className={`${LINK} gap-1 aria-expanded:text-ink`}
+      >
+        {t("nav.adminManage")}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`h-2.5 w-2.5 transition-transform ${open ? "rotate-180" : ""}`}
+        >
+          <path d="M2.5 4.5 6 8l3.5-3.5" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full z-20 pt-2">
+          <div className="min-w-44 rounded border border-rule bg-card p-1 shadow-lg">
+            {MANAGE.map((entry) => (
+              <NavLink
+                key={entry.to}
+                to={entry.to}
+                className={`${ITEM} aria-[current=page]:font-medium aria-[current=page]:text-ink`}
+                onClick={() => setOpen(false)}
+              >
+                {t(entry.key)}
+              </NavLink>
+            ))}
           </div>
         </div>
       )}

@@ -11,6 +11,7 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import { getLang } from "~/i18n/lang.server";
+import { getTheme } from "~/lib/theme.server";
 import { LangProvider } from "~/i18n/use-t";
 import { SiteHeader } from "~/components/site-header";
 import { getUser } from "~/lib/session.server";
@@ -69,6 +70,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     // La preferenza salvata sul profilo vince sul cookie: chi entra da un
     // computer nuovo ritrova la sua lingua senza doverla riscegliere.
     lang: getLang(request, user?.language),
+    // Letto qui e non nel browser: `data-theme` deve essere già dentro
+    // all'HTML che parte, o chi apre Fabula al buio si prende un lampo
+    // bianco a ogni caricamento. Vedi `lib/theme.server.ts`.
+    theme: getTheme(request),
     user: user && {
       name: user.name,
       firstName: user.firstName,
@@ -124,19 +129,36 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // avvolge anche l'`ErrorBoundary`, dove il loader può non aver girato.
   const data = useRouteLoaderData<typeof loader>("root");
 
+  /* «auto» non mette nessun attributo: in `app.css` l'automatico *è*
+     l'assenza di `data-theme`, e un `data-theme="auto"` sarebbe un terzo caso
+     da tenere allineato senza che nessuna regola lo guardi. */
+  const theme = data?.theme ?? "auto";
+
   return (
-    <html lang={data?.lang ?? "en"}>
+    <html lang={data?.lang ?? "en"} data-theme={theme === "auto" ? undefined : theme}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-        {/* Il colore della barra di sistema quando Fabula gira come app.
-            Due righe e non una: il manifesto ne accetta uno solo e sarebbe
-            per forza sbagliato per metà delle persone. I valori sono `--card`
-            dei due temi, presi da `app.css` — la barra deve continuare
-            l'intestazione, non annunciarsi. */}
-        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#161b24" />
+        {/* Il colore della barra di sistema quando Fabula gira come app. I
+            valori sono `--card` dei due temi, presi da `app.css` — la barra
+            deve continuare l'intestazione, non annunciarsi.
+
+            Finché il tema è automatico sono due righe e non una, perché il
+            manifesto ne accetta un solo valore e sarebbe per forza sbagliato
+            per metà delle persone. Quando invece la scelta è stata fatta, le
+            due righe con la media query direbbero il contrario di quello che
+            si vede: chi tiene il telefono in chiaro e Fabula in scuro si
+            ritroverebbe la barra bianca sopra a una pagina nera. Lì ne serve
+            una sola, e senza media query. */}
+        {theme === "auto" ? (
+          <>
+            <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+            <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#161b24" />
+          </>
+        ) : (
+          <meta name="theme-color" content={theme === "dark" ? "#161b24" : "#ffffff"} />
+        )}
 
         {/* Quello che iOS legge al posto del manifesto. Il nome corto conta:
             senza, sotto all'icona finisce il `<title>` della pagina da cui è
@@ -221,7 +243,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
           {/* Quando qualcosa si rompe, sapere quale copia l'ha fatto vale più
               che in qualunque altra schermata: è la prima domanda di chi
               riceve una segnalazione. */}
-          <p className="mt-10 font-mono text-[0.62rem] text-muted">{versionLabel()}</p>
+          <p className="mt-10 font-mono text-2xs text-muted">{versionLabel()}</p>
         </PageShell>
       </main>
     </LangProvider>

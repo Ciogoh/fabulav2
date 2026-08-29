@@ -69,7 +69,7 @@ export function PhotoFields({ existing = [] }: { existing?: ExistingPhoto[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+      <span className="eyebrow">
         {t("assets.photos")}
       </span>
       <PhotoGallery photos={existing} />
@@ -90,7 +90,7 @@ function PhotoGallery({ photos }: { photos: ExistingPhoto[] }) {
           <ExistingTile key={photo.id} photo={photo} isCover={index === 0} />
         ))}
       </ul>
-      <p className="font-mono text-[0.68rem] text-muted">{t("assets.photoCoverHint")}</p>
+      <p className="font-mono text-2xs text-muted">{t("assets.photoCoverHint")}</p>
     </div>
   );
 }
@@ -112,7 +112,7 @@ function ExistingTile({ photo, isCover }: { photo: ExistingPhoto; isCover: boole
       <img src={photo.thumbUrl} alt="" className="h-full w-full object-cover" />
 
       {isCover && (
-        <span className="absolute left-0 top-0 bg-accent px-1.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-wider text-on-accent">
+        <span className="absolute left-0 top-0 bg-accent px-1.5 py-0.5 font-mono text-2xs uppercase tracking-wider text-on-accent">
           {t("assets.photoCover")}
         </span>
       )}
@@ -225,7 +225,7 @@ function PhotoPicker({ name = "photos" }: { name?: string }) {
               <img src={pick.preview} alt="" className="h-full w-full object-cover" />
               {/* Tratteggio e cartellino: si deve capire a colpo d'occhio che
                   questa foto non c'è ancora e che se ne vai se ne va con te. */}
-              <span className="absolute left-0 top-0 bg-accent px-1.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-wider text-on-accent">
+              <span className="absolute left-0 top-0 bg-accent px-1.5 py-0.5 font-mono text-2xs uppercase tracking-wider text-on-accent">
                 {sending ? t("assets.photoUploading") : t("assets.photoPending")}
               </span>
               <div className="absolute inset-x-0 bottom-0 flex">
@@ -277,7 +277,7 @@ function PhotoPicker({ name = "photos" }: { name?: string }) {
           <span className="font-medium">
             {picks.length > 0 ? t("assets.photoAddMore") : t("assets.photoDrop")}
           </span>
-          <span className="font-mono text-[0.68rem] text-muted">
+          <span className="font-mono text-2xs text-muted">
             {t("assets.photoLimits")}
           </span>
         </label>
@@ -313,7 +313,7 @@ function TileButton({
   return (
     <button
       {...props}
-      className="min-h-8 flex-1 bg-black/70 px-1 py-1 text-[0.6rem] uppercase tracking-wider text-white hover:bg-black/85 disabled:opacity-60"
+      className="min-h-8 flex-1 bg-black/70 px-1 py-1 text-2xs uppercase tracking-wider text-white hover:bg-black/85 disabled:opacity-60"
     >
       {label}
     </button>

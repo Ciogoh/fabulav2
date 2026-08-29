@@ -13,6 +13,7 @@ import { Form, redirect, useNavigation } from "react-router";
 import type { Route } from "./+types/admin.kits.$id";
 import { PageShell, PageTitle } from "~/components/page";
 import { buttonClass, ButtonLink } from "~/components/button";
+import { useConfirm } from "~/components/confirm";
 import { pageTitle } from "~/i18n/meta";
 import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
@@ -82,6 +83,7 @@ export default function EditKit({ loaderData, actionData }: Route.ComponentProps
   const t = useT();
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
+  const confirm = useConfirm();
 
   return (
     <main>
@@ -126,9 +128,11 @@ export default function EditKit({ loaderData, actionData }: Route.ComponentProps
         <Form
           method="post"
           className="mt-10 border-t border-rule pt-6"
-          onSubmit={(event) => {
-            if (!window.confirm(t("kits.confirmDelete"))) event.preventDefault();
-          }}
+          onSubmit={confirm.ask({
+            title: t("kits.confirmDelete"),
+            body: t("kits.deleteHint"),
+            confirmLabel: t("kits.delete"),
+          })}
         >
           <input type="hidden" name="intent" value="delete" />
           <button type="submit" disabled={busy} className={buttonClass("danger")}>
@@ -136,6 +140,8 @@ export default function EditKit({ loaderData, actionData }: Route.ComponentProps
           </button>
           <p className="mt-2 text-sm text-muted">{t("kits.deleteHint")}</p>
         </Form>
+
+        {confirm.dialog}
       </PageShell>
     </main>
   );

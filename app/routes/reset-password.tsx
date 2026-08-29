@@ -121,7 +121,7 @@ function Field({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={name}
-        className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+        className="eyebrow"
       >
         {label}
       </label>

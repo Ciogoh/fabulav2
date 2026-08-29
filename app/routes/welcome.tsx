@@ -156,7 +156,7 @@ export default function Welcome({
             <div className="mt-4 flex flex-col gap-1.5">
               <label
                 htmlFor="password"
-                className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+                className="eyebrow"
               >
                 {t("welcome.password")}
               </label>
@@ -173,7 +173,7 @@ export default function Welcome({
             <div className="mt-4 flex flex-col gap-1.5">
               <label
                 htmlFor="confirmPassword"
-                className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+                className="eyebrow"
               >
                 {t("welcome.confirmPassword")}
               </label>
@@ -227,7 +227,7 @@ function NameField({
     <div className="flex min-w-40 flex-1 flex-col gap-1.5">
       <label
         htmlFor={name}
-        className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+        className="eyebrow"
       >
         {label}
       </label>
@@ -241,7 +241,7 @@ function NameField({
         maxLength={maxLength}
         className="min-h-11 rounded border border-rule bg-card px-3 py-2.5 text-sm"
       />
-      {hint && <span className="text-[0.8rem] text-muted">{hint}</span>}
+      {hint && <span className="text-xs text-muted">{hint}</span>}
     </div>
   );
 }

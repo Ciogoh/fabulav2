@@ -21,7 +21,13 @@
 
 import { Link, type LinkProps } from "react-router";
 
-export type ButtonVariant = "primary" | "secondary" | "quiet" | "danger" | "plain";
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "quiet"
+  | "danger"
+  | "destructive"
+  | "plain";
 export type ButtonSize = "md" | "sm";
 
 /**
@@ -40,6 +46,23 @@ const VARIANTS: Record<ButtonVariant, string> = {
     "rounded border border-rule text-muted hover:border-ink hover:text-ink disabled:bg-sunk disabled:text-muted disabled:hover:border-rule disabled:hover:text-muted",
   danger:
     "rounded border border-rule text-muted hover:border-out hover:text-out disabled:bg-sunk disabled:text-muted disabled:hover:border-rule disabled:hover:text-muted",
+  /**
+   * La sesta variante, e la ragione per cui è sesta.
+   *
+   * `danger` è volutamente quieto: sta **in mezzo a una pagina**, accanto a
+   * campi e ad altre azioni, e un «Elimina» rosso pieno in fondo a ogni
+   * scheda griderebbe più del contenuto. Ma dentro alla finestra di conferma
+   * la situazione è rovesciata: lì la scelta è già stata fatta, ci sono due
+   * pulsanti soli, e quello che distrugge è **l'azione principale di quel
+   * dialogo** — con la fattura del `danger` quieto restava meno vistoso di
+   * «Annulla», che è l'esatto contrario di quello che deve succedere.
+   *
+   * Come il primario, il testo sopra il fondo pieno viene da un token
+   * (`--on-out`) e non da `white`: nel tema scuro `--out-solid` è chiaro, e
+   * lì sopra ci va inchiostro. 6,34:1 nel tema chiaro, 7,25:1 nello scuro.
+   */
+  destructive:
+    "rounded border border-transparent bg-out-solid font-medium text-on-out hover:brightness-110 disabled:border-rule disabled:bg-sunk disabled:text-muted disabled:hover:brightness-100",
   // Senza cornice, ma con la stessa altezza degli altri: un «Annulla» alto
   // venti pixel accanto a un pulsante alto quarantaquattro è un bersaglio
   // che si manca.
@@ -71,9 +94,47 @@ export function buttonClass(
     .join(" ");
 }
 
+/**
+ * L'attesa, quando un pulsante manda qualcosa al server.
+ *
+ * Prima l'unico segnale era il pulsante che si spegneva, e a un pulsante
+ * spento mancano due cose per raccontare un'attesa: **non dice che sta
+ * succedendo qualcosa** — spento vuol dire anche «non si può premere», che è
+ * il contrario — e **non dice che finirà**. Su una connessione lenta, in
+ * magazzino, il gesto successivo è ricaricare la pagina a metà di un invio.
+ *
+ * Il cerchietto è l'unica animazione dell'applicazione, e sta qui e non
+ * altrove per questo motivo. `aria-busy` dice la stessa cosa a chi non lo
+ * vede. L'etichetta la decide chi chiama e questo componente non la tocca:
+ * sull'accesso cambia («Mando il codice…»), perché lì l'attesa è lunga e
+ * vale spiegarla a parole; su un pulsante di elenco resta ferma, perché
+ * cambiarla sposterebbe il testo delle righe accanto a ogni pressione.
+ */
+function Spinner() {
+  return (
+    <svg
+      aria-hidden="true"
+      data-busy-spinner=""
+      viewBox="0 0 16 16"
+      className="h-3.5 w-3.5 shrink-0 animate-spin"
+    >
+      <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.25" />
+      <path
+        d="M8 1.5a6.5 6.5 0 0 1 6.5 6.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  /** Sta viaggiando qualcosa: cerchietto, `aria-busy`, e non si preme due volte. */
+  busy?: boolean;
 };
 
 export function Button({
@@ -81,14 +142,22 @@ export function Button({
   size = "md",
   className,
   type = "button",
+  busy = false,
+  disabled,
+  children,
   ...rest
 }: ButtonProps) {
   return (
     <button
       type={type}
+      aria-busy={busy || undefined}
+      disabled={disabled || busy}
       className={buttonClass(variant, size, className)}
       {...rest}
-    />
+    >
+      {busy && <Spinner />}
+      {children}
+    </button>
   );
 }
 

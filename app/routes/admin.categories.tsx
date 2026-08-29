@@ -22,6 +22,7 @@ import { Link, useFetcher } from "react-router";
 import type { Route } from "./+types/admin.categories";
 import { PageShell, PageTitle } from "~/components/page";
 import { buttonClass } from "~/components/button";
+import { useConfirm } from "~/components/confirm";
 import { AdminTabs } from "~/components/admin-tabs";
 import { pageTitle } from "~/i18n/meta";
 import { db } from "~/lib/db.server";
@@ -214,7 +215,7 @@ function NewCategoryForm() {
       <div className="flex min-w-48 flex-1 flex-col gap-1.5">
         <label
           htmlFor="new-category"
-          className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+          className="eyebrow"
         >
           {t("categories.new")}
         </label>
@@ -227,7 +228,7 @@ function NewCategoryForm() {
           minLength={2}
           maxLength={MAX_CATEGORY_NAME}
           placeholder={t("categories.newPlaceholder")}
-          className="min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm"
+          className="field"
         />
       </div>
       <button type="submit" disabled={busy} className={buttonClass("primary")}>
@@ -252,6 +253,7 @@ function CategoryItem({
   const [name, setName] = useState(category.name);
   const changed = name.trim() !== category.name;
   const count = category._count.assets;
+  const confirm = useConfirm();
 
   return (
     <li className="flex flex-wrap items-center gap-2 rounded border border-rule bg-card p-3">
@@ -266,7 +268,7 @@ function CategoryItem({
           minLength={2}
           maxLength={MAX_CATEGORY_NAME}
           aria-label={t("categories.name")}
-          className="min-h-11 w-full rounded border border-rule bg-card px-3 py-2 text-sm"
+          className="field w-full"
         />
         {/* Compare solo quando c'è davvero qualcosa da salvare: un pulsante
             sempre acceso accanto a ogni riga è un invito a premere a vuoto. */}
@@ -283,7 +285,7 @@ function CategoryItem({
 
       <Link
         to={`/admin/assets?cat=${encodeURIComponent(category.slug)}`}
-        className="font-mono text-[0.65rem] uppercase tracking-wider text-muted underline underline-offset-4 hover:text-ink"
+        className="font-mono text-2xs uppercase tracking-wider text-muted underline underline-offset-4 hover:text-ink"
       >
         {t("categories.itemCount", { count })}
       </Link>
@@ -294,13 +296,13 @@ function CategoryItem({
 
         <remove.Form
           method="post"
-          onSubmit={(event) => {
-            const message =
+          onSubmit={confirm.ask({
+            title:
               count > 0
                 ? t("categories.confirmDeleteWithItems", { count })
-                : t("categories.confirmDelete");
-            if (!window.confirm(message)) event.preventDefault();
-          }}
+                : t("categories.confirmDelete"),
+            confirmLabel: t("categories.delete"),
+          })}
         >
           <input type="hidden" name="intent" value="delete" />
           <input type="hidden" name="id" value={category.id} />
@@ -313,6 +315,8 @@ function CategoryItem({
           </button>
         </remove.Form>
       </div>
+
+      {confirm.dialog}
     </li>
   );
 }

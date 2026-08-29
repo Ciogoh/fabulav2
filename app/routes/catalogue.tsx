@@ -37,7 +37,7 @@ import { pageTitle, tagline } from "~/i18n/meta";
 import { StateBadge, visualStateOf } from "~/components/state-badge";
 import { PageShell } from "~/components/page";
 import { Select } from "~/components/select";
-import { Button } from "~/components/button";
+import { Button, ButtonLink } from "~/components/button";
 import { CartBar } from "~/components/cart-bar";
 import { useCart, type CartEntry } from "~/lib/use-cart";
 
@@ -157,7 +157,7 @@ export default function Catalogue({ loaderData }: Route.ComponentProps) {
 
       <main>
         <PageShell className="pb-32 pt-8">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted">
+          <p className="eyebrow">
             {filtered
               ? t("catalogue.showingSome", {
                   count: assets.length,
@@ -250,7 +250,7 @@ function FilterBar({
           <div className="flex min-w-40 flex-1 flex-col gap-1.5 sm:max-w-xs">
             <label
               htmlFor="q"
-              className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+              className="eyebrow"
             >
               {t("catalogue.search")}
             </label>
@@ -261,14 +261,14 @@ function FilterBar({
               value={value}
               placeholder={t("catalogue.searchPlaceholder")}
               onChange={(event) => setValue(event.target.value)}
-              className="min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm"
+              className="field"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="cat"
-              className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+              className="eyebrow"
             >
               {t("catalogue.category")}
             </label>
@@ -298,12 +298,9 @@ function FilterBar({
           </noscript>
 
           {(activeCategory || query) && (
-            <Link
-              to="/"
-              className="inline-flex min-h-11 items-center px-1 text-sm text-muted underline underline-offset-4 hover:text-ink"
-            >
+            <ButtonLink to="/" variant="plain" className="px-1">
               {t("catalogue.clearFilter")}
-            </Link>
+            </ButtonLink>
           )}
         </form>
       </PageShell>
@@ -353,7 +350,15 @@ function AssetCard({
   };
 
   return (
-    <article className="relative flex flex-col overflow-hidden rounded border border-rule bg-card focus-within:border-accent hover:border-accent">
+    /* **Il contorno di fuoco stava intorno alla parola sbagliata.** Il
+       collegamento è il titolo, ma la sua area cliccabile è tutta la scheda
+       (lo pseudo elemento `after`): arrivando col Tab, il browser disegnava
+       l'anello intorno alle due righe del nome — un rettangolo grande un
+       decimo di quello che si sta per aprire. Qui l'anello lo porta la
+       scheda, e il titolo rinuncia al suo; `a:focus-visible` e non
+       `focus-within`, o si accenderebbe anche al click del mouse e su
+       «Aggiungi», che il suo anello ce l'ha già. */
+    <article className="relative flex flex-col overflow-hidden rounded border border-rule bg-card hover:border-accent has-[a:focus-visible]:outline has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-accent">
       <span aria-hidden="true" className={`h-[3px] w-full ${STRIPE[visual]}`} />
       {photo && (
         <img
@@ -380,18 +385,18 @@ function AssetCard({
 
           <div className="flex min-w-0 flex-col gap-1">
             {asset.category && (
-              <span className="font-mono text-[0.66rem] uppercase tracking-widest text-muted">
+              <span className="eyebrow">
                 {asset.category.name}
               </span>
             )}
 
-            <h2 className="text-[0.95rem] font-semibold leading-snug">
+            <h2 className="text-md font-semibold leading-snug">
               {/* Il collegamento copre tutta la scheda tramite lo pseudo
                   elemento; i pulsanti sotto stanno sopra di lui con `z-10`,
                   così restano cliccabili. */}
               <Link
                 to={`/items/${asset.id}`}
-                className="after:absolute after:inset-0 after:content-['']"
+                className="focus-visible:outline-none after:absolute after:inset-0 after:content-['']"
               >
                 {asset.name}
               </Link>
@@ -468,10 +473,10 @@ function KitCard({
   return (
     <article className="flex flex-col rounded border border-rule bg-card p-4">
       <div className="flex items-center gap-2">
-        <span className="rounded-full bg-accent-soft px-2 py-0.5 font-mono text-[0.66rem] font-medium uppercase tracking-wider text-accent">
+        <span className="rounded-full bg-accent-soft px-2 py-0.5 font-mono text-2xs font-medium uppercase tracking-wider text-accent">
           {t("kit.badge")}
         </span>
-        <span className="font-mono text-[0.7rem] text-muted">
+        <span className="font-mono text-2xs text-muted">
           {t("kit.itemCount", { count: members.length })}
         </span>
       </div>
@@ -482,26 +487,38 @@ function KitCard({
       )}
 
       <ul className="mt-3 flex-1 border-t border-rule pt-3 text-sm">
-        {shown.map((member) => (
-          <li
-            key={member.id}
-            className={
-              canAdd(member.id)
-                ? "py-0.5"
-                : "py-0.5 text-muted line-through decoration-1"
-            }
-          >
-            {/* `inline-block py-1`: da riga di testo a bersaglio da toccare —
-                l'elenco dei pezzi di un kit è fatto di collegamenti, e a
-                venti pixel di altezza col pollice si sbaglia. */}
-            <Link
-              to={`/items/${member.id}`}
-              className="inline-block py-1 hover:text-accent"
+        {shown.map((member) => {
+          const usable = canAdd(member.id);
+          return (
+            <li
+              key={member.id}
+              className={usable ? "py-0.5" : "flex flex-wrap items-baseline gap-x-2 py-0.5"}
             >
-              {member.name}
-            </Link>
-          </li>
-        ))}
+              {/* `inline-block py-1`: da riga di testo a bersaglio da toccare —
+                  l'elenco dei pezzi di un kit è fatto di collegamenti, e a
+                  venti pixel di altezza col pollice si sbaglia. */}
+              <Link
+                to={`/items/${member.id}`}
+                className={
+                  usable
+                    ? "inline-block py-1 hover:text-accent"
+                    : "inline-block py-1 text-muted line-through decoration-1 hover:text-accent"
+                }
+              >
+                {member.name}
+              </Link>
+              {/* **Il tratto sopra al nome non dice perché.** Un pezzo
+                  sbarrato dentro a un kit da quattro, e un pulsante che ne
+                  aggiunge tre senza spiegarsi: chi guarda conta male e crede
+                  che l'aggiunta sia andata storta. La parola è la stessa che
+                  porta il badge di quell'oggetto, così le due schermate
+                  raccontano la stessa cosa. */}
+              {!usable && (
+                <span className="eyebrow">{t("state.notBookable")}</span>
+              )}
+            </li>
+          );
+        })}
         {hidden > 0 && (
           <li className="py-0.5 text-muted">{t("kit.more", { count: hidden })}</li>
         )}

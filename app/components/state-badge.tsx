@@ -141,7 +141,7 @@ export function StateBadge({ state, until, from, today, tone = "soft" }: BadgeIn
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-[0.68rem] font-medium uppercase tracking-wider ${
+        className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-2xs font-medium uppercase tracking-wider ${
           tone === "solid" ? SOLID[visual] : SOFT[visual]
         }`}
       >
@@ -151,7 +151,7 @@ export function StateBadge({ state, until, from, today, tone = "soft" }: BadgeIn
         {t(LABELS[visual])}
       </span>
       {detail && (
-        <span className="font-mono text-[0.7rem] text-muted">{detail}</span>
+        <span className="font-mono text-2xs text-muted">{detail}</span>
       )}
     </span>
   );

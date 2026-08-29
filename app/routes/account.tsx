@@ -26,7 +26,13 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Form, useFetcher, useNavigation, useRevalidator } from "react-router";
+import {
+  Form,
+  useFetcher,
+  useLocation,
+  useNavigation,
+  useRevalidator,
+} from "react-router";
 import type { Route } from "./+types/account";
 import { pageTitle } from "~/i18n/meta";
 import { db } from "~/lib/db.server";
@@ -62,6 +68,8 @@ import {
 } from "~/lib/push.client";
 import { promptInstall, useInstallState } from "~/components/pwa";
 import { useFormatDay } from "~/i18n/use-t";
+import { THEMES, type Theme } from "~/lib/theme";
+import { getTheme } from "~/lib/theme.server";
 
 export function meta({ matches }: Route.MetaArgs) {
   return [{ title: pageTitle(matches, "account.heading") }];
@@ -96,6 +104,8 @@ export async function loader({ request }: Route.LoaderArgs) {
       image: user.image,
     } satisfies Person,
     email: user.email,
+    // Dal cookie, non dal profilo: il tema è del dispositivo. Vedi `lib/theme.ts`.
+    theme: getTheme(request),
     notifyChannel: settings.notifyChannel,
     devices: devices.map((device) => ({
       id: device.id,
@@ -251,7 +261,7 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
             hint={t("account.aliasHint")}
           />
 
-          <p className="text-[0.8rem] text-muted">
+          <p className="text-xs text-muted">
             {t("account.preview")}{" "}
             <PersonName person={person} className="font-medium text-ink" />
           </p>
@@ -263,18 +273,17 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
           )}
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="submit"
-              disabled={savingProfile}
-              className={buttonClass("primary")}
-            >
+            <Button type="submit" variant="primary" busy={savingProfile}>
               {t("account.save")}
-            </button>
+            </Button>
             <p aria-live="polite" className="text-sm text-free">
               {profileSaved ? t("account.saved") : ""}
             </p>
           </div>
         </Form>
+
+        {/* ------------------------------------------------- aspetto */}
+        <AppearanceSettings theme={loaderData.theme} />
 
         {/* ----------------------------------------------- notifiche */}
         <NotificationSettings
@@ -290,10 +299,79 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
         <p className="mt-10 border-t border-rule pt-5 text-sm text-muted">
           {t("account.email")}: <span className="text-ink">{email}</span>
           <br />
-          <span className="text-[0.8rem]">{t("account.emailHint")}</span>
+          <span className="text-xs">{t("account.emailHint")}</span>
         </p>
       </PageShell>
     </main>
+  );
+}
+
+/* --------------------------------------------------------------- aspetto */
+
+/**
+ * Chiaro, scuro o automatico.
+ *
+ * **Automatico è il primo della lista e il valore di partenza**, non una via
+ * di mezzo messa lì per completezza: il sistema operativo quella domanda
+ * l'ha già fatta una volta, e chi tiene il telefono in scuro dalle sette di
+ * sera vuole che Fabula faccia lo stesso senza doverglielo dire due volte.
+ * Le altre due servono a chi quella risposta la vuole smentire proprio qui —
+ * ed è un caso vero: un magazzino con la luce al neon si legge meglio in
+ * chiaro anche se il telefono è in scuro.
+ *
+ * Si salva da sé al cambio, come il canale delle notifiche e come la lingua
+ * nell'intestazione: un menu a tendina con accanto un «Salva» per un campo
+ * solo è una cerimonia che nessuno completa. E qui il salvataggio si vede
+ * senza bisogno di dirlo — la pagina cambia colore mentre la si guarda,
+ * che è la conferma più diretta che esista.
+ *
+ * Manda a `/theme` con il `redirectTo` di dov'eravamo, esattamente come il
+ * menu della lingua: così funziona anche senza JavaScript, e se un giorno
+ * l'interruttore finirà anche nell'intestazione non c'è niente da riscrivere.
+ */
+function AppearanceSettings({ theme }: { theme: Theme }) {
+  const t = useT();
+  const location = useLocation();
+  const fetcher = useFetcher();
+
+  /* Quello che sta viaggiando vince su quello confermato dal server, o il
+     menu tornerebbe indietro per un istante a ogni cambio. */
+  const pending = fetcher.formData?.get("theme");
+  const active = THEMES.find((name) => name === pending) ?? theme;
+
+  return (
+    <section className="mt-10 border-t border-rule pt-8">
+      <h2 className="font-serif text-xl font-semibold">{t("account.themeHeading")}</h2>
+      <p className="mt-2 max-w-prose text-sm text-muted">{t("account.themeIntro")}</p>
+
+      <fetcher.Form method="post" action="/theme" className="mt-6 max-w-xs">
+        <input
+          type="hidden"
+          name="redirectTo"
+          value={location.pathname + location.search}
+        />
+        <label htmlFor="theme" className="eyebrow">
+          {t("account.theme")}
+        </label>
+        <div className="mt-1.5">
+          <Select
+            id="theme"
+            name="theme"
+            value={active}
+            onChange={(event) => fetcher.submit(event.currentTarget.form)}
+          >
+            <option value="auto">{t("account.themeAuto")}</option>
+            <option value="light">{t("account.themeLight")}</option>
+            <option value="dark">{t("account.themeDark")}</option>
+          </Select>
+        </div>
+      </fetcher.Form>
+
+      {/* Chi non ha fatto l'accesso non passa di qui, e resta su
+          «automatico» — che è la risposta giusta per chi non ha mai chiesto
+          niente. */}
+      <p className="mt-3 max-w-prose text-xs text-muted">{t("account.themeHint")}</p>
+    </section>
   );
 }
 
@@ -403,7 +481,7 @@ function AvatarPicker({ person }: { person: Person }) {
 
   return (
     <section className="mt-8 flex flex-col gap-3">
-      <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+      <span className="eyebrow">
         {t("account.photo")}
       </span>
 
@@ -447,13 +525,13 @@ function AvatarPicker({ person }: { person: Person }) {
                 chiaro, e la scritta bianca finirebbe su un fondo quasi
                 bianco. Sopra una foto il nero va bene in tutti e due i temi. */}
             {uploading ? (
-              <span className="absolute inset-1 flex animate-pulse items-center justify-center rounded-full bg-black/70 px-2 text-center font-mono text-[0.6rem] uppercase tracking-wider text-white">
+              <span className="absolute inset-1 flex animate-pulse items-center justify-center rounded-full bg-black/70 px-2 text-center font-mono text-2xs uppercase tracking-wider text-white">
                 {t("account.uploading")}
               </span>
             ) : (
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-1 flex items-center justify-center rounded-full bg-black/60 px-2 text-center font-mono text-[0.6rem] uppercase tracking-wider text-white opacity-0 transition-opacity group-hover:opacity-100"
+                className="pointer-events-none absolute inset-1 flex items-center justify-center rounded-full bg-black/60 px-2 text-center font-mono text-2xs uppercase tracking-wider text-white opacity-0 transition-opacity group-hover:opacity-100"
               >
                 {label}
               </span>
@@ -493,7 +571,7 @@ function AvatarPicker({ person }: { person: Person }) {
             {label}
           </label>
 
-          <p className="text-[0.8rem] text-muted">{t("account.photoHint")}</p>
+          <p className="text-xs text-muted">{t("account.photoHint")}</p>
 
           {person.image && (
             <fetcher.Form method="post">
@@ -543,7 +621,7 @@ function Field({
     <div className="flex min-w-44 flex-1 flex-col gap-1.5">
       <label
         htmlFor={name}
-        className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+        className="eyebrow"
       >
         {label}
       </label>
@@ -555,9 +633,9 @@ function Field({
         autoComplete={autoComplete}
         required={required}
         maxLength={maxLength}
-        className="min-h-11 rounded border border-rule bg-card px-3 py-2 text-sm"
+        className="field"
       />
-      {hint && <span className="text-[0.8rem] text-muted">{hint}</span>}
+      {hint && <span className="text-xs text-muted">{hint}</span>}
     </div>
   );
 }
@@ -683,7 +761,7 @@ function NotificationSettings({
         <input type="hidden" name="intent" value="notifyChannel" />
         <label
           htmlFor="notifyChannel"
-          className="font-mono text-[0.68rem] uppercase tracking-widest text-muted"
+          className="eyebrow"
         >
           {t("account.notifyChannel")}
         </label>
@@ -699,7 +777,7 @@ function NotificationSettings({
             <option value="BOTH">{t("account.notifyChannelBoth")}</option>
           </Select>
         </div>
-        <p aria-live="polite" className="mt-1.5 text-[0.8rem] text-free">
+        <p aria-live="polite" className="mt-1.5 text-xs text-free">
           {savedChannel ? t("account.saved") : ""}
         </p>
       </channelFetcher.Form>
@@ -707,12 +785,12 @@ function NotificationSettings({
       {/* La riga che vale metà della schermata: senza, chi sceglie «solo
           notifiche» ha ragione di temere di non ricevere più il codice per
           entrare. */}
-      <p className="mt-3 max-w-prose text-[0.8rem] text-muted">
+      <p className="mt-3 max-w-prose text-xs text-muted">
         {t("account.notifyChannelHint")}
       </p>
 
       {/* ------------------------------------------------ i dispositivi */}
-      <h3 className="mt-8 font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+      <h3 className="mt-8 eyebrow">
         {t("account.notifyDevices")}
       </h3>
 
@@ -728,12 +806,12 @@ function NotificationSettings({
                 <span className="text-sm">
                   {device.label ?? t("account.notifyUnknownDevice")}
                   {isThisOne && (
-                    <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[0.7rem] text-accent">
+                    <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-2xs text-accent">
                       {t("account.notifyThisDevice")}
                     </span>
                   )}
                 </span>
-                <span className="text-[0.8rem] text-muted">
+                <span className="text-xs text-muted">
                   {t("account.notifyAdded", { date: formatDay(device.createdAt) })}
                 </span>
 
@@ -836,7 +914,7 @@ function InstallInvitation({ state }: { state: ReturnType<typeof useInstallState
             Home, le notifiche web non arrivano affatto. È un vincolo di
             Apple, e va detto qui o la persona attiva le notifiche e aspetta
             per sempre. */}
-        <p className="mt-1.5 text-[0.8rem] text-muted">{t("account.installIosWhy")}</p>
+        <p className="mt-1.5 text-xs text-muted">{t("account.installIosWhy")}</p>
         <p className="mt-2 text-sm">{t("account.installIosHow")}</p>
         <Button variant="plain" size="sm" className="mt-2" onClick={() => setHidden(true)}>
           {t("account.installDismiss")}

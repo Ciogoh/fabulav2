@@ -152,7 +152,7 @@ export default function AdminLog({ loaderData }: Route.ComponentProps) {
                     carattere più in alto dell'azione. */}
                 <time
                   dateTime={entry.createdAt}
-                  className="shrink-0 font-mono text-[0.7rem]/7 text-muted"
+                  className="shrink-0 font-mono text-2xs/7 text-muted"
                 >
                   {new Date(entry.createdAt).toLocaleString(lang, {
                     day: "numeric",
@@ -175,7 +175,7 @@ export default function AdminLog({ loaderData }: Route.ComponentProps) {
             insieme a un'altra: «ma il server ha già la correzione?».
             Senza etichetta: «Versione:» andrebbe tradotto in tre lingue per
             non dire niente in più. Vedi `lib/version.ts`. */}
-        <p className="mt-10 border-t border-rule pt-4 font-mono text-[0.7rem] text-muted">
+        <p className="mt-10 border-t border-rule pt-4 font-mono text-2xs text-muted">
           {versionLabel()}
         </p>
       </PageShell>

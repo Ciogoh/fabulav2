@@ -20,6 +20,7 @@ import { Form, Link, redirect, useNavigation, useSearchParams } from "react-rout
 import type { Route } from "./+types/admin.assets.$id";
 import { PageShell } from "~/components/page";
 import { buttonClass } from "~/components/button";
+import { useConfirm } from "~/components/confirm";
 import { pageTitle } from "~/i18n/meta";
 import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
@@ -364,7 +365,7 @@ function AssetQr({ dataUrl, name }: { dataUrl: string; name: string }) {
 
   return (
     <section className="mt-10 border-t border-rule pt-6">
-      <h2 className="font-mono text-[0.66rem] uppercase tracking-widest text-muted">
+      <h2 className="eyebrow">
         {t("assets.qrHeading")}
       </h2>
 
@@ -408,7 +409,7 @@ function AssetHistory({
 
   return (
     <section className="mt-10 border-t border-rule pt-6">
-      <h2 className="font-mono text-[0.66rem] uppercase tracking-widest text-muted">
+      <h2 className="eyebrow">
         {t("assets.historyHeading")}
       </h2>
 
@@ -422,7 +423,7 @@ function AssetHistory({
                 to={`/requests/${entry.requestId}`}
                 className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm hover:text-accent"
               >
-                <span className="font-mono text-[0.68rem] uppercase tracking-widest text-muted">
+                <span className="eyebrow">
                   {formatDayLabel(entry.startDate)} — {formatDayLabel(entry.endDate)}
                 </span>
 
@@ -431,7 +432,7 @@ function AssetHistory({
                 {/* Lo stato del passaggio di mano vince su quello della
                     richiesta quando c'è: «riconsegnato» dice più di
                     «approvata», che a prestito finito è ormai una formalità. */}
-                <span className="ml-auto font-mono text-[0.62rem] uppercase tracking-wider text-muted">
+                <span className="ml-auto font-mono text-2xs uppercase tracking-wider text-muted">
                   {entry.returned
                     ? t("requests.item.returned")
                     : entry.pickedUp
@@ -484,17 +485,21 @@ function ExitZone({
   }
 
   const deletable = loans === 0;
+  const confirm = useConfirm();
 
   return (
+    <>
     <Form
       method="post"
       className="mt-10 border-t border-rule pt-6"
-      onSubmit={(event) => {
-        const message = deletable
-          ? t("assets.confirmDelete")
-          : t("assets.confirmArchive");
-        if (!window.confirm(message)) event.preventDefault();
-      }}
+      /* Niente corpo: `confirmDelete` e `confirmArchive` la conseguenza la
+         dicono già, e sotto al pulsante c'è la stessa frase ancora una volta.
+         Ripeterla dentro alla finestra la faceva leggere due volte di fila,
+         che è il modo più rapido per non farla leggere affatto. */
+      onSubmit={confirm.ask({
+        title: deletable ? t("assets.confirmDelete") : t("assets.confirmArchive"),
+        confirmLabel: deletable ? t("assets.delete") : t("assets.archive"),
+      })}
     >
       <input type="hidden" name="intent" value={deletable ? "delete" : "archive"} />
       <button type="submit" disabled={busy} className={buttonClass("danger")}>
@@ -504,5 +509,7 @@ function ExitZone({
         {deletable ? t("assets.deleteHint") : t("assets.archiveHint", { count: loans })}
       </p>
     </Form>
+    {confirm.dialog}
+    </>
   );
 }

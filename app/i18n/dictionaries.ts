@@ -29,6 +29,7 @@ const en = {
   "nav.myRequests": "My requests",
   "nav.signIn": "Sign in",
   "nav.language": "Language",
+  "nav.adminManage": "Manage",
   "nav.adminMembers": "Members",
   "nav.adminAssets": "Items",
   "nav.adminScan": "Scan",
@@ -433,6 +434,16 @@ const en = {
   /* PWA e notifiche push. La preferenza è della persona, l'iscrizione è del
      dispositivo: sono due cose e i testi devono farlo capire, o si accendono
      le notifiche sul portatile e si esce dall'ufficio. */
+  "account.themeHeading": "Appearance",
+  "account.themeIntro":
+    "Light, dark, or whatever your device is set to.",
+  "account.theme": "Theme",
+  "account.themeAuto": "Follow my device",
+  "account.themeLight": "Light",
+  "account.themeDark": "Dark",
+  "account.themeHint":
+    "Saved on this device, not on your account: you can keep Fabula dark on your phone and light on your laptop.",
+
   "account.notifyHeading": "Notifications",
   "account.notifyIntro": "Choose where loan updates reach you, and on which devices.",
   "account.notifyChannel": "Channel",
@@ -475,6 +486,7 @@ const it: Dictionary = {
   "nav.myRequests": "Le mie richieste",
   "nav.signIn": "Entra",
   "nav.language": "Lingua",
+  "nav.adminManage": "Gestione",
   "nav.adminMembers": "Soci",
   "nav.adminAssets": "Oggetti",
   "nav.adminScan": "Scansiona",
@@ -870,6 +882,16 @@ const it: Dictionary = {
   /* PWA e notifiche push. La preferenza è della persona, l'iscrizione è del
      dispositivo: sono due cose e i testi devono farlo capire, o si accendono
      le notifiche sul portatile e si esce dall'ufficio. */
+  "account.themeHeading": "Aspetto",
+  "account.themeIntro":
+    "Chiaro, scuro, o quello che dice il tuo dispositivo.",
+  "account.theme": "Tema",
+  "account.themeAuto": "Come il dispositivo",
+  "account.themeLight": "Chiaro",
+  "account.themeDark": "Scuro",
+  "account.themeHint":
+    "Si salva su questo dispositivo, non sul tuo account: puoi tenere Fabula scura sul telefono e chiara sul portatile.",
+
   "account.notifyHeading": "Notifiche",
   "account.notifyIntro":
     "Scegli da dove ricevere gli avvisi di prestito, e su quali dispositivi.",
@@ -911,6 +933,7 @@ const de: Dictionary = {
   "nav.myRequests": "Meine Anfragen",
   "nav.signIn": "Anmelden",
   "nav.language": "Sprache",
+  "nav.adminManage": "Verwaltung",
   "nav.adminMembers": "Mitglieder",
   "nav.adminAssets": "Gegenstände",
   "nav.adminScan": "Scannen",
@@ -1306,6 +1329,16 @@ const de: Dictionary = {
   /* PWA e notifiche push. La preferenza è della persona, l'iscrizione è del
      dispositivo: sono due cose e i testi devono farlo capire, o si accendono
      le notifiche sul portatile e si esce dall'ufficio. */
+  "account.themeHeading": "Erscheinungsbild",
+  "account.themeIntro":
+    "Hell, dunkel, oder wie dein Gerät es eingestellt hat.",
+  "account.theme": "Design",
+  "account.themeAuto": "Wie mein Gerät",
+  "account.themeLight": "Hell",
+  "account.themeDark": "Dunkel",
+  "account.themeHint":
+    "Wird auf diesem Gerät gespeichert, nicht in deinem Konto: Fabula kann auf dem Handy dunkel und auf dem Laptop hell bleiben.",
+
   "account.notifyHeading": "Benachrichtigungen",
   "account.notifyIntro":
     "W\u00e4hle, wo dich Ausleih-Hinweise erreichen und auf welchen Ger\u00e4ten.",
