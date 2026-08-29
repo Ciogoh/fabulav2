@@ -14,6 +14,44 @@ la prova su iPhone e Android veri di quello che la 0.7.0 ha aggiunto.
 
 ---
 
+## 0.9.1 — 29 agosto 2026
+
+**Il Centro era una tassonomia, non un elenco di cose da fare.** Quattro
+sezioni — da approvare, messaggi, oggi e domani, in ritardo — con quattro
+pastiglie in cima per filtrarle. In una giornata tranquilla il risultato era
+quattro intestazioni e tre righe che dicono «niente» per mostrare **un**
+oggetto: metà schermo speso per dire che non c'è nulla da fare. E una
+richiesta in ritardo che aveva anche un messaggio non letto compariva **due
+volte**, in due sezioni, come se fossero due cose da fare invece di una da
+aprire.
+
+Fonderle tutte in una lista sola sarebbe stato sbagliato allo stesso modo,
+perché **una delle quattro non è una coda**. Da approvare, messaggi e ritardi
+aspettano una decisione e si svuotano; «oggi e domani» no — è l'agenda del
+magazzino, si legge, e un ritiro di domani non aspetta niente da te adesso.
+Metterlo in una lista che stai cercando di finire vuol dire metterci dentro
+una riga che non si può finire.
+
+Quindi **una coda in cima e l'agenda sotto**, senza pastiglie. Una riga per
+**richiesta** e non per motivo: i motivi diventano marcatori sulla riga, e
+quella richiesta in ritardo con un messaggio adesso è una riga sola con due
+marcatori. Il ritardo è l'unico pieno — è l'unica cosa lì dentro che è già
+andata storta, e un lavoro normale che grida quanto un problema toglie forza
+al problema. A destra dei marcatori c'è **una** data e non tre, scelta dal
+motivo più urgente: tre indicazioni di tempo sulla stessa riga non si
+leggono, si scavalcano.
+
+L'agenda compare solo se ha qualcosa: «niente da consegnare né da ricevere» è
+una riga che nessuno ha chiesto, e l'assenza di consegne oggi si vede
+benissimo dal fatto che non ce ne sono.
+
+Il numero sulla pastiglia dell'intestazione non cambia significato — conta la
+coda, che è esattamente ciò che contava prima. `/admin/requests` e
+`/admin/overdue` continuano a rimandare qui; il `?vista=` che mostrava una
+sezione sola non ha più niente da filtrare.
+
+---
+
 ## 0.9.0 — 29 agosto 2026
 
 **Il tema si sceglie.** Dal profilo, sotto *Aspetto*: chiaro, scuro o

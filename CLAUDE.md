@@ -84,14 +84,31 @@ verificato dal vivo, non solo compilato:**
   erano tre posti (`/admin/requests`, `/admin/overdue`, e la chat, che non
   aveva **nessuna** superficie propria: una risposta di un socio non compariva
   da nessuna parte finché non si apriva quella richiesta). I due indirizzi
-  vecchi restano e rimandano qui con `?vista=`, perché un segnalibro non deve
-  smettere di funzionare per una riorganizzazione nostra.
+  vecchi restano e rimandano qui, perché un segnalibro non deve smettere di
+  funzionare per una riorganizzazione nostra.
 
-  **L'ordine delle sezioni non è per gravità ma per chi sta aspettando te**:
-  su un ritardo il tempo è già passato e nessuno è fermo davanti a una tua
-  azione, su una richiesta in attesa c'è una persona che aspetta. Unica
-  eccezione, dichiarata: un ritardo oltre la settimana fa salire quella
-  sezione in cima.
+  **Una coda e un'agenda, non quattro sezioni.** La prima versione tagliava
+  lo stesso lavoro in quattro elenchi con quattro pastiglie per filtrarli, e
+  in una giornata tranquilla spendeva metà schermo in intestazioni vuote per
+  mostrare una riga. Adesso: una **coda** in cima — da approvare, messaggi non
+  letti, ritardi — e sotto l'**agenda** di oggi e domani, che compare solo se
+  ha qualcosa. Le due non si fondono, e non è una sfumatura: la coda si
+  svuota, l'agenda si legge. Un ritiro di domani non aspetta niente da te
+  adesso, e metterlo in una lista che stai cercando di finire vuol dire
+  metterci una riga che non si può finire.
+
+  **Una riga per richiesta, non per motivo.** I motivi sono marcatori sulla
+  riga, e una richiesta in ritardo che ha anche un messaggio non letto compare
+  **una volta con due marcatori** — prima erano due righe in due sezioni, cioè
+  due cose da fare per una sola da aprire. Il ritardo è l'unico marcatore
+  pieno (`Pill tone="alarm"`): è l'unica cosa lì dentro che è già andata
+  storta.
+
+  **L'ordine non è per gravità ma per chi sta aspettando te**: su un ritardo
+  il tempo è già passato e nessuno è fermo davanti a una tua azione, su una
+  richiesta in attesa c'è una persona che aspetta. Quindi da approvare,
+  messaggi, ritardi — e a parità, chi aspetta da più tempo. Unica eccezione,
+  dichiarata: un ritardo oltre la settimana sale in cima.
 
   **Nessuna azione qui dentro**: ogni riga porta al dettaglio. Approvare da un
   elenco significa approvare senza aver letto.

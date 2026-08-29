@@ -1,5 +1,5 @@
 /**
- * La coda di approvazione, che adesso è una sezione del Centro.
+ * La coda di approvazione, che adesso è dentro alla coda del Centro.
  *
  * Questo file resta per una ragione sola: **un segnalibro non deve smettere
  * di funzionare per una riorganizzazione nostra.** L'elenco vive in
@@ -16,5 +16,5 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Prima di rimandare: chi non è admin non deve nemmeno scoprire che questo
   // indirizzo porta da qualche parte (`requireAdmin` risponde 404, non 403).
   await requireAdmin(request);
-  throw redirect("/admin?vista=approvare");
+  throw redirect("/admin");
 }

@@ -1,5 +1,5 @@
 /**
- * Gli oggetti in ritardo, che adesso sono una sezione del Centro.
+ * Gli oggetti in ritardo, che adesso sono marcatori sulle righe del Centro.
  *
  * Come per la coda di approvazione, il file resta solo per non rompere i
  * segnalibri: l'elenco vero sta in `routes/admin.tsx`.
@@ -11,5 +11,5 @@ import { requireAdmin } from "~/lib/session.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  throw redirect("/admin?vista=ritardo");
+  throw redirect("/admin");
 }

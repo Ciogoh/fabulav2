@@ -7,17 +7,41 @@
  * parte finché non si apriva quella richiesta. Il lavoro di un turno non
  * aveva un posto dove stare.
  *
- * ## L'ordine delle sezioni non è per gravità
+ * ## Una coda e un'agenda, e non quattro sezioni
+ *
+ * La prima versione tagliava lo stesso lavoro in **quattro** — da approvare,
+ * messaggi, oggi e domani, in ritardo — con quattro pastiglie in cima per
+ * filtrarle. In una giornata tranquilla il risultato era quattro intestazioni
+ * e tre righe che dicono «niente» per mostrare **un** oggetto: metà schermo
+ * speso per dire che non c'è nulla da fare. E una richiesta in ritardo che
+ * aveva anche un messaggio non letto compariva **due volte**, in due sezioni,
+ * come se fossero due cose da fare invece di una da aprire.
+ *
+ * Le quattro sezioni erano una tassonomia, non un elenco di cose da fare. Ma
+ * mescolarle tutte in una lista sola sarebbe stato sbagliato allo stesso
+ * modo, perché **una delle quattro non è una coda**:
+ *
+ * - **Da approvare, messaggi, ritardi** aspettano una decisione tua, e si
+ *   svuotano: quando hai deciso, la riga sparisce.
+ * - **Oggi e domani** non si svuota: si legge. Un ritiro di domani non
+ *   aspetta niente da te *adesso* — è l'agenda del magazzino, e metterlo in
+ *   una lista che stai cercando di finire vuol dire metterci dentro una riga
+ *   che non si può finire.
+ *
+ * Quindi: una coda sola in cima, l'agenda sotto, e nessuna pastiglia. **Una
+ * riga per richiesta, non per motivo**: i motivi diventano marcatori sulla
+ * riga, e una richiesta che ne ha due si apre una volta sola.
+ *
+ * ## L'ordine non è per gravità
  *
  * È per **chi sta aspettando te**. Su un ritardo il tempo è già passato e
  * nessuno è fermo davanti a una tua azione; su una richiesta in attesa c'è
- * una persona che aspetta, magari da giorni. Quindi: da approvare, messaggi,
- * oggi e domani, in ritardo.
+ * una persona che aspetta, magari da giorni. Quindi: prima da approvare, poi
+ * i messaggi, poi i ritardi — e a parità, chi aspetta da più tempo.
  *
- * Con **un'eccezione sola e dichiarata**: se c'è un oggetto in ritardo da più
- * di una settimana, quella sezione sale in cima. Una regola, visibile e
- * spiegabile — non un riordinamento intelligente che sposta le cose sotto le
- * dita di chi le sta guardando.
+ * Con **un'eccezione sola e dichiarata**: un ritardo oltre la settimana sale
+ * in cima. Una regola, visibile e spiegabile — non un riordinamento
+ * intelligente che sposta le cose sotto le dita di chi le sta guardando.
  *
  * ## Nessuna azione qui dentro
  *
@@ -28,9 +52,10 @@
  *
  * ## Le due rotte vecchie
  *
- * `/admin/requests` e `/admin/overdue` rimandano qui con `?vista=`, che
- * mostra una sezione sola. I segnalibri continuano a funzionare e le query
- * vivono in un posto solo invece che in tre file.
+ * `/admin/requests` e `/admin/overdue` rimandano qui. Rimandavano con
+ * `?vista=`, che mostrava una sezione sola; adesso che le sezioni non ci sono
+ * più il filtro non ha più niente da filtrare, e il segnalibro atterra sulla
+ * pagina intera — che è comunque corta.
  */
 
 import { Link } from "react-router";
@@ -54,10 +79,6 @@ export function meta({ matches }: Route.MetaArgs) {
 /** Oltre questa soglia un ritardo smette di essere una cosa da ricordare e
  * diventa la prima cosa da guardare. Vedi il blocco in cima. */
 const OVERDUE_ESCALATION_DAYS = 7;
-
-/** Le quattro sezioni. `null` vuol dire «tutte». */
-const VIEWS = ["approvare", "messaggi", "oggi", "ritardo"] as const;
-type View = (typeof VIEWS)[number];
 
 /** I campi di chi ha chiesto, sempre gli stessi: alias per l'interfaccia,
  * nome vero perché chi decide deve sapere con chi ha a che fare (regola 6). */
@@ -100,11 +121,6 @@ function shiftDays(date: Date, days: number): Date {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-
-  const raw = new URL(request.url).searchParams.get("vista");
-  const view = (VIEWS as readonly string[]).includes(raw ?? "")
-    ? (raw as View)
-    : null;
 
   const today = todayUtc();
   const tomorrow = shiftDays(today, 1);
@@ -250,51 +266,118 @@ export async function loader({ request }: Route.LoaderArgs) {
     return rows;
   });
 
-  const overdueRows = overdue.map((r) => ({
-    id: r.id,
-    endDate: formatDay(r.endDate),
-    daysLate: Math.round((today.getTime() - r.endDate.getTime()) / 86_400_000),
-    itemNames: r.items.map((item) => item.asset.name),
-    ...holderOf(r.user),
-  }));
+  /* ------------------------------------------------------------ la coda
 
-  return {
-    view,
-    pending: pending.map((r) => ({
-      id: r.id,
+     Una riga per **richiesta**, non per motivo. Prima le tre query
+     producevano tre elenchi separati, e una richiesta in ritardo che aveva
+     anche un messaggio non letto compariva due volte: due righe da leggere,
+     due da aprire, per una cosa sola da sistemare. Qui si fondono su `id`, e
+     i motivi si accumulano sulla stessa riga. */
+
+  const queue = new Map<string, QueueRow>();
+
+  function rowFor(id: string, user: Parameters<typeof holderOf>[0], itemNames: string[]) {
+    const existing = queue.get(id);
+    if (existing) return existing;
+    const created: QueueRow = { id, ...holderOf(user), itemNames, reasons: [] };
+    queue.set(id, created);
+    return created;
+  }
+
+  for (const r of pending) {
+    rowFor(r.id, r.user, r.items.map((item) => item.asset.name)).reasons.push({
+      kind: "approve",
       startDate: formatDay(r.startDate),
       endDate: formatDay(r.endDate),
-      // Il riassunto, non il testo intero: serve a decidere quale guardare per
-      // prima, e a quello bastano due righe.
+      // Il riassunto, non il testo intero: serve a decidere quale guardare
+      // per prima, e a quello bastano due righe.
       purpose: r.purpose ? r.purpose.slice(0, 160) : null,
-      waitingDays: Math.round(
-        (Date.now() - r.createdAt.getTime()) / 86_400_000
-      ),
-      itemNames: r.items.map((item) => item.asset.name),
-      ...holderOf(r.user),
-    })),
-    unread: unread.map((r) => ({
-      id: r.id,
-      itemNames: r.items.map((item) => item.asset.name),
-      lastMessage: r.messages[0]
-        ? {
-            body: r.messages[0].body.slice(0, 200),
-            createdAt: r.messages[0].createdAt.toISOString(),
-          }
-        : null,
-      ...holderOf(r.user),
-    })),
-    soon: soonRows,
-    overdue: overdueRows,
-    // L'eccezione all'ordine fisso, decisa qui una volta sola.
-    overdueFirst: overdueRows.some(
-      (row) => row.daysLate > OVERDUE_ESCALATION_DAYS
-    ),
-  };
+      waitingDays: Math.round((Date.now() - r.createdAt.getTime()) / 86_400_000),
+    });
+  }
+
+  for (const r of unread) {
+    const message = r.messages[0];
+    // Senza messaggio non c'è niente da leggere, quindi non c'è riga: gli id
+    // arrivano da una query che il messaggio ce l'ha, ma una riga vuota qui
+    // sarebbe un motivo senza motivo.
+    if (!message) continue;
+    rowFor(r.id, r.user, r.items.map((item) => item.asset.name)).reasons.push({
+      kind: "unread",
+      body: message.body.slice(0, 200),
+      createdAt: message.createdAt.toISOString(),
+    });
+  }
+
+  for (const r of overdue) {
+    const row = rowFor(r.id, r.user, r.items.map((item) => item.asset.name));
+    /* Gli oggetti **ancora fuori** sono l'elenco più preciso, e vince su
+       quello completo: dire «in ritardo: A, B» quando B è già tornato manda
+       qualcuno a cercare una cosa che è già sullo scaffale. */
+    row.itemNames = r.items.map((item) => item.asset.name);
+    row.reasons.push({
+      kind: "overdue",
+      endDate: formatDay(r.endDate),
+      daysLate: Math.round((today.getTime() - r.endDate.getTime()) / 86_400_000),
+    });
+  }
+
+  /* L'ordine, calcolato qui una volta sola invece che a schermo. `rank` è la
+     regola scritta in cima — chi sta aspettando te — e `waiting` è lo
+     spareggio: a parità di motivo, chi aspetta da più tempo sta sopra. */
+  const rows = [...queue.values()]
+    .map((row) => {
+      const late = row.reasons.find(
+        (reason): reason is Extract<Reason, { kind: "overdue" }> =>
+          reason.kind === "overdue"
+      );
+
+      return {
+        ...row,
+        rank:
+          late && late.daysLate > OVERDUE_ESCALATION_DAYS
+            ? 0
+            : row.reasons.some((reason) => reason.kind === "approve")
+              ? 1
+              : row.reasons.some((reason) => reason.kind === "unread")
+                ? 2
+                : 3,
+        waiting: Math.max(
+          ...row.reasons.map((reason) =>
+            reason.kind === "approve"
+              ? reason.waitingDays
+              : reason.kind === "overdue"
+                ? reason.daysLate
+                : Math.round((Date.now() - Date.parse(reason.createdAt)) / 86_400_000)
+          )
+        ),
+      };
+    })
+    .sort((a, b) => a.rank - b.rank || b.waiting - a.waiting);
+
+  return { queue: rows, agenda: soonRows };
 }
 
+/** Perché una richiesta sta nella coda. Una riga può averne più d'uno. */
+type Reason =
+  | {
+      kind: "approve";
+      startDate: string;
+      endDate: string;
+      purpose: string | null;
+      waitingDays: number;
+    }
+  | { kind: "unread"; body: string; createdAt: string }
+  | { kind: "overdue"; endDate: string; daysLate: number };
+
+type QueueRow = Holder & {
+  id: string;
+  itemNames: string[];
+  reasons: Reason[];
+};
+
 export default function AdminInbox({ loaderData }: Route.ComponentProps) {
-  const { view, pending, unread, soon, overdue, overdueFirst } = loaderData;
+  const { queue, agenda } = loaderData;
   const t = useT();
 
   /* Il Centro è la pagina che un admin tiene aperta in un angolo dello
@@ -302,214 +385,125 @@ export default function AdminInbox({ loaderData }: Route.ComponentProps) {
      tutto il tempo in cui nessuno la ricarica. */
   useLive("/api/stream");
 
-  const counts = {
-    approvare: pending.length,
-    messaggi: unread.length,
-    oggi: soon.length,
-    ritardo: overdue.length,
-  } satisfies Record<View, number>;
-
-  const total = counts.approvare + counts.messaggi + counts.ritardo;
-
-  const sections: View[] = overdueFirst
-    ? ["ritardo", "approvare", "messaggi", "oggi"]
-    : ["approvare", "messaggi", "oggi", "ritardo"];
-
-  const shown = view ? sections.filter((name) => name === view) : sections;
-
   return (
     <main>
       <PageShell width="narrow" className="pb-24 pt-8">
         <PageTitle title={t("inbox.heading")} />
 
-        {/* La striscia in cima è la navigazione vera: nessuna sezione può
-            sparire sotto la piega dello schermo, e da telefono si arriva dove
-            serve con un tocco. */}
-        <nav
-          aria-label={t("inbox.heading")}
-          className="mt-4 flex flex-wrap items-center gap-2"
-        >
-          {view && <Chip to="/admin" label={t("inbox.showAll")} />}
-          {sections.map((name) => (
-            <Chip
-              key={name}
-              to={view === name ? "/admin" : `/admin?vista=${name}`}
-              label={t(SECTION_LABELS[name])}
-              count={counts[name]}
-              tone={name === "ritardo" ? "out" : "accent"}
-              current={view === name}
-            />
-          ))}
-        </nav>
-
-        {total === 0 && !view && (
-          <p className="mt-16 text-center text-muted">{t("inbox.allClear")}</p>
+        {/* La coda. Nessuna intestazione sopra: **è** la pagina, e un titolo
+            che ripete quello che si legge nel titolo grande è una riga in più
+            fra chi guarda e la prima cosa da fare. */}
+        {queue.length === 0 ? (
+          <p className="mt-8 text-muted">{t("inbox.allClear")}</p>
+        ) : (
+          <ul className="mt-6 flex flex-col gap-3">
+            {queue.map((row) => (
+              <QueueEntry key={row.id} row={row} />
+            ))}
+          </ul>
         )}
 
-        {shown.map((name) => (
-          <section key={name} id={name} className="mt-10">
-            <h2 className="eyebrow">
-              {t(SECTION_LABELS[name])}
-            </h2>
-
-            {/* Una sezione vuota si richiude in una riga: una giornata
-                tranquilla deve stare in mezzo schermo, non in quattro
-                intestazioni vuote. */}
-            {counts[name] === 0 ? (
-              <p className="mt-2 text-sm text-muted">{t(EMPTY_LABELS[name])}</p>
-            ) : (
-              <ul className="mt-3 flex flex-col gap-3">
-                {name === "approvare" &&
-                  pending.map((r) => (
-                    <Row key={r.id} to={`/requests/${r.id}`}>
-                      <Head
-                        left={<Dates from={r.startDate} to={r.endDate} />}
-                        right={
-                          r.waitingDays > 0 ? (
-                            <Pill tone="accent">
-                              {t("inbox.waitingDays", { count: r.waitingDays })}
-                            </Pill>
-                          ) : null
-                        }
-                      />
-                      <Who holder={r.holder} email={r.holderEmail} />
-                      <Items names={r.itemNames} />
-                      {r.purpose && (
-                        <p className="mt-1 line-clamp-2 text-sm italic text-muted">
-                          &ldquo;{r.purpose}&rdquo;
-                        </p>
-                      )}
-                    </Row>
-                  ))}
-
-                {name === "messaggi" &&
-                  unread.map((r) => (
-                    <Row key={r.id} to={`/requests/${r.id}`}>
-                      {/* **Quando**, che è metà della decisione e mancava.
-                          Il dato era già qui — `lastMessage.createdAt`
-                          arrivava dal loader e finiva nel nulla — ma a schermo
-                          un messaggio non letto di dieci minuti fa e uno di
-                          quattro giorni fa erano la stessa riga, e la coda si
-                          smaltiva nell'ordine sbagliato. Le altre tre sezioni
-                          dicono tutte da quanto si aspetta: questa no. */}
-                      <Head
-                        left={<Who holder={r.holder} email={r.holderEmail} />}
-                        right={
-                          r.lastMessage ? (
-                            <MessageTime at={r.lastMessage.createdAt} />
-                          ) : null
-                        }
-                      />
-                      {r.lastMessage && (
-                        <p className="mt-1 line-clamp-2 text-sm">
-                          {r.lastMessage.body}
-                        </p>
-                      )}
-                      <Items names={r.itemNames} />
-                    </Row>
-                  ))}
-
-                {name === "oggi" &&
-                  soon.map((r) => (
-                    <Row key={`${r.id}-${r.kind}`} to={`/requests/${r.id}`}>
-                      <Head
-                        left={
-                          <span className="eyebrow">
-                            {t(
-                              r.kind === "pickup"
-                                ? r.when === "today"
-                                  ? "inbox.pickupToday"
-                                  : "inbox.pickupTomorrow"
-                                : r.when === "today"
-                                  ? "inbox.returnToday"
-                                  : "inbox.returnTomorrow"
-                            )}
-                          </span>
-                        }
-                      />
-                      <Who holder={r.holder} email={r.holderEmail} />
-                      <Items names={r.itemNames} />
-                    </Row>
-                  ))}
-
-                {name === "ritardo" &&
-                  overdue.map((r) => (
-                    <Row key={r.id} to={`/requests/${r.id}`}>
-                      <Head
-                        left={<Due date={r.endDate} />}
-                        right={
-                          <Pill tone="out">
-                            {t("overdue.daysLate", { count: r.daysLate })}
-                          </Pill>
-                        }
-                      />
-                      <Who holder={r.holder} email={r.holderEmail} />
-                      <Items names={r.itemNames} />
-                    </Row>
-                  ))}
-              </ul>
-            )}
+        {/* L'agenda, e solo se c'è qualcosa. Una sezione vuota che dice
+            «niente da consegnare né da ricevere» è una riga che nessuno ha
+            chiesto: l'assenza di consegne oggi si vede benissimo dal fatto
+            che non ce ne sono. */}
+        {agenda.length > 0 && (
+          <section className="mt-10 border-t border-rule pt-6">
+            <h2 className="eyebrow">{t("inbox.soon")}</h2>
+            <ul className="mt-3 flex flex-col gap-2">
+              {agenda.map((r) => (
+                <Row key={`${r.id}-${r.kind}`} to={`/requests/${r.id}`}>
+                  <Head
+                    left={
+                      <span className="eyebrow">
+                        {t(
+                          r.kind === "pickup"
+                            ? r.when === "today"
+                              ? "inbox.pickupToday"
+                              : "inbox.pickupTomorrow"
+                            : r.when === "today"
+                              ? "inbox.returnToday"
+                              : "inbox.returnTomorrow"
+                        )}
+                      </span>
+                    }
+                  />
+                  <Who holder={r.holder} email={r.holderEmail} />
+                  <Items names={r.itemNames} />
+                </Row>
+              ))}
+            </ul>
           </section>
-        ))}
+        )}
       </PageShell>
     </main>
   );
 }
 
-/* ------------------------------------------------------------- etichette */
-
-const SECTION_LABELS: Record<View, TranslationKey> = {
-  approvare: "inbox.pending",
-  messaggi: "inbox.messages",
-  oggi: "inbox.soon",
-  ritardo: "inbox.overdue",
-};
-
-const EMPTY_LABELS: Record<View, TranslationKey> = {
-  approvare: "inbox.pendingEmpty",
-  messaggi: "inbox.messagesEmpty",
-  oggi: "inbox.soonEmpty",
-  ritardo: "inbox.overdueEmpty",
-};
-
-/* ---------------------------------------------------------------- pezzi */
-
-function Chip({
-  to,
-  label,
-  count,
-  tone = "accent",
-  current = false,
+/**
+ * Una riga della coda: i marcatori dicono **perché** è lì.
+ *
+ * A destra dei marcatori c'è **una** data e non tre, scelta dal motivo più
+ * urgente della riga. Tre indicazioni di tempo su una riga sola — «scadenza
+ * 24 ago», «24 ago — 28 ago», «ieri alle 18:40» — non si leggono: si
+ * scavalcano.
+ *
+ * Il ritardo è l'unico marcatore pieno. È anche l'unica cosa in questa pagina
+ * che è già andata storta: gli altri due sono lavoro normale, e un lavoro
+ * normale che grida quanto un problema toglie forza al problema.
+ */
+function QueueEntry({
+  row,
 }: {
-  to: string;
-  label: string;
-  count?: number;
-  tone?: "accent" | "out";
-  current?: boolean;
+  row: Route.ComponentProps["loaderData"]["queue"][number];
 }) {
+  const t = useT();
+
+  const approve = row.reasons.find((r) => r.kind === "approve");
+  const unread = row.reasons.find((r) => r.kind === "unread");
+  const late = row.reasons.find((r) => r.kind === "overdue");
+
   return (
-    <Link
-      to={to}
-      aria-current={current ? "page" : undefined}
-      className={`inline-flex min-h-9 items-center gap-2 rounded-full border px-3 text-sm ${
-        current
-          ? "border-accent bg-accent-soft text-ink"
-          : "border-rule text-muted hover:border-accent hover:text-ink"
-      }`}
-    >
-      {label}
-      {count !== undefined && count > 0 && (
-        <span
-          className={`rounded-full px-1.5 py-0.5 font-mono text-2xs font-medium ${
-            tone === "out" ? "bg-out-bg text-out" : "bg-accent-soft text-accent"
-          }`}
-        >
-          {count}
-        </span>
+    <Row to={`/requests/${row.id}`}>
+      <Head
+        left={
+          <span className="flex flex-wrap items-center gap-2">
+            {late && (
+              <Pill tone="alarm">
+                {t("overdue.daysLate", { count: late.daysLate })}
+              </Pill>
+            )}
+            {approve && <Pill tone="quiet">{t("inbox.pending")}</Pill>}
+            {unread && <Pill tone="quiet">{t("inbox.reasonUnread")}</Pill>}
+          </span>
+        }
+        right={
+          late ? (
+            <Due date={late.endDate} />
+          ) : approve ? (
+            <Dates from={approve.startDate} to={approve.endDate} />
+          ) : unread ? (
+            <MessageTime at={unread.createdAt} />
+          ) : null
+        }
+      />
+
+      <Who holder={row.holder} email={row.holderEmail} />
+      <Items names={row.itemNames} />
+
+      {/* Il testo, quando c'è: la risposta del socio prima del motivo della
+          richiesta, perché è la cosa nuova. */}
+      {unread && <p className="mt-1 line-clamp-2 text-sm">{unread.body}</p>}
+      {approve?.purpose && (
+        <p className="mt-1 line-clamp-2 text-sm italic text-muted">
+          &ldquo;{approve.purpose}&rdquo;
+        </p>
       )}
-    </Link>
+    </Row>
   );
 }
+
+/* ---------------------------------------------------------------- pezzi */
 
 function Row({ to, children }: { to: string; children: React.ReactNode }) {
   return (
@@ -533,12 +527,31 @@ function Head({ left, right }: { left: React.ReactNode; right?: React.ReactNode 
   );
 }
 
-function Pill({ tone, children }: { tone: "accent" | "out"; children: React.ReactNode }) {
+/**
+ * `alarm` è il terzo tono, ed è pieno.
+ *
+ * `out` (velato) andava bene finché il ritardo era una sezione con la sua
+ * intestazione: il contesto lo diceva già. Dentro a una riga in mezzo alle
+ * altre, una velatura rossa pesa quanto una velatura grigia, e il ritardo
+ * smette di distinguersi da «da approvare». Sopra al fondo pieno ci va
+ * `--on-out` e mai `white` — nel tema scuro `--out-solid` è chiaro.
+ */
+function Pill({
+  tone,
+  children,
+}: {
+  tone: "quiet" | "out" | "alarm";
+  children: React.ReactNode;
+}) {
+  const TONES = {
+    quiet: "bg-sunk text-muted",
+    out: "bg-out-bg text-out",
+    alarm: "bg-out-solid text-on-out",
+  } as const;
+
   return (
     <span
-      className={`rounded-full px-2 py-0.5 font-mono text-2xs font-medium uppercase tracking-wider ${
-        tone === "out" ? "bg-out-bg text-out" : "bg-sunk text-muted"
-      }`}
+      className={`rounded-full px-2 py-0.5 font-mono text-2xs font-medium uppercase tracking-wider ${TONES[tone]}`}
     >
       {children}
     </span>
