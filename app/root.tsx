@@ -164,6 +164,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       lang={data?.lang ?? "en"}
       data-theme={theme === "auto" ? undefined : theme}
       data-skin={skin === "classic" ? undefined : skin}
+      className="h-full"
     >
       <head>
         <meta charSet="utf-8" />
@@ -208,7 +209,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body>
+      <body className="h-full">
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -231,9 +232,13 @@ export default function App({ loaderData }: Route.ComponentProps) {
   return (
     <LangProvider lang={loaderData.lang}>
       <PwaRuntime badgeCount={badgeCount} />
-      <SiteHeader user={user ?? null} theme={loaderData.theme} skin={loaderData.skin} />
-      <Outlet />
-      <SiteFooter />
+      <div className="flex min-h-screen flex-col">
+        <SiteHeader user={user ?? null} theme={loaderData.theme} skin={loaderData.skin} />
+        <div className="flex-1">
+          <Outlet />
+        </div>
+        <SiteFooter />
+      </div>
     </LangProvider>
   );
 }
@@ -264,13 +269,14 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
   return (
     <LangProvider lang={data?.lang ?? "en"}>
-      <SiteHeader
-        user={data?.user ?? null}
-        theme={data?.theme ?? "auto"}
-        skin={data?.skin ?? "classic"}
-      />
-      <main>
-        <PageShell width="narrow" className="pb-24 pt-16">
+      <div className="flex min-h-screen flex-col">
+        <SiteHeader
+          user={data?.user ?? null}
+          theme={data?.theme ?? "auto"}
+          skin={data?.skin ?? "classic"}
+        />
+        <main className="flex-1">
+          <PageShell width="narrow" className="pb-24 pt-16">
           <h1 className="font-serif text-3xl font-semibold">{heading}</h1>
           <p className="mt-3 text-muted">{detail}</p>
           <ButtonLink to="/" variant="secondary" className="mt-8">
@@ -288,8 +294,9 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
               riceve una segnalazione. */}
           <p className="mt-10 font-mono text-2xs text-muted">{versionLabel()}</p>
         </PageShell>
-      </main>
-      <SiteFooter />
+        </main>
+        <SiteFooter />
+      </div>
     </LangProvider>
   );
 }
