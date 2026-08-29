@@ -12,8 +12,11 @@ import type { Route } from "./+types/root";
 import "./app.css";
 import { getLang } from "~/i18n/lang.server";
 import { getTheme } from "~/lib/theme.server";
+import { getSkin } from "~/lib/skin.server";
+import type { Skin } from "~/lib/skin";
 import { LangProvider } from "~/i18n/use-t";
 import { SiteHeader } from "~/components/site-header";
+import { SiteFooter } from "~/components/site-footer";
 import { getUser } from "~/lib/session.server";
 import { startReminderScheduler } from "~/lib/reminders.server";
 import { adminCounts, unreadForUserIds } from "~/lib/inbox.server";
@@ -74,6 +77,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     // all'HTML che parte, o chi apre Fabula al buio si prende un lampo
     // bianco a ogni caricamento. Vedi `lib/theme.server.ts`.
     theme: getTheme(request),
+    // Stessa ragione, stesso schema — vedi `lib/skin.server.ts`.
+    skin: getSkin(request),
     user: user && {
       name: user.name,
       firstName: user.firstName,
@@ -133,6 +138,14 @@ export function headers(): HeadersInit {
   };
 }
 
+/** `--chrome-bg` di ogni combinazione stile × tema, letto a mano da
+ * `app.css` perché il colore della barra di sistema non può leggere una
+ * variabile CSS: il manifesto e i `<meta>` vogliono un valore letterale. */
+const CHROME_COLOR: Record<Skin, { light: string; dark: string }> = {
+  classic: { light: "#ffffff", dark: "#161b24" },
+  riso: { light: "#e00069", dark: "#e00069" },
+};
+
 export function Layout({ children }: { children: React.ReactNode }) {
   // La lingua vera dell'interfaccia, non "en" fisso: un lettore di schermo
   // legge l'attributo `lang` per scegliere la voce, e leggeva l'italiano con
@@ -140,20 +153,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // avvolge anche l'`ErrorBoundary`, dove il loader può non aver girato.
   const data = useRouteLoaderData<typeof loader>("root");
 
-  /* «auto» non mette nessun attributo: in `app.css` l'automatico *è*
-     l'assenza di `data-theme`, e un `data-theme="auto"` sarebbe un terzo caso
+  /* «auto» e «classic» non mettono nessun attributo: in `app.css` sono
+     l'assenza di `data-theme`/`data-skin`, e scriverli sarebbe un terzo caso
      da tenere allineato senza che nessuna regola lo guardi. */
   const theme = data?.theme ?? "auto";
+  const skin = data?.skin ?? "classic";
 
   return (
-    <html lang={data?.lang ?? "en"} data-theme={theme === "auto" ? undefined : theme}>
+    <html
+      lang={data?.lang ?? "en"}
+      data-theme={theme === "auto" ? undefined : theme}
+      data-skin={skin === "classic" ? undefined : skin}
+    >
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
 
         {/* Il colore della barra di sistema quando Fabula gira come app. I
-            valori sono `--card` dei due temi, presi da `app.css` — la barra
-            deve continuare l'intestazione, non annunciarsi.
+            valori sono `--chrome-bg` di stile e tema, presi da `app.css` — la
+            barra deve continuare il telaio, non annunciarsi. `CHROME_COLOR`
+            copre le quattro combinazioni.
 
             Finché il tema è automatico sono due righe e non una, perché il
             manifesto ne accetta un solo valore e sarebbe per forza sbagliato
@@ -164,11 +183,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
             una sola, e senza media query. */}
         {theme === "auto" ? (
           <>
-            <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-            <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#161b24" />
+            <meta
+              name="theme-color"
+              media="(prefers-color-scheme: light)"
+              content={CHROME_COLOR[skin].light}
+            />
+            <meta
+              name="theme-color"
+              media="(prefers-color-scheme: dark)"
+              content={CHROME_COLOR[skin].dark}
+            />
           </>
         ) : (
-          <meta name="theme-color" content={theme === "dark" ? "#161b24" : "#ffffff"} />
+          <meta name="theme-color" content={CHROME_COLOR[skin][theme]} />
         )}
 
         {/* Quello che iOS legge al posto del manifesto. Il nome corto conta:
@@ -204,8 +231,9 @@ export default function App({ loaderData }: Route.ComponentProps) {
   return (
     <LangProvider lang={loaderData.lang}>
       <PwaRuntime badgeCount={badgeCount} />
-      <SiteHeader user={user ?? null} />
+      <SiteHeader user={user ?? null} theme={loaderData.theme} skin={loaderData.skin} />
       <Outlet />
+      <SiteFooter />
     </LangProvider>
   );
 }
@@ -236,7 +264,11 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
   return (
     <LangProvider lang={data?.lang ?? "en"}>
-      <SiteHeader user={data?.user ?? null} />
+      <SiteHeader
+        user={data?.user ?? null}
+        theme={data?.theme ?? "auto"}
+        skin={data?.skin ?? "classic"}
+      />
       <main>
         <PageShell width="narrow" className="pb-24 pt-16">
           <h1 className="font-serif text-3xl font-semibold">{heading}</h1>
@@ -246,7 +278,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             Fabula
           </ButtonLink>
           {stack && (
-            <pre className="mt-8 overflow-x-auto rounded border border-rule bg-card p-4 font-mono text-xs">
+            <pre className="mt-8 overflow-x-auto rounded-sm border border-rule bg-card p-4 font-mono text-xs">
               <code>{stack}</code>
             </pre>
           )}
@@ -257,6 +289,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
           <p className="mt-10 font-mono text-2xs text-muted">{versionLabel()}</p>
         </PageShell>
       </main>
+      <SiteFooter />
     </LangProvider>
   );
 }

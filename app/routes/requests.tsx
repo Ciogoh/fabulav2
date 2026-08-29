@@ -213,7 +213,7 @@ export default function MyRequests({ loaderData }: Route.ComponentProps) {
               <li key={r.id}>
                 <Link
                   to={`/requests/${r.id}`}
-                  className="block rounded border border-rule bg-card p-4 hover:border-accent"
+                  className="block rounded-sm border border-rule bg-card p-4 hover:border-accent"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="eyebrow">

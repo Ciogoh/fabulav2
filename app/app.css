@@ -25,6 +25,35 @@
  * viene davvero usato; sotto AA (4,5:1) non si scende per il testo.
  */
 
+/**
+ * I caratteri dello stile Riso — dichiarati sempre, usati solo se scelti.
+ *
+ * Un `@font-face` non scarica niente da solo: il browser lo prende solo
+ * quando un testo a schermo chiede davvero quel `font-family`. Chi resta sul
+ * classico non paga un byte di questi due file.
+ *
+ * VG5000 porta solo il peso 400 (l'unico che avevamo): l'interfaccia chiede
+ * anche 500 e 600 in diversi punti, e senza quei file il browser li finge
+ * ispessendo i tratti — un grassetto sintetico che su un carattere così
+ * caratterizzato si vede. `font-synthesis: none` nel blocco dello stile
+ * qui sotto lo impedisce: meglio un titolo non più grosso che uno storto.
+ */
+@font-face {
+  font-family: "VG5000";
+  font-style: normal;
+  font-weight: 400;
+  src: url("./fonts/vg5000.woff") format("woff");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DepartureMono";
+  font-style: normal;
+  font-weight: 400;
+  src: url("./fonts/departure-mono.woff2") format("woff2");
+  font-display: swap;
+}
+
 @theme {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Spectral", Georgia, serif;
@@ -113,6 +142,20 @@
   line-height: calc(1.5 / 0.875);
 }
 
+/**
+ * La fattura del testo di un pulsante — separata dal colore, che resta di
+ * `buttonClass()`. Nello stile classico è un no-op (i valori sono quelli che
+ * il pulsante aveva già); nel Riso diventa mono, maiuscoletto, spaziato.
+ * Un token per lato invece di un `if (skin === …)` dentro a `button.tsx`:
+ * il componente non sa, e non deve sapere, quale stile è attivo.
+ */
+@utility btn {
+  font-family: var(--btn-font);
+  font-weight: var(--btn-weight);
+  letter-spacing: var(--btn-tracking);
+  text-transform: var(--btn-case);
+}
+
 @theme inline {
   --color-paper: var(--paper);
   --color-card: var(--card);
@@ -140,6 +183,13 @@
 
   --color-admin-bg: var(--admin-bg);
   --color-admin-rule: var(--admin-rule);
+
+  --color-brand: var(--brand);
+
+  --color-chrome-bg: var(--chrome-bg);
+  --color-chrome-ink: var(--chrome-ink);
+  --color-chrome-muted: var(--chrome-muted);
+  --color-chrome-rule: var(--chrome-rule);
 }
 
 /**
@@ -227,6 +277,42 @@
      appena più caldo, non dal colore dell'errore. */
   --admin-bg: light-dark(#f2f0ec, #191d26);
   --admin-rule: light-dark(#ddd8d0, #333a47);
+
+  /* Il marchio. Vive qui e non solo in `logo.tsx` perché lo stile Riso lo
+     cambia insieme al resto — vedi il blocco `[data-skin="riso"]`. */
+  --brand: #ec008c;
+
+  /**
+   * Il telaio (intestazione, piè di pagina): nello stile classico è
+   * indistinguibile dal resto della pagina, quindi questi quattro token
+   * valgono esattamente `--card` / `--ink` / `--muted` / `--rule`. Nel Riso
+   * diventano la fascia colorata. `site-header.tsx` e `site-footer.tsx`
+   * leggono sempre `--chrome-*`, mai `--card` direttamente: è quello che
+   * rende il cambio di pelle un cambio di quattro valori e non una modifica
+   * ai componenti.
+   */
+  --chrome-bg: var(--card);
+  --chrome-ink: var(--ink);
+  --chrome-muted: var(--muted);
+  --chrome-rule: var(--rule);
+
+  /* Lo spessore dei bordi. Tailwind scrive `border-width: 1px` letterale
+     dentro alla classe `border`, quindi qui la variabile non basta da sola —
+     vedi l'eccezione dichiarata più sotto, confinata allo stile Riso. */
+  --rule-width: 1px;
+
+  /* La fattura del testo dei pulsanti (`@utility btn` qui sopra). Nel
+     classico sono i valori che il pulsante aveva già: nessun cambiamento. */
+  --btn-font: inherit;
+  --btn-weight: 500;
+  --btn-tracking: normal;
+  --btn-case: none;
+
+  /* I glifi di stato di `StateBadge` — vedi la nota lì sul perché sono
+     `content` in CSS e non una tabella in JavaScript. */
+  --glyph-free: "\25cf"; /* ● */
+  --glyph-out: "\25aa"; /* ▪ */
+  --glyph-idle: "\25c7"; /* ◇ */
 }
 
 /**
@@ -248,6 +334,111 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
+}
+
+/**
+ * Lo stile Riso.
+ *
+ * Stessa struttura del blocco `:root` qui sopra — ogni token dichiara chiaro
+ * e scuro sulla stessa riga — e le stesse due regole di sempre: un token
+ * semantico dice una cosa sola, e sopra un fondo pieno di accento ci va
+ * `--on-accent`, mai `white`.
+ *
+ * Il magenta del mockup (`#E00069`) come testo su `--paper` scende a 4,49:1,
+ * sotto AA per un soffio. `--accent` qui usa invece `#C4005E` — la stessa
+ * famiglia, il tono che il mockup stesso adopera per il testo — così un solo
+ * token resta valido ovunque senza un'eccezione da ricordare.
+ */
+:root[data-skin="riso"] {
+  --font-sans: "VG5000", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "DepartureMono", ui-monospace, monospace;
+  /* Vedi la nota sul `@font-face` di VG5000: un solo peso in mano, e senza
+     questo il browser lo ispessisce da solo per finger i pesi mancanti. */
+  font-synthesis: none;
+
+  /*                    chiaro      scuro    */
+  --paper: light-dark(#fff6e8, #100a04);
+  --card: light-dark(#ffffff, #1d140c);
+  --sunk: light-dark(#ffe9c2, #31261a);
+  --ink: light-dark(#2b0016, #f6ede0);
+  --muted: light-dark(#7a5c68, #c2ae94); /* 4,61:1 e 8,42:1 su --card */
+  --faint: light-dark(#8a7563, #8a7563);
+  --rule: light-dark(#2b0016, #31261a);
+  --accent: light-dark(#c4005e, #ff7fb2); /* 5,99:1 e 6,71:1 su --card */
+  --accent-soft: light-dark(#ffe3ee, #3a1424);
+  --on-accent: light-dark(#ffffff, #100a04); /* 5,99:1 e 8,1:1 */
+
+  --free: light-dark(#15704b, #5bc793);
+  --free-bg: light-dark(#dff0e6, #14291f);
+  --free-solid: light-dark(#15704b, #5bc793);
+  --on-free: light-dark(#ffffff, #100a04);
+  --held: light-dark(#8a5700, #e0ac55);
+  --held-bg: light-dark(#f6ead3, #2b2214);
+  --out: light-dark(#a9383a, #ec8480);
+  --out-bg: light-dark(#f6e1e1, #2e1a1b);
+  --out-solid: light-dark(#a9383a, #ec8480);
+  --on-out: light-dark(#ffffff, #100a04);
+  --idle: light-dark(#4d5666, #a6b0be);
+  --idle-bg: light-dark(#e4e7ec, #242b37);
+
+  --admin-bg: light-dark(#f2f0ec, #191d26);
+  --admin-rule: light-dark(#ddd8d0, #333a47);
+
+  /* Il logo: l'arancio del telaio sopra la fascia magenta, come nel mockup. */
+  --brand: #ffac00;
+
+  /* Il telaio: fascia piena, non più indistinguibile dal resto della
+     pagina. Il testo sopra è bianco in tutti e due i temi perché il magenta
+     resta scuro anche nel tema scuro — a differenza di `--accent`, che qui
+     schiarisce. */
+  --chrome-bg: light-dark(#e00069, #e00069);
+  --chrome-ink: light-dark(#ffffff, #ffffff);
+  --chrome-muted: light-dark(#ffe3ee, #ffe3ee);
+  --chrome-rule: light-dark(#2b0016, #2b0016);
+
+  /* Il tratto spesso — l'eccezione dichiarata in cima al file. */
+  --rule-width: 2px;
+
+  --btn-font: var(--font-mono);
+  --btn-weight: 400;
+  --btn-tracking: 0.08em;
+  --btn-case: uppercase;
+
+  --glyph-free: "\25a0"; /* ■ */
+  --glyph-out: "\25a8"; /* ▨ */
+  --glyph-idle: "\2300"; /* ⌀ */
+}
+
+/**
+ * L'eccezione, e l'unica. Tailwind non tokenizza lo spessore dei bordi: la
+ * classe `border` compila a `border-width: 1px` letterale, in una novantina
+ * di punti del progetto. Il tratto spesso è però metà del carattere del
+ * Riso, e riscrivere quelle classi per uno stile alternativo vorrebbe dire
+ * pagare ovunque una cosa che serve solo qui.
+ *
+ * Le regole stanno tutte dentro a `[data-skin="riso"]`, quindi non esistono
+ * per chi non l'ha scelto, e `:where()` tiene la specificità a zero: una
+ * qualunque classe di colore del bordo scritta sull'elemento continua a
+ * vincere lei, cambia solo lo spessore.
+ */
+:root[data-skin="riso"] :where(.border) {
+  border-width: var(--rule-width);
+}
+:root[data-skin="riso"] :where(.border-t) {
+  border-top-width: var(--rule-width);
+}
+:root[data-skin="riso"] :where(.border-r) {
+  border-right-width: var(--rule-width);
+}
+:root[data-skin="riso"] :where(.border-b) {
+  border-bottom-width: var(--rule-width);
+}
+:root[data-skin="riso"] :where(.border-l) {
+  border-left-width: var(--rule-width);
+}
+:root[data-skin="riso"] :where(.border-y) {
+  border-top-width: var(--rule-width);
+  border-bottom-width: var(--rule-width);
 }
 
 html {

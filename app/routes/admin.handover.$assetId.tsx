@@ -222,7 +222,7 @@ export default function Handover({ loaderData, actionData }: Route.ComponentProp
     <main>
       <PageShell width="narrow" className="pb-24 pt-8">
         <div className="flex items-center gap-3">
-          <span className="h-12 w-12 shrink-0 overflow-hidden rounded bg-sunk">
+          <span className="h-12 w-12 shrink-0 overflow-hidden rounded-sm bg-sunk">
             {asset.thumbUrl && (
               <img src={asset.thumbUrl} alt="" className="h-full w-full object-cover" />
             )}
@@ -240,7 +240,7 @@ export default function Handover({ loaderData, actionData }: Route.ComponentProp
              compilato invita a premere di nuovo, e il secondo colpo sarebbe
              una seconda richiesta identica: qui non c'è un carrello da
              svuotare che faccia da freno. */
-          <div className="mt-8 rounded border border-rule bg-card p-6">
+          <div className="mt-8 rounded-sm border border-rule bg-card p-6">
             <p className="text-lg">{t("handover.done", { name: actionData.name })}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <ButtonLink to={`/requests/${actionData.requestId}`} variant="secondary" size="sm">
@@ -278,7 +278,7 @@ export default function Handover({ loaderData, actionData }: Route.ComponentProp
             />
 
             {actionData && !actionData.ok && (
-              <p role="alert" className="rounded bg-out-bg px-3 py-2 text-sm text-out">
+              <p role="alert" className="rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
                 {t(actionData.error)}
               </p>
             )}

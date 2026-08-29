@@ -39,13 +39,13 @@ export type ButtonSize = "md" | "sm";
  */
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:
-    "rounded border border-transparent bg-accent font-medium text-on-accent hover:brightness-110 disabled:border-rule disabled:bg-sunk disabled:text-muted disabled:hover:brightness-100",
+    "rounded-sm border border-transparent bg-accent font-medium text-on-accent hover:brightness-110 disabled:border-rule disabled:bg-sunk disabled:text-muted disabled:hover:brightness-100",
   secondary:
-    "rounded border border-accent font-medium text-accent hover:bg-accent-soft disabled:border-rule disabled:text-muted disabled:hover:bg-transparent",
+    "rounded-sm border border-accent font-medium text-accent hover:bg-accent-soft disabled:border-rule disabled:text-muted disabled:hover:bg-transparent",
   quiet:
-    "rounded border border-rule text-muted hover:border-ink hover:text-ink disabled:bg-sunk disabled:text-muted disabled:hover:border-rule disabled:hover:text-muted",
+    "rounded-sm border border-rule text-muted hover:border-ink hover:text-ink disabled:bg-sunk disabled:text-muted disabled:hover:border-rule disabled:hover:text-muted",
   danger:
-    "rounded border border-rule text-muted hover:border-out hover:text-out disabled:bg-sunk disabled:text-muted disabled:hover:border-rule disabled:hover:text-muted",
+    "rounded-sm border border-rule text-muted hover:border-out hover:text-out disabled:bg-sunk disabled:text-muted disabled:hover:border-rule disabled:hover:text-muted",
   /**
    * La sesta variante, e la ragione per cui è sesta.
    *
@@ -62,12 +62,12 @@ const VARIANTS: Record<ButtonVariant, string> = {
    * lì sopra ci va inchiostro. 6,34:1 nel tema chiaro, 7,25:1 nello scuro.
    */
   destructive:
-    "rounded border border-transparent bg-out-solid font-medium text-on-out hover:brightness-110 disabled:border-rule disabled:bg-sunk disabled:text-muted disabled:hover:brightness-100",
+    "rounded-sm border border-transparent bg-out-solid font-medium text-on-out hover:brightness-110 disabled:border-rule disabled:bg-sunk disabled:text-muted disabled:hover:brightness-100",
   // Senza cornice, ma con la stessa altezza degli altri: un «Annulla» alto
   // venti pixel accanto a un pulsante alto quarantaquattro è un bersaglio
   // che si manca.
   plain:
-    "rounded text-muted underline underline-offset-4 hover:text-ink disabled:text-muted disabled:no-underline disabled:hover:text-muted",
+    "rounded-sm text-muted underline underline-offset-4 hover:text-ink disabled:text-muted disabled:no-underline disabled:hover:text-muted",
 };
 
 /** Da spento il cursore lo dice sempre, in tutte le varianti. */
@@ -84,7 +84,7 @@ export function buttonClass(
   extra?: string
 ): string {
   return [
-    "inline-flex items-center justify-center gap-2 text-center",
+    "inline-flex items-center justify-center gap-2 text-center btn",
     DISABLED,
     VARIANTS[variant],
     SIZES[size],

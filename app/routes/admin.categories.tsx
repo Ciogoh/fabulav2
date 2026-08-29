@@ -152,7 +152,7 @@ export default function AdminCategories({ loaderData, actionData }: Route.Compon
         <NewCategoryForm />
 
         {actionData?.error && (
-          <p role="alert" className="mt-4 rounded bg-out-bg px-3 py-2 text-sm text-out">
+          <p role="alert" className="mt-4 rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
             {t(actionData.error)}
           </p>
         )}
@@ -256,7 +256,7 @@ function CategoryItem({
   const confirm = useConfirm();
 
   return (
-    <li className="flex flex-wrap items-center gap-2 rounded border border-rule bg-card p-3">
+    <li className="flex flex-wrap items-center gap-2 rounded-sm border border-rule bg-card p-3">
       <rename.Form method="post" className="flex min-w-48 flex-1 items-center gap-2">
         <input type="hidden" name="intent" value="rename" />
         <input type="hidden" name="id" value={category.id} />

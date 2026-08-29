@@ -109,7 +109,7 @@ export function Dialog({
           quattro gli angoli tondi. */}
       <div
         ref={panelRef}
-        className={`flex max-h-[90dvh] w-full flex-col overflow-y-auto rounded-t border border-rule bg-card p-5 sm:rounded ${panelClassName}`}
+        className={`flex max-h-[90dvh] w-full flex-col overflow-y-auto rounded-t-sm border border-rule bg-card p-5 sm:rounded-sm ${panelClassName}`}
       >
         {children}
       </div>

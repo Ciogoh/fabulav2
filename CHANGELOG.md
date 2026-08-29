@@ -14,6 +14,38 @@ la prova su iPhone e Android veri di quello che la 0.7.0 ha aggiunto.
 
 ---
 
+## 0.10.0 — 29 agosto 2026
+
+**Una seconda pelle, scelta dall'utente.** Fabula ha adesso due aspetti:
+`classic`, quello di sempre, e `riso`, ispirato al mockup «Magenta
+protagonista» — caratteri VG5000 e Departure Mono, bordi da 2px, intestazione
+e piè di pagina a fascia. Si sceglie dal menu del profilo o da «Aspetto» in
+`/account`, con lo stesso meccanismo del tema chiaro/scuro: cookie letto sul
+server, `data-skin` sull'`<html>` prima che la pagina parta, `classic` come
+assenza di attributo.
+
+La ragione per farlo ora e non aspettare il rebrand: il progetto era già
+costruito per questo senza saperlo. Zero colori scritti a mano nei
+componenti, tutti i token in `app.css`, un file solo per pulsante/pagina/
+badge/intestazione. **React non deve mai sapere quale pelle è attiva** —
+nemmeno i glifi di stato, diventati `content` in CSS invece di una tabella in
+JavaScript — quindi aggiungere una pelle non ha richiesto toccare la logica
+di nessun componente, solo un secondo elenco di valori in `app.css` più
+quattro file gemelli di quelli del tema (`lib/skin.ts`, `lib/skin.server.ts`,
+`routes/skin.tsx`).
+
+**Il tema chiaro/scuro è diventato anche un pulsante che cicla**, in cima
+accanto alla lingua — `auto → light → dark → auto` con un tocco solo, come i
+selettori di un editor di codice. La sezione «Aspetto» di `/account`, con i
+tre nomi per esteso, resta per chi la preferisce.
+
+Resta aperto: i pesi veri di VG5000 (oggi solo 400, con `font-synthesis: none`
+a impedire il grassetto finto) e le fasce piene a tutta larghezza del
+mockup, che avrebbero richiesto insegnare il full-bleed a `PageShell` — un
+pezzo per la prossima volta.
+
+---
+
 ## 0.9.2 — 29 agosto 2026
 
 **I messaggi tornano ad avere una sezione loro**, che nella 0.9.1 erano finiti

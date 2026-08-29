@@ -360,7 +360,7 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
         )}
 
         {error && (
-          <p role="alert" className="mt-6 rounded bg-out-bg px-3 py-2 text-sm text-out">
+          <p role="alert" className="mt-6 rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
             {error}
           </p>
         )}
@@ -400,7 +400,7 @@ function Field({
         ref={(node) => {
           if (autoFocusOnMount) node?.focus();
         }}
-        className={`min-h-11 rounded border border-rule bg-card px-3 py-2.5 text-sm ${className}`}
+        className={`min-h-11 rounded-sm border border-rule bg-card px-3 py-2.5 text-sm ${className}`}
         {...rest}
       />
     </div>

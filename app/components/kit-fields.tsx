@@ -139,7 +139,7 @@ function AssetPicker({
             </span>
           </div>
 
-          <div className="max-h-96 overflow-y-auto rounded border border-rule bg-card">
+          <div className="max-h-96 overflow-y-auto rounded-sm border border-rule bg-card">
             {groups.map((group) => {
               const visible = group.assets.some(matches);
 
@@ -161,7 +161,7 @@ function AssetPicker({
                             onChange={() => toggle(asset.id)}
                             className="h-5 w-5 shrink-0 accent-[var(--accent)]"
                           />
-                          <span className="h-8 w-8 shrink-0 overflow-hidden rounded bg-sunk">
+                          <span className="h-8 w-8 shrink-0 overflow-hidden rounded-sm bg-sunk">
                             {asset.thumbUrl && (
                               <img src={asset.thumbUrl} alt="" className="h-full w-full object-cover" />
                             )}

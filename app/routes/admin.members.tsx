@@ -165,7 +165,7 @@ function MemberRow({ user, isSelf }: { user: MemberRow; isSelf: boolean }) {
   const confirm = useConfirm();
 
   return (
-    <li className="rounded border border-rule bg-card p-4">
+    <li className="rounded-sm border border-rule bg-card p-4">
       <div className="flex flex-wrap items-center gap-2">
         <Avatar person={user} size="md" />
         <PersonName person={user} className="font-medium" />

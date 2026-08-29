@@ -437,7 +437,7 @@ export default function Scan() {
             gialla dell'area di scansione come figlio del genitore del video,
             con `position: absolute`: senza un genitore posizionato, quella
             cornice si àncora a un antenato qualsiasi e finisce fuori posto. */}
-        <div className="relative mt-6 overflow-hidden rounded border border-rule bg-sunk">
+        <div className="relative mt-6 overflow-hidden rounded-sm border border-rule bg-sunk">
           {/* **Il video non si nasconde mai con `display: none`.** Un video
               nascosto così non disegna fotogrammi: il canvas che deve leggere
               il QR riceve nero, e `offsetWidth`/`offsetHeight` — con cui la
@@ -528,7 +528,7 @@ export default function Scan() {
         )}
 
         {rejected && (
-          <p role="alert" className="mt-4 rounded bg-out-bg px-3 py-2 text-sm text-out">
+          <p role="alert" className="mt-4 rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
             {t("scan.notOurs")}
           </p>
         )}

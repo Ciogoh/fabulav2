@@ -182,7 +182,7 @@ export default function Item({ loaderData }: Route.ComponentProps) {
                 {bookings.map((booking) => (
                   <li
                     key={booking.id}
-                    className="rounded border border-rule bg-card px-3 py-2 font-mono text-xs tabular-nums"
+                    className="rounded-sm border border-rule bg-card px-3 py-2 font-mono text-xs tabular-nums"
                   >
                     {formatDayLabel(booking.startDate)} —{" "}
                     {formatDayLabel(booking.endDate)}
@@ -227,7 +227,7 @@ function Gallery({
     return (
       <div
         aria-hidden="true"
-        className="flex aspect-4/3 w-full shrink-0 items-center justify-center rounded border border-rule bg-sunk font-serif text-5xl text-faint sm:w-64"
+        className="flex aspect-4/3 w-full shrink-0 items-center justify-center rounded-sm border border-rule bg-sunk font-serif text-5xl text-faint sm:w-64"
       >
         {initialsOf(name)}
       </div>
@@ -239,7 +239,7 @@ function Gallery({
       <img
         src={photos[active]!.url}
         alt={t("item.photoAlt", { name })}
-        className="aspect-4/3 w-full rounded border border-rule bg-sunk object-cover"
+        className="aspect-4/3 w-full rounded-sm border border-rule bg-sunk object-cover"
       />
 
       {photos.length > 1 && (
@@ -250,7 +250,7 @@ function Gallery({
               type="button"
               onClick={() => setActive(index)}
               aria-current={index === active}
-              className={`h-14 w-14 overflow-hidden rounded border ${
+              className={`h-14 w-14 overflow-hidden rounded-sm border ${
                 index === active ? "border-accent" : "border-rule"
               }`}
             >

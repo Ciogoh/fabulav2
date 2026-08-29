@@ -46,6 +46,8 @@ import { Avatar, PersonName } from "~/components/person";
 import { displayNameOf } from "~/lib/person";
 import { Logo } from "~/components/logo";
 import type { Person } from "~/lib/person";
+import { SKINS, type Skin } from "~/lib/skin";
+import { THEMES, type Theme } from "~/lib/theme";
 
 export type HeaderUser = Person & {
   email: string;
@@ -56,10 +58,23 @@ export type HeaderUser = Person & {
   myUnreadCount: number;
 };
 
-/** 44px: il minimo per un tocco affidabile, non i 36px che "ci stava il
- * pollice" lasciava intendere — vedi ITEM più sotto per la stessa misura. */
-const LINK =
-  "inline-flex min-h-11 items-center rounded px-0.5 text-muted hover:text-ink aria-[current=page]:font-medium aria-[current=page]:text-ink";
+/**
+ * 44px: il minimo per un tocco affidabile, non i 36px che "ci stava il
+ * pollice" lasciava intendere — vedi ITEM più sotto per la stessa misura.
+ *
+ * Due fatture, non una: la barra dell'admin resta sempre il fondo neutro
+ * `--admin-bg` (in tutti e due gli stili), mentre la barra pubblica diventa
+ * la fascia `--chrome-bg` nel Riso. `LINK_ADMIN` legge `--ink`/`--muted`,
+ * che su un fondo chiaro leggono bene in entrambi gli stili; `LINK_CHROME`
+ * legge `--chrome-ink`/`--chrome-muted`, pensati apposta per stare sopra
+ * `--chrome-bg`. `InboxLink` e `ManageMenu` compaiono solo per gli admin,
+ * quindi usano sempre `LINK_ADMIN`; i tre collegamenti sempre visibili
+ * scelgono in base a `user?.isAdmin`.
+ */
+const LINK_ADMIN =
+  "inline-flex min-h-11 items-center rounded-sm px-0.5 text-muted hover:text-ink aria-[current=page]:font-medium aria-[current=page]:text-ink";
+const LINK_CHROME =
+  "inline-flex min-h-11 items-center rounded-sm px-0.5 text-chrome-muted hover:text-chrome-ink aria-[current=page]:font-medium aria-[current=page]:text-chrome-ink";
 
 /**
  * Il Centro, con una pastiglia sola.
@@ -81,7 +96,7 @@ function InboxLink({ inbox }: { inbox: HeaderUser["inbox"] }) {
   const hasOverdue = Boolean(inbox?.overdue);
 
   return (
-    <NavLink to="/admin" className={LINK}>
+    <NavLink to="/admin" className={LINK_ADMIN}>
       {t("nav.adminInbox")}
       {total > 0 && (
         <span
@@ -101,22 +116,38 @@ function InboxLink({ inbox }: { inbox: HeaderUser["inbox"] }) {
   );
 }
 
-export function SiteHeader({ user }: { user: HeaderUser | null }) {
+export function SiteHeader({
+  user,
+  theme,
+  skin,
+}: {
+  user: HeaderUser | null;
+  /** Per disegnare l'icona giusta e sapere dove va il prossimo tocco. Il
+   * cambio vero resta un modulo verso `/theme`, come sempre — vedi
+   * `ThemeCycleButton`. */
+  theme: Theme;
+  /** Per il selettore nel menu del profilo — vedi `SkinMenuSection`. */
+  skin: Skin;
+}) {
   const t = useT();
+  // Il fondo dell'admin resta sempre neutro: solo la barra pubblica diventa
+  // la fascia colorata nel Riso. Vedi la nota su `LINK_ADMIN`/`LINK_CHROME`.
+  const chrome = !user?.isAdmin;
+  const link = chrome ? LINK_CHROME : LINK_ADMIN;
 
   return (
     <header
       className={
         user?.isAdmin
           ? "border-b border-admin-rule bg-admin-bg"
-          : "border-b border-rule bg-card"
+          : "border-b border-chrome-rule bg-chrome-bg"
       }
     >
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-6 py-3">
         <NavLink
           to="/"
           aria-label={t("app.name")}
-          className="inline-flex min-h-11 items-center text-ink"
+          className={`inline-flex min-h-11 items-center ${chrome ? "text-chrome-ink" : "text-ink"}`}
         >
           {/* Il marchio vero al posto della scritta. Il punto colorato che
               stava qui era un surrogato del logo, fatto quando il logo non
@@ -134,14 +165,14 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
         <nav className="order-last flex w-full min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-sm sm:order-none sm:w-auto">
           {/* `end` sul catalogo: senza, la rotta indice risulterebbe attiva
               su ogni pagina, perché ogni percorso comincia per "/". */}
-          <NavLink to="/" end className={LINK}>
+          <NavLink to="/" end className={link}>
             {t("nav.catalogue")}
           </NavLink>
-          <NavLink to="/calendar" className={LINK}>
+          <NavLink to="/calendar" className={link}>
             {t("nav.calendar")}
           </NavLink>
           {user && (
-            <NavLink to="/requests" className={LINK}>
+            <NavLink to="/requests" className={link}>
               {t("nav.myRequests")}
               {/* Il segnale che a chi chiede in prestito è sempre mancato:
                   «ti hanno risposto». Un pallino e non un numero — quante
@@ -166,10 +197,11 @@ export function SiteHeader({ user }: { user: HeaderUser | null }) {
         </nav>
 
         <div className="ml-auto flex flex-wrap items-center gap-3">
-          <LanguageMenu />
+          <ThemeCycleButton theme={theme} chrome={chrome} />
+          <LanguageMenu chrome={chrome} />
 
           {user ? (
-            <ProfileMenu user={user} />
+            <ProfileMenu user={user} chrome={chrome} skin={skin} />
           ) : (
             <ButtonLink to="/signin" variant="secondary" size="md">
               {t("nav.signIn")}
@@ -228,7 +260,106 @@ function useDisclosure() {
 /** Una voce del menu: alta 44px, larga quanto il pannello. Un elenco di righe
  * alte venti pixel, in magazzino col pollice, si sbaglia. */
 const ITEM =
-  "flex min-h-11 w-full items-center rounded px-3 text-left text-sm text-muted hover:bg-sunk hover:text-ink";
+  "flex min-h-11 w-full items-center rounded-sm px-3 text-left text-sm text-muted hover:bg-sunk hover:text-ink";
+
+/** Il ciclo del tema: dall'attuale al prossimo. `auto` è il punto di
+ * partenza e il punto d'arrivo — un giro chiuso, non una linea. */
+const NEXT_THEME: Record<Theme, Theme> = {
+  auto: "light",
+  light: "dark",
+  dark: "auto",
+};
+
+const THEME_LABEL_KEY: Record<Theme, "nav.themeAuto" | "nav.themeLight" | "nav.themeDark"> = {
+  auto: "nav.themeAuto",
+  light: "nav.themeLight",
+  dark: "nav.themeDark",
+};
+
+/**
+ * Il tema, in cima, come un pulsante che cicla.
+ *
+ * Non un menu: un tocco solo che gira `auto → light → dark → auto`, come i
+ * selettori di tema di un editor di codice. Il prezzo dichiarato è che da
+ * `auto` a `dark` servono due tocchi e non si vede in anticipo dove si sta
+ * andando — in cambio del controllo più piccolo possibile nella barra. Chi
+ * preferisce vedere i tre nomi per esteso li trova nella sezione «Aspetto»
+ * di `/account`, che resta invariata.
+ *
+ * Un modulo e un pulsante solo, come `LanguageMenu` e `routes/theme.tsx`:
+ * funziona anche senza JavaScript, e la scelta che sta viaggiando si accende
+ * subito da `fetcher.formData`, senza aspettare il giro dal server.
+ */
+function ThemeCycleButton({ theme, chrome }: { theme: Theme; chrome: boolean }) {
+  const t = useT();
+  const location = useLocation();
+  const fetcher = useFetcher();
+  const pending = fetcher.formData?.get("theme");
+  const active = THEMES.find((name) => name === pending) ?? theme;
+  const next = NEXT_THEME[active];
+
+  return (
+    <fetcher.Form method="post" action="/theme">
+      <input
+        type="hidden"
+        name="redirectTo"
+        value={location.pathname + location.search}
+      />
+      <button
+        type="submit"
+        name="theme"
+        value={next}
+        aria-label={t("nav.themeNext", { theme: t(THEME_LABEL_KEY[next]) })}
+        className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-sm ${
+          chrome
+            ? "text-chrome-muted hover:text-chrome-ink"
+            : "text-muted hover:text-ink"
+        }`}
+      >
+        <ThemeIcon theme={active} />
+      </button>
+    </fetcher.Form>
+  );
+}
+
+/** Sole, luna, o le due insieme per l'automatico — lo stesso vocabolario di
+ * icona che l'associazione già si aspetta da qualunque altro editor. */
+function ThemeIcon({ theme }: { theme: Theme }) {
+  if (theme === "light") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="h-4 w-4">
+        <circle cx="8" cy="8" r="3.25" stroke="currentColor" strokeWidth="1.5" />
+        <path
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          d="M8 1v1.5M8 13.5V15M15 8h-1.5M2.5 8H1M12.5 3.5l-1.1 1.1M4.6 11.4l-1.1 1.1M12.5 12.5l-1.1-1.1M4.6 4.6 3.5 3.5"
+        />
+      </svg>
+    );
+  }
+  if (theme === "dark") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="h-4 w-4">
+        <path
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+          d="M13.5 9.35A5.75 5.75 0 0 1 6.65 2.5a5.75 5.75 0 1 0 6.85 6.85Z"
+        />
+      </svg>
+    );
+  }
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="h-4 w-4">
+      <path
+        d="M8 1.5a6.5 6.5 0 1 0 0 13V1.5Z"
+        fill="currentColor"
+      />
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
 
 /**
  * La lingua, raccolta in un pulsante solo invece di tre sempre in vista.
@@ -246,7 +377,7 @@ const ITEM =
  * lingua premuta si accende subito senza aspettare il server —
  * `fetcher.formData` contiene già quella che sta viaggiando.
  */
-function LanguageMenu() {
+function LanguageMenu({ chrome }: { chrome: boolean }) {
   const t = useT();
   const lang = useLang();
   const location = useLocation();
@@ -297,7 +428,11 @@ function LanguageMenu() {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded px-2 text-sm text-muted hover:text-ink aria-expanded:text-ink"
+        className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-2 text-sm ${
+          chrome
+            ? "text-chrome-muted hover:text-chrome-ink aria-expanded:text-chrome-ink"
+            : "text-muted hover:text-ink aria-expanded:text-ink"
+        }`}
       >
         {/* «EN» è un'abbreviazione: da sola, un lettore di schermo la
             leggerebbe come una parola. Il nome del controllo viaggia
@@ -329,7 +464,7 @@ function LanguageMenu() {
             method="post"
             action="/language"
             aria-label={t("nav.language")}
-            className="min-w-36 rounded border border-rule bg-card p-1 shadow-lg"
+            className="min-w-36 rounded-sm border border-rule bg-card p-1 shadow-lg"
           >
             {/* Torniamo esattamente dove eravamo, filtri di ricerca compresi. */}
             <input
@@ -386,7 +521,61 @@ function LanguageMenu() {
  * si appoggia sopra. Intrappolare il fuoco qui significherebbe non poter più
  * uscire col Tab.
  */
-function ProfileMenu({ user }: { user: HeaderUser }) {
+const SKIN_LABEL_KEY: Record<Skin, "account.skinClassic" | "account.skinRiso"> = {
+  classic: "account.skinClassic",
+  riso: "account.skinRiso",
+};
+
+/**
+ * Classico o Riso, dentro al menu del profilo — non nella barra: è una
+ * scelta che si tocca una volta ogni tanto, non a ogni pagina, e nella barra
+ * pesava quanto la lingua senza servire quanto la lingua. La stessa scelta
+ * sta anche nella sezione «Aspetto» di `/account`, per chi ci arriva
+ * cercandola invece che scoprendola qui.
+ *
+ * Stessa fattura di `LanguageMenu`: un `fetcher.Form` per voce verso
+ * `/skin`, `redirectTo` per tornare dov'eravamo, funziona senza JavaScript.
+ */
+function SkinMenuSection({ skin }: { skin: Skin }) {
+  const t = useT();
+  const location = useLocation();
+  const fetcher = useFetcher();
+  const pending = fetcher.formData?.get("skin");
+  const active = SKINS.find((name) => name === pending) ?? skin;
+
+  return (
+    <fetcher.Form method="post" action="/skin">
+      <input
+        type="hidden"
+        name="redirectTo"
+        value={location.pathname + location.search}
+      />
+      <span className="block px-3 pt-2 pb-1 eyebrow">{t("account.skin")}</span>
+      {SKINS.map((name) => (
+        <button
+          key={name}
+          type="submit"
+          name="skin"
+          value={name}
+          aria-current={name === active ? "true" : undefined}
+          className={`${ITEM} ${name === active ? "font-medium text-ink" : ""}`}
+        >
+          {t(SKIN_LABEL_KEY[name])}
+        </button>
+      ))}
+    </fetcher.Form>
+  );
+}
+
+function ProfileMenu({
+  user,
+  chrome,
+  skin,
+}: {
+  user: HeaderUser;
+  chrome: boolean;
+  skin: Skin;
+}) {
   const t = useT();
   const navigate = useNavigate();
   const { open, setOpen, wrapRef, triggerRef, openedByHover } =
@@ -420,7 +609,11 @@ function ProfileMenu({ user }: { user: HeaderUser }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
-        className="flex min-h-11 items-center gap-2 rounded px-1 text-sm text-muted hover:text-ink aria-expanded:text-ink"
+        className={`flex min-h-11 items-center gap-2 rounded-sm px-1 text-sm ${
+          chrome
+            ? "text-chrome-muted hover:text-chrome-ink aria-expanded:text-chrome-ink"
+            : "text-muted hover:text-ink aria-expanded:text-ink"
+        }`}
       >
         <Avatar person={user} size="sm" />
         {/* Sotto ai 640px resta l'avatar: il proprio nome scritto per esteso
@@ -449,7 +642,7 @@ function ProfileMenu({ user }: { user: HeaderUser }) {
 
       {open && (
         <div className="absolute right-0 top-full z-20 pt-2">
-          <div className="min-w-44 rounded border border-rule bg-card p-1 shadow-lg">
+          <div className="min-w-44 rounded-sm border border-rule bg-card p-1 shadow-lg">
             <Link
               to="/account"
               className={ITEM}
@@ -457,6 +650,8 @@ function ProfileMenu({ user }: { user: HeaderUser }) {
             >
               {t("account.heading")}
             </Link>
+
+            <SkinMenuSection skin={skin} />
 
             {/* Rosso solo al passaggio, come la variante `danger` del
                 pulsante: l'uscita non è un allarme finché non la si sta
@@ -537,7 +732,7 @@ function ManageMenu() {
         aria-expanded={open}
         aria-current={inside ? "true" : undefined}
         onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
-        className={`${LINK} gap-1 aria-expanded:text-ink`}
+        className={`${LINK_ADMIN} gap-1 aria-expanded:text-ink`}
       >
         {t("nav.adminManage")}
         <svg
@@ -556,7 +751,7 @@ function ManageMenu() {
 
       {open && (
         <div className="absolute left-0 top-full z-20 pt-2">
-          <div className="min-w-44 rounded border border-rule bg-card p-1 shadow-lg">
+          <div className="min-w-44 rounded-sm border border-rule bg-card p-1 shadow-lg">
             {MANAGE.map((entry) => (
               <NavLink
                 key={entry.to}

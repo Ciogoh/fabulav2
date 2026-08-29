@@ -80,7 +80,7 @@ export default function NewKit({ loaderData, actionData }: Route.ComponentProps)
         </Form>
 
         {actionData?.error && (
-          <p role="alert" className="mt-6 rounded bg-out-bg px-3 py-2 text-sm text-out">
+          <p role="alert" className="mt-6 rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
             {t(actionData.error)}
           </p>
         )}

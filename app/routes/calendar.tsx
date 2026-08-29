@@ -232,7 +232,7 @@ export default function Calendar({ loaderData }: Route.ComponentProps) {
               colorate senza più sapere di che data fossero. Il tetto è in
               `svh` perché su iOS `vh` conta anche la barra del browser che si
               ritira, e il riquadro sbordava di quel tanto. */}
-          <div className="mt-4 hidden max-h-[min(70svh,42rem)] overflow-auto rounded border border-rule bg-card sm:block">
+          <div className="mt-4 hidden max-h-[min(70svh,42rem)] overflow-auto rounded-sm border border-rule bg-card sm:block">
             <div
               className="min-w-max"
               style={{ ["--day" as string]: "30px" }}
@@ -392,7 +392,7 @@ function AgendaList({
   return (
     <ul className="mt-4 flex flex-col gap-3 sm:hidden">
       {rows.map((row) => (
-        <li key={row.id} className="rounded border border-rule bg-card p-4">
+        <li key={row.id} className="rounded-sm border border-rule bg-card p-4">
           <div className="text-md font-medium">{row.name}</div>
           {row.category && (
             <div className="font-mono text-2xs uppercase tracking-wider text-muted">
@@ -429,12 +429,12 @@ function AgendaList({
                   {isAdmin ? (
                     <Link
                       to={`/requests/${bar.requestId}`}
-                      className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded border border-rule px-3 py-2 hover:border-accent"
+                      className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-sm border border-rule px-3 py-2 hover:border-accent"
                     >
                       {content}
                     </Link>
                   ) : (
-                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded border border-rule px-3 py-2">
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-sm border border-rule px-3 py-2">
                       {content}
                     </div>
                   )}
@@ -535,8 +535,8 @@ function Bar({
   // insieme alla freccia, dice a colpo d'occhio che la barra è tagliata, non
   // che il prestito finisce lì.
   const className = `relative z-10 flex items-center overflow-hidden px-1.5 ${BAR_STYLES[state]} ${
-    continuesBefore ? "" : "rounded-l"
-  } ${continuesAfter ? "" : "rounded-r"}`;
+    continuesBefore ? "" : "rounded-l-sm"
+  } ${continuesAfter ? "" : "rounded-r-sm"}`;
   const style = { gridColumn: `${offset + 1} / span ${length}` };
   const content = (
     <>
@@ -580,7 +580,7 @@ function Legend() {
         <span key={state} className="flex items-center gap-2">
           <span
             aria-hidden="true"
-            className={`inline-block h-3 w-6 rounded ${BAR_STYLES[state]}`}
+            className={`inline-block h-3 w-6 rounded-sm ${BAR_STYLES[state]}`}
           />
           <span className="font-mono text-2xs uppercase tracking-wider text-muted">
             {t(BAR_LABELS[state])}
@@ -611,7 +611,7 @@ function MonthJump({ anchor, showAll }: { anchor: string; showAll: boolean }) {
           if (!event.target.value) return;
           navigate(`/calendar?from=${event.target.value}-01${showAll ? "&all=1" : ""}`);
         }}
-        className="min-h-9 rounded border border-rule bg-card px-2 py-1 font-mono text-xs text-muted hover:text-ink"
+        className="min-h-9 rounded-sm border border-rule bg-card px-2 py-1 font-mono text-xs text-muted hover:text-ink"
       />
     </label>
   );
@@ -658,7 +658,7 @@ function PersonalCalendarBox({ url }: { url: string }) {
   }
 
   return (
-    <section className="mt-10 rounded border border-rule bg-card p-5">
+    <section className="mt-10 rounded-sm border border-rule bg-card p-5">
       <h2 className="text-sm font-semibold">{t("calendar.personalHeading")}</h2>
       <p className="mt-1 max-w-prose text-sm text-muted">
         {t("calendar.personalIntro")}
@@ -672,7 +672,7 @@ function PersonalCalendarBox({ url }: { url: string }) {
           value={url}
           onFocus={(event) => event.currentTarget.select()}
           aria-label={t("calendar.personalUrlLabel")}
-          className="min-h-11 min-w-0 flex-1 rounded border border-rule bg-sunk px-3 py-2 font-mono text-xs text-muted"
+          className="min-h-11 min-w-0 flex-1 rounded-sm border border-rule bg-sunk px-3 py-2 font-mono text-xs text-muted"
         />
         <Button variant="secondary" onClick={copy}>
           {copied ? t("calendar.personalCopied") : t("calendar.personalCopy")}

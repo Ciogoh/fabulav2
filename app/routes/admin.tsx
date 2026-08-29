@@ -572,7 +572,7 @@ function Row({ to, children }: { to: string; children: React.ReactNode }) {
     <li>
       <Link
         to={to}
-        className="block rounded border border-rule bg-card p-4 hover:border-accent"
+        className="block rounded-sm border border-rule bg-card p-4 hover:border-accent"
       >
         {children}
       </Link>

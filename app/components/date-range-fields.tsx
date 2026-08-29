@@ -175,7 +175,7 @@ export function DateRangeFields({
           si toccano più: finché il tetto è superato la riga si accende, così
           l'occhio ci arriva senza doverla cercare. */}
       <label
-        className={`-my-1 flex min-h-11 cursor-pointer items-center gap-3 rounded px-2 text-sm ${
+        className={`-my-1 flex min-h-11 cursor-pointer items-center gap-3 rounded-sm px-2 text-sm ${
           overLimit && !longer ? "bg-accent-soft" : ""
         }`}
       >

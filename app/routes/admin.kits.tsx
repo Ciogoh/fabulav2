@@ -77,7 +77,7 @@ export default function AdminKits({ loaderData }: Route.ComponentProps) {
               const hidden = names.length - PREVIEW;
 
               return (
-                <li key={kit.id} className="rounded border border-rule bg-card">
+                <li key={kit.id} className="rounded-sm border border-rule bg-card">
                   <Link to={`/admin/kits/${kit.id}`} className="block p-3">
                     <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                       <p className="text-sm font-medium hover:text-accent">{kit.name}</p>

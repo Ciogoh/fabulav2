@@ -19,7 +19,7 @@ export function Select({ className = "", children, ...props }: ComponentProps<"s
     <span className="relative block">
       <select
         {...props}
-        className={`min-h-11 w-full appearance-none rounded border border-rule bg-card py-2 pl-3 pr-9 text-sm hover:border-muted ${className}`}
+        className={`min-h-11 w-full appearance-none rounded-sm border border-rule bg-card py-2 pl-3 pr-9 text-sm hover:border-muted ${className}`}
       >
         {children}
       </select>

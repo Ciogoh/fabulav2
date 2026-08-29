@@ -70,6 +70,8 @@ import { promptInstall, useInstallState } from "~/components/pwa";
 import { useFormatDay } from "~/i18n/use-t";
 import { THEMES, type Theme } from "~/lib/theme";
 import { getTheme } from "~/lib/theme.server";
+import { SKINS, type Skin } from "~/lib/skin";
+import { getSkin } from "~/lib/skin.server";
 
 export function meta({ matches }: Route.MetaArgs) {
   return [{ title: pageTitle(matches, "account.heading") }];
@@ -106,6 +108,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     email: user.email,
     // Dal cookie, non dal profilo: il tema è del dispositivo. Vedi `lib/theme.ts`.
     theme: getTheme(request),
+    // Stessa ragione, stesso schema — vedi `lib/skin.ts`.
+    skin: getSkin(request),
     notifyChannel: settings.notifyChannel,
     devices: devices.map((device) => ({
       id: device.id,
@@ -267,7 +271,7 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
           </p>
 
           {profileError && (
-            <p role="alert" className="rounded bg-out-bg px-3 py-2 text-sm text-out">
+            <p role="alert" className="rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
               {t(profileError)}
             </p>
           )}
@@ -284,6 +288,7 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
 
         {/* ------------------------------------------------- aspetto */}
         <AppearanceSettings theme={loaderData.theme} />
+        <SkinSettings skin={loaderData.skin} />
 
         {/* ----------------------------------------------- notifiche */}
         <NotificationSettings
@@ -371,6 +376,52 @@ function AppearanceSettings({ theme }: { theme: Theme }) {
           «automatico» — che è la risposta giusta per chi non ha mai chiesto
           niente. */}
       <p className="mt-3 max-w-prose text-xs text-muted">{t("account.themeHint")}</p>
+    </section>
+  );
+}
+
+/**
+ * Classico o Riso — la pelle visiva.
+ *
+ * Gemella di `AppearanceSettings` in tutto: stesso schema (`fetcher.Form`
+ * verso `/skin`, si salva da sé, `redirectTo` per tornare dov'eravamo), e la
+ * stessa scelta compare anche nel menu del profilo (`SkinMenuSection` in
+ * `site-header.tsx`) per chi la vuole a un tocco invece che qui.
+ */
+function SkinSettings({ skin }: { skin: Skin }) {
+  const t = useT();
+  const location = useLocation();
+  const fetcher = useFetcher();
+
+  const pending = fetcher.formData?.get("skin");
+  const active = SKINS.find((name) => name === pending) ?? skin;
+
+  return (
+    <section className="mt-8 border-t border-rule pt-8">
+      <h2 className="font-serif text-xl font-semibold">{t("account.skinHeading")}</h2>
+      <p className="mt-2 max-w-prose text-sm text-muted">{t("account.skinIntro")}</p>
+
+      <fetcher.Form method="post" action="/skin" className="mt-6 max-w-xs">
+        <input
+          type="hidden"
+          name="redirectTo"
+          value={location.pathname + location.search}
+        />
+        <label htmlFor="skin" className="eyebrow">
+          {t("account.skin")}
+        </label>
+        <div className="mt-1.5">
+          <Select
+            id="skin"
+            name="skin"
+            value={active}
+            onChange={(event) => fetcher.submit(event.currentTarget.form)}
+          >
+            <option value="classic">{t("account.skinClassic")}</option>
+            <option value="riso">{t("account.skinRiso")}</option>
+          </Select>
+        </div>
+      </fetcher.Form>
     </section>
   );
 }
@@ -585,7 +636,7 @@ function AvatarPicker({ person }: { person: Person }) {
       </div>
 
       {error && (
-        <p role="alert" className="rounded bg-out-bg px-3 py-2 text-sm text-out">
+        <p role="alert" className="rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
           {t(error)}
         </p>
       )}
@@ -806,7 +857,7 @@ function NotificationSettings({
                 <span className="text-sm">
                   {device.label ?? t("account.notifyUnknownDevice")}
                   {isThisOne && (
-                    <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-2xs text-accent">
+                    <span className="ml-2 rounded-sm bg-accent-soft px-1.5 py-0.5 text-2xs text-accent">
                       {t("account.notifyThisDevice")}
                     </span>
                   )}
@@ -853,7 +904,7 @@ function NotificationSettings({
       </div>
 
       {permission === "denied" && (
-        <p className="mt-4 max-w-prose rounded bg-sunk px-3 py-2 text-sm text-muted">
+        <p className="mt-4 max-w-prose rounded-sm bg-sunk px-3 py-2 text-sm text-muted">
           {t("account.notifyDenied")}
         </p>
       )}
@@ -908,7 +959,7 @@ function InstallInvitation({ state }: { state: ReturnType<typeof useInstallState
 
   if (state.isIos) {
     return (
-      <div className="mt-6 rounded border border-rule bg-sunk p-4">
+      <div className="mt-6 rounded-sm border border-rule bg-sunk p-4">
         <p className="text-sm font-medium">{t("account.installHeading")}</p>
         {/* Su iPhone questa non è una comodità: senza l'icona sulla schermata
             Home, le notifiche web non arrivano affatto. È un vincolo di
@@ -926,7 +977,7 @@ function InstallInvitation({ state }: { state: ReturnType<typeof useInstallState
   if (!state.canPrompt) return null;
 
   return (
-    <div className="mt-6 flex flex-wrap items-center gap-3 rounded border border-rule bg-sunk p-4">
+    <div className="mt-6 flex flex-wrap items-center gap-3 rounded-sm border border-rule bg-sunk p-4">
       <p className="text-sm">{t("account.installHeading")}</p>
       <Button
         variant="secondary"

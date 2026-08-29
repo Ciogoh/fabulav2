@@ -13,6 +13,9 @@ export default [
   // Chiaro, scuro o automatico. Cookie e basta: è una preferenza del
   // dispositivo, non della persona — vedi `lib/theme.ts`.
   route("theme", "routes/theme.tsx"),
+  // Classico o Riso — la pelle visiva. Stesso schema del tema, stesse
+  // ragioni — vedi `lib/skin.ts`.
+  route("skin", "routes/skin.tsx"),
   route("account", "routes/account.tsx"),
   route("requests", "routes/requests.tsx"),
   // Sole risorse: il foglio della richiesta chiede da qui se gli oggetti

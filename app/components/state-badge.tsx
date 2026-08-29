@@ -86,12 +86,18 @@ const SOLID: Record<VisualState, string> = {
   NOT_BOOKABLE: "text-idle border border-idle",
 };
 
-/** La forma che dice lo stato quando il colore non c'è. */
-const SHAPES: Record<VisualState, string> = {
-  FREE: "●", // ● pieno: «c'è»
-  IN_USE: "▪", // ▪ quadrato: «bloccato»
-  UNAVAILABLE: "▪",
-  NOT_BOOKABLE: "◇", // ◇ vuoto: assenza di stato, non un guasto
+/**
+ * La forma che dice lo stato quando il colore non c'è, e il token CSS che la
+ * disegna. Non è testo in JSX: è `content` su `::before`, letto da un
+ * `--glyph-*` in `app.css` che lo stile Riso ridefinisce con forme diverse
+ * (■ ▨ ⌀ invece di ● ▪ ◇). Così questo componente non deve mai sapere quale
+ * stile è attivo — la stessa ragione per cui i colori sono token e non `if`.
+ */
+const GLYPH_VAR: Record<VisualState, string> = {
+  FREE: "--glyph-free", // «c'è»
+  IN_USE: "--glyph-out", // «bloccato»
+  UNAVAILABLE: "--glyph-out",
+  NOT_BOOKABLE: "--glyph-idle", // assenza di stato, non un guasto
 };
 
 const LABELS = {
@@ -145,9 +151,11 @@ export function StateBadge({ state, until, from, today, tone = "soft" }: BadgeIn
           tone === "solid" ? SOLID[visual] : SOFT[visual]
         }`}
       >
-        <span aria-hidden="true" className="text-[0.6em] leading-none">
-          {SHAPES[visual]}
-        </span>
+        <span
+          aria-hidden="true"
+          className="text-[0.6em] leading-none before:[content:var(--glyph)]"
+          style={{ "--glyph": `var(${GLYPH_VAR[visual]})` } as React.CSSProperties}
+        />
         {t(LABELS[visual])}
       </span>
       {detail && (

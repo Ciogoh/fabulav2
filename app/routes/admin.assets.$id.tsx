@@ -288,7 +288,7 @@ export default function EditAsset({ loaderData, actionData }: Route.ComponentPro
         </h1>
 
         {asset.archivedAt && (
-          <p className="mt-4 rounded border border-rule bg-sunk px-3 py-2 text-sm text-muted">
+          <p className="mt-4 rounded-sm border border-rule bg-sunk px-3 py-2 text-sm text-muted">
             {t("assets.archivedNote")}
           </p>
         )}
@@ -323,13 +323,13 @@ export default function EditAsset({ loaderData, actionData }: Route.ComponentPro
         </Form>
 
         {skipped > 0 && (
-          <p role="alert" className="mt-6 rounded bg-out-bg px-3 py-2 text-sm text-out">
+          <p role="alert" className="mt-6 rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
             {t("assets.photoSkipped", { count: skipped })}
           </p>
         )}
 
         {actionData?.error && (
-          <p role="alert" className="mt-6 rounded bg-out-bg px-3 py-2 text-sm text-out">
+          <p role="alert" className="mt-6 rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
             {t(actionData.error)}
           </p>
         )}
@@ -379,7 +379,7 @@ function AssetQr({ dataUrl, name }: { dataUrl: string; name: string }) {
           alt={t("assets.qrAlt", { name })}
           width={160}
           height={160}
-          className="rounded border border-rule bg-white p-2"
+          className="rounded-sm border border-rule bg-white p-2"
         />
         <p className="max-w-xs text-sm text-muted">{t("assets.qrHint")}</p>
       </div>

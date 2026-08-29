@@ -291,7 +291,7 @@ function FilterBar({
           <noscript>
             <button
               type="submit"
-              className="min-h-11 rounded border border-accent px-4 text-sm font-medium text-accent"
+              className="min-h-11 rounded-sm border border-accent px-4 text-sm font-medium text-accent"
             >
               {t("catalogue.search")}
             </button>
@@ -358,7 +358,7 @@ function AssetCard({
        scheda, e il titolo rinuncia al suo; `a:focus-visible` e non
        `focus-within`, o si accenderebbe anche al click del mouse e su
        «Aggiungi», che il suo anello ce l'ha già. */
-    <article className="relative flex flex-col overflow-hidden rounded border border-rule bg-card hover:border-accent has-[a:focus-visible]:outline has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-accent">
+    <article className="relative flex flex-col overflow-hidden rounded-sm border border-rule bg-card hover:border-accent has-[a:focus-visible]:outline has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-accent">
       <span aria-hidden="true" className={`h-[3px] w-full ${STRIPE[visual]}`} />
       {photo && (
         <img
@@ -377,7 +377,7 @@ function AssetCard({
           {!photo && (
             <span
               aria-hidden="true"
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-sunk font-serif text-lg text-faint"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-sunk font-serif text-lg text-faint"
             >
               {initialsOf(asset.name)}
             </span>
@@ -471,7 +471,7 @@ function KitCard({
   const hidden = members.length - shown.length;
 
   return (
-    <article className="flex flex-col rounded border border-rule bg-card p-4">
+    <article className="flex flex-col rounded-sm border border-rule bg-card p-4">
       <div className="flex items-center gap-2">
         <span className="rounded-full bg-accent-soft px-2 py-0.5 font-mono text-2xs font-medium uppercase tracking-wider text-accent">
           {t("kit.badge")}

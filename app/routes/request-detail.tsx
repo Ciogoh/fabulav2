@@ -617,7 +617,7 @@ function RequestActions({
         <editFetcher.Form
           method="post"
           id={`edit-dates-${id}`}
-          className="flex flex-col gap-4 rounded border border-rule bg-card p-4"
+          className="flex flex-col gap-4 rounded-sm border border-rule bg-card p-4"
         >
           <input type="hidden" name="intent" value="editDates" />
           <DateRangeFields
@@ -633,7 +633,7 @@ function RequestActions({
           />
 
           {editResult && (
-            <p role="alert" className="rounded bg-out-bg px-3 py-2 text-sm text-out">
+            <p role="alert" className="rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
               {t(editResult.error)}
               {editResult.conflicts && editResult.conflicts.length > 0 && (
                 <> — {editResult.conflicts.join(", ")}</>
@@ -754,7 +754,7 @@ function AdminSection({
   const reminderFetcher = useFetcher<typeof action>();
 
   return (
-    <section className="mt-8 rounded border border-rule bg-card p-4">
+    <section className="mt-8 rounded-sm border border-rule bg-card p-4">
       <span className="eyebrow">
         {t("requests.admin.heading")}
       </span>
@@ -881,7 +881,7 @@ function ChatSection({ id, messages }: { id: string; messages: ChatMessage[] }) 
         {messages.map((message) => (
           <li
             key={message.id}
-            className={`max-w-[85%] rounded border border-rule p-3 text-sm ${
+            className={`max-w-[85%] rounded-sm border border-rule p-3 text-sm ${
               message.isMine ? "ml-auto bg-accent-soft" : "bg-card"
             }`}
           >

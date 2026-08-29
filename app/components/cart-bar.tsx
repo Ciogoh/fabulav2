@@ -254,7 +254,7 @@ function RequestDialog({
           )}
 
           {result && (
-            <p role="alert" className="rounded bg-out-bg px-3 py-2 text-sm text-out">
+            <p role="alert" className="rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
               {t(result.error)}
               {result.conflicts && result.conflicts.length > 0 && (
                 <> — {result.conflicts.join(", ")}</>

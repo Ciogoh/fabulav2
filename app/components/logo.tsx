@@ -8,22 +8,13 @@
  *
  * L'icona dell'app è un'altra cosa e sta altrove (`scripts/icons.ts`): il
  * lettering è largo 3,86:1 e dentro a un quadrato da 48 pixel non si legge,
- * quindi lì si usa la sola F. Se un giorno il marchio cambia, i posti da
- * toccare sono due — questo file e quello script — e non sedici PNG.
- */
-
-/**
- * Il magenta del file consegnato dall'associazione.
+ * quindi lì si usa la sola F, con il suo magenta scritto a mano perché
+ * un'icona installata non può leggere `var(--brand)` — è congelata al
+ * momento dell'installazione, come le altre icone della PWA.
  *
- * Sta scritto anche in `scripts/icons.ts`, e le due copie sono volute: quella
- * lì genera file che vivono fuori da Fabula (la schermata Home, una notifica)
- * dove i token di `app.css` non arrivano. Nota per chi farà il rebrand a
- * Material Matters: la direzione visiva registrata in CLAUDE.md è
- * monocromatica con accento **rosso**, e questo magenta non ci somiglia — è
- * il colore del logo che ci è stato dato, quindi vince, ma è il primo posto
- * da rivedere quando si allinea il resto.
+ * Qui invece il colore è `--brand` (`app.css`), non un valore fisso: lo
+ * stile Riso lo cambia insieme al resto senza toccare questo file.
  */
-const BRAND = "#ec008c";
 
 export function Logo({
   className = "",
@@ -40,7 +31,7 @@ export function Logo({
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label="Fabula"
-      fill={tone === "brand" ? BRAND : "currentColor"}
+      fill={tone === "brand" ? "var(--brand)" : "currentColor"}
       className={className}
     >
       <polygon points="161.98 27 161.98 54 80.99 54 80.99 80.99 134.98 80.99 134.98 107.99 80.99 107.99 80.99 161.99 0 161.99 0 107.99 26.99 107.99 26.99 134.99 53.99 134.99 53.99 54 26.99 54 26.99 27" />

@@ -20,6 +20,7 @@ I nomi dei file cominciano con la data in cui il piano è stato scritto.
 | [Il Centro, la chat dal vivo e i promemoria](2026-08-28-centro-chat-promemoria.md) — sei cose che rendono la piattaforma usabile da volontari che si alternano | ✅ fatto |
 | [Rifinitura d'insieme](2026-08-29-rifinitura-ux.md) — il giro di controllo su telefono e scrivania: cosa è stato corretto nella 0.9.0 e cosa resta | 🔄 in corso — corretti scala tipografica, intestazione admin, conferme, calendario |
 | [L'arretrato](2026-08-28-arretrato.md) — calendario personale, guide e manuali, backup su R2, tunnel, Telegram, documenti, CI: cosa resta e come si fa | 🔄 in corso — la voce D (calendario personale) è fatta |
+| [Il selettore di stile e il pulsante del tema](2026-08-29-selettore-stile.md) — `data-skin` gemello di `data-theme`, la pelle `riso`, e React che non sa mai quale pelle è attiva | 🔄 in corso — mancano i pesi veri di VG5000 e le fasce a tutta larghezza |
 
 ## Come si aggiunge un piano
 

@@ -207,6 +207,11 @@ verificato dal vivo, non solo compilato:**
   momento in cui la domanda «vale lo spazio che occupa?» si fa davvero.
 - **QR, scanner e consegna diretta** — vedi il capitolo *Il QR e la consegna
   diretta*.
+- **Una seconda pelle, scelta dall'utente**: `classic` (di serie) e `riso`,
+  dal menu del profilo o da «Aspetto» in `/account` — vedi *Le pelli* nel
+  capitolo *Aspetto*. Il tema chiaro/scuro è anche diventato un pulsante che
+  cicla in cima, accanto alla lingua, invece del solo menu a tendina di
+  `/account`.
 
 **Manca**, in ordine di priorità:
 
@@ -223,6 +228,8 @@ verificato dal vivo, non solo compilato:**
    in Brave, nessun errore da nessuna parte. Prima di riaccenderle
    (`PUSH_NOTIFICATIONS_ENABLED` in `push.server.ts`) vale la pena provarle
    direttamente su un telefono vero, che è comunque il punto 2 qui sopra.
+4. **I pesi veri di VG5000** per la pelle `riso` (oggi solo 400) — vedi *Le
+   pelli* nel capitolo *Aspetto*.
 
 La storia di come ci siamo arrivati sta in [`CHANGELOG.md`](./CHANGELOG.md), i
 ragionamenti dietro a ogni passo in [`docs/piani/`](./docs/piani/).
@@ -722,6 +729,51 @@ rosso di Material Matters, `--out` potrà scendere verso un bordeaux profondo
 o verso l'inchiostro pieno **senza toccare una riga di componente**. Chi
 cambia quei valori ricalcola i rapporti e li riscrive accanto.
 
+### Le pelli — `data-skin`, un secondo stile scelto dall'utente
+
+Oltre al tema c'è una seconda preferenza, gemella nel meccanismo:
+`data-skin` sull'`<html>`, letto dal cookie `skin` nel loader di `root.tsx`,
+`classic` come assenza di attributo. `classic` è quello di sempre; `riso` è
+il primo stile alternativo, ispirato al mockup «Magenta protagonista»
+(VG5000 + Departure Mono, bordi da 2px, intestazione e piè di pagina a
+fascia). Si sceglie dal menu del profilo (`SkinMenuSection` in
+`site-header.tsx`) o da «Aspetto» in `/account`, esattamente come il tema.
+
+**React non sa mai quale pelle è attiva.** Colori, caratteri, spessore dei
+bordi e persino i glifi di stato (`StateBadge`, `content: var(--glyph)` in
+CSS) sono tutti token letti da `app.css` — nessun componente fa `if (skin ===
+…)`. L'unica eccezione dichiarata è lo spessore dei bordi: Tailwind scrive
+`border-width: 1px` letterale dentro alla classe `border*`, quindi
+`[data-skin="riso"] :where(.border) { border-width: var(--rule-width) }`
+(e le varianti `-t/-r/-b/-l/-y`) sono l'unico posto che aggira una utility di
+Tailwind invece di limitarsi a ridefinire una variabile.
+
+**Per aggiungere una pelle nuova**: un blocco `:root[data-skin="nome"]` in
+`app.css` che ridichiara gli stessi token di `:root` (colori con
+`light-dark()`, `--rule-width`, `--btn-*`, `--glyph-*`, `--chrome-*`,
+`--brand`), più `SKINS` in `lib/skin.ts`. Se serve un carattere non su Google
+Fonts, va in `app/fonts/` (non `public/fonts/`): da lì Vite lo firma con
+l'impronta del contenuto e lo serve da `/assets/*`, l'unico percorso che il
+service worker ha il permesso di mettere in cache — vedi *Sicurezza*. Un
+`@font-face` dichiarato ma non usato da nessun testo attivo non scarica
+niente: chi resta su un'altra pelle non paga il peso del carattere.
+
+**Il telaio** (intestazione e piè di pagina) legge `--chrome-bg` /
+`--chrome-ink` / `--chrome-muted` / `--chrome-rule`, non `--card` /`--ink` /
+`--muted` / `--rule` direttamente — così una pelle può dargli un fondo pieno
+senza toccare `site-header.tsx` o `site-footer.tsx`. **La barra
+dell'amministrazione fa eccezione apposta**: resta sempre `--admin-bg` /
+`--admin-rule`, neutra in ogni pelle, perché gli unici testi che ci stanno
+sopra (`LINK_ADMIN` in `site-header.tsx`) sono pensati per un fondo chiaro e
+non per una fascia colorata. `LINK_CHROME` è la coppia per la barra pubblica.
+Chi introduce un elemento nuovo nell'intestazione deve scegliere la coppia
+giusta in base a dove sta per finire, non dare per scontato `--ink`/`--muted`.
+
+VG5000 nel bundle originale porta **solo il peso 400**: l'interfaccia chiede
+anche 500 e 600, e `font-synthesis: none` nel blocco `riso` impedisce il
+grassetto finto invece di lasciarlo storto. Prendere i pesi veri da
+velvetyne.fr (OFL) resta da fare.
+
 **1. Ogni token semantico dice una cosa sola.** `--out` significa
 «indisponibile o guasto». Quando è servito un fondo per la modalità admin è
 stato preso in prestito `--out-bg`, e per mesi l'intestazione ha detto
@@ -804,7 +856,8 @@ app/
     state-badge.tsx        i quattro stati, mai solo colore
     admin-badge.tsx        l'etichetta ADMIN, ovunque serva
     person.tsx             <PersonName> e <Avatar>
-    site-header.tsx        intestazione, menu profilo, cambio lingua
+    site-header.tsx        intestazione, menu profilo, cambio lingua, tema e pelle
+    site-footer.tsx        il piè di pagina: credito e versione
     cart-bar.tsx           il carrello e il foglio della richiesta
     date-range-fields.tsx  le date, condivise fra foglio e dettaglio
     photo-picker.tsx       le foto: quelle che ci sono e quelle in arrivo

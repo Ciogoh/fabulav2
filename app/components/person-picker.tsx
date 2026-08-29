@@ -68,7 +68,7 @@ export function PersonPicker({
             className={FIELD}
           />
 
-          <div className="max-h-72 overflow-y-auto rounded border border-rule bg-card">
+          <div className="max-h-72 overflow-y-auto rounded-sm border border-rule bg-card">
             <ul>
               {people.map((person) => (
                 <li key={person.id} className={matches(person) ? undefined : "hidden"}>

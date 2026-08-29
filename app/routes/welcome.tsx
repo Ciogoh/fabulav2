@@ -150,7 +150,7 @@ export default function Welcome({
             hint={t("account.aliasHint")}
           />
 
-          <div className="mt-2 rounded border border-rule bg-sunk/40 p-4">
+          <div className="mt-2 rounded-sm border border-rule bg-sunk/40 p-4">
             <p className="text-sm text-muted">{t("welcome.passwordIntro")}</p>
 
             <div className="mt-4 flex flex-col gap-1.5">
@@ -166,7 +166,7 @@ export default function Welcome({
                 type="password"
                 autoComplete="new-password"
                 minLength={10}
-                className="min-h-11 rounded border border-rule bg-card px-3 py-2.5 text-sm"
+                className="min-h-11 rounded-sm border border-rule bg-card px-3 py-2.5 text-sm"
               />
             </div>
 
@@ -183,7 +183,7 @@ export default function Welcome({
                 type="password"
                 autoComplete="new-password"
                 minLength={10}
-                className="min-h-11 rounded border border-rule bg-card px-3 py-2.5 text-sm"
+                className="min-h-11 rounded-sm border border-rule bg-card px-3 py-2.5 text-sm"
               />
             </div>
           </div>
@@ -197,7 +197,7 @@ export default function Welcome({
         </Form>
 
         {actionData?.error && (
-          <p role="alert" className="mt-6 rounded bg-out-bg px-3 py-2 text-sm text-out">
+          <p role="alert" className="mt-6 rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
             {t(actionData.error)}
           </p>
         )}
@@ -239,7 +239,7 @@ function NameField({
         required={required}
         minLength={required ? MIN_NAME_PART : undefined}
         maxLength={maxLength}
-        className="min-h-11 rounded border border-rule bg-card px-3 py-2.5 text-sm"
+        className="min-h-11 rounded-sm border border-rule bg-card px-3 py-2.5 text-sm"
       />
       {hint && <span className="text-xs text-muted">{hint}</span>}
     </div>

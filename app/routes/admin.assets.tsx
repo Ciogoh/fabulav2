@@ -539,7 +539,7 @@ function AssetItem({
     fetcher.state !== "idle" ? !asset.isBookable : asset.isBookable;
 
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded border border-rule bg-card p-3">
+    <li className="flex flex-wrap items-center gap-3 rounded-sm border border-rule bg-card p-3">
       {chosen !== undefined && (
         <input
           type="checkbox"
@@ -550,7 +550,7 @@ function AssetItem({
         />
       )}
 
-      <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-sunk">
+      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-sm bg-sunk">
         {asset.photos[0]?.thumbUrl && (
           <img
             src={asset.photos[0].thumbUrl}

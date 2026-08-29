@@ -105,7 +105,7 @@ function ExistingTile({ photo, isCover }: { photo: ExistingPhoto; isCover: boole
 
   return (
     <li
-      className={`relative h-28 w-28 overflow-hidden rounded border ${
+      className={`relative h-28 w-28 overflow-hidden rounded-sm border ${
         isCover ? "border-accent" : "border-rule"
       } ${busy ? "opacity-50" : ""}`}
     >
@@ -218,7 +218,7 @@ function PhotoPicker({ name = "photos" }: { name?: string }) {
           {picks.map((pick) => (
             <li
               key={pick.key}
-              className={`relative h-28 w-28 overflow-hidden rounded border border-dashed border-accent ${
+              className={`relative h-28 w-28 overflow-hidden rounded-sm border border-dashed border-accent ${
                 sending ? "animate-pulse" : ""
               }`}
             >
@@ -268,7 +268,7 @@ function PhotoPicker({ name = "photos" }: { name?: string }) {
             setDragging(false);
             if (event.dataTransfer.files.length > 0) add(event.dataTransfer.files);
           }}
-          className={`flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded border border-dashed px-4 py-5 text-center text-sm peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent ${
+          className={`flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-sm border border-dashed px-4 py-5 text-center text-sm peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent ${
             dragging
               ? "border-accent bg-accent-soft text-accent"
               : "border-rule text-muted hover:border-accent hover:text-accent"
@@ -286,7 +286,7 @@ function PhotoPicker({ name = "photos" }: { name?: string }) {
       {rejected.length > 0 && (
         <ul
           role="alert"
-          className="flex flex-col gap-1 rounded bg-out-bg px-3 py-2 text-sm text-out"
+          className="flex flex-col gap-1 rounded-sm bg-out-bg px-3 py-2 text-sm text-out"
         >
           {rejected.map((item) => (
             <li key={item.key}>

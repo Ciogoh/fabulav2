@@ -25,6 +25,8 @@ const en = {
   "app.name": "Fabula",
   "app.tagline": "What the association owns, and when you can borrow it.",
 
+  "footer.credit": "Fabula is a project by MaMa · unibz · Bolzano",
+
   "nav.catalogue": "Catalogue",
   "nav.myRequests": "My requests",
   "nav.signIn": "Sign in",
@@ -414,6 +416,14 @@ const en = {
     "{pending} to approve, {unread} unread, {overdue} overdue",
   "nav.myRequestsUnread": "New reply",
 
+  /* Le tre etichette del pulsante che cicla il tema in cima — corte apposta,
+     per entrare in un `aria-label` come "Switch theme: Dark". Le voci di
+     `/account` restano frasi per esteso: `account.themeAuto` e le altre. */
+  "nav.themeNext": "Switch theme: {theme}",
+  "nav.themeAuto": "Automatic",
+  "nav.themeLight": "Light",
+  "nav.themeDark": "Dark",
+
   "inbox.heading": "What needs you",
   "inbox.showAll": "Everything",
   "inbox.allClear": "Nothing waiting. Nice.",
@@ -445,6 +455,13 @@ const en = {
   "account.themeDark": "Dark",
   "account.themeHint":
     "Saved on this device, not on your account: you can keep Fabula dark on your phone and light on your laptop.",
+
+  "account.skinHeading": "Style",
+  "account.skinIntro":
+    "A different look for Fabula. Classic is the one you already know.",
+  "account.skin": "Style",
+  "account.skinClassic": "Classic",
+  "account.skinRiso": "Riso",
 
   "account.notifyHeading": "Notifications",
   "account.notifyIntro": "Choose where loan updates reach you, and on which devices.",
@@ -483,6 +500,8 @@ type Dictionary = Record<TranslationKey, string>;
 const it: Dictionary = {
   "app.name": "Fabula",
   "app.tagline": "Cosa ha l'associazione, e quando puoi prenderlo in prestito.",
+
+  "footer.credit": "Fabula è un progetto di MaMa · unibz · Bolzano",
 
   "nav.catalogue": "Catalogo",
   "nav.myRequests": "Le mie richieste",
@@ -864,6 +883,11 @@ const it: Dictionary = {
     "{pending} da approvare, {unread} non letti, {overdue} in ritardo",
   "nav.myRequestsUnread": "Nuova risposta",
 
+  "nav.themeNext": "Cambia tema: {theme}",
+  "nav.themeAuto": "Automatico",
+  "nav.themeLight": "Chiaro",
+  "nav.themeDark": "Scuro",
+
   "inbox.heading": "Cosa aspetta te",
   "inbox.showAll": "Tutto",
   "inbox.allClear": "Non c'è niente in sospeso.",
@@ -895,6 +919,13 @@ const it: Dictionary = {
   "account.themeDark": "Scuro",
   "account.themeHint":
     "Si salva su questo dispositivo, non sul tuo account: puoi tenere Fabula scura sul telefono e chiara sul portatile.",
+
+  "account.skinHeading": "Stile",
+  "account.skinIntro":
+    "Un aspetto diverso per Fabula. Classico è quello che già conosci.",
+  "account.skin": "Stile",
+  "account.skinClassic": "Classico",
+  "account.skinRiso": "Riso",
 
   "account.notifyHeading": "Notifiche",
   "account.notifyIntro":
@@ -932,6 +963,8 @@ const it: Dictionary = {
 const de: Dictionary = {
   "app.name": "Fabula",
   "app.tagline": "Was der Verein besitzt und wann du es ausleihen kannst.",
+
+  "footer.credit": "Fabula ist ein Projekt von MaMa · unibz · Bozen",
 
   "nav.catalogue": "Katalog",
   "nav.myRequests": "Meine Anfragen",
@@ -1313,6 +1346,11 @@ const de: Dictionary = {
     "{pending} zu genehmigen, {unread} ungelesen, {overdue} überfällig",
   "nav.myRequestsUnread": "Neue Antwort",
 
+  "nav.themeNext": "Design wechseln: {theme}",
+  "nav.themeAuto": "Automatisch",
+  "nav.themeLight": "Hell",
+  "nav.themeDark": "Dunkel",
+
   "inbox.heading": "Was auf dich wartet",
   "inbox.showAll": "Alles",
   "inbox.allClear": "Nichts offen.",
@@ -1344,6 +1382,13 @@ const de: Dictionary = {
   "account.themeDark": "Dunkel",
   "account.themeHint":
     "Wird auf diesem Gerät gespeichert, nicht in deinem Konto: Fabula kann auf dem Handy dunkel und auf dem Laptop hell bleiben.",
+
+  "account.skinHeading": "Stil",
+  "account.skinIntro":
+    "Ein anderes Aussehen für Fabula. Klassisch ist das, was du schon kennst.",
+  "account.skin": "Stil",
+  "account.skinClassic": "Klassisch",
+  "account.skinRiso": "Riso",
 
   "account.notifyHeading": "Benachrichtigungen",
   "account.notifyIntro":
