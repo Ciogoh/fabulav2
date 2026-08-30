@@ -66,8 +66,11 @@ export default defineConfig({
   },
   server: {
     allowedHosts: [
-      "try.fabulabz.com",
+      ".fabulabz.com",
+      "visual1.fabulabz.com",
       "visual.fabulabz.com",
+      "try.fabulabz.com",
+      "tryy.fabulabz.com",
       "fabulabz.com",
       ".trycloudflare.com",
       "localhost",
