@@ -65,10 +65,13 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   server: {
-    // Vite rifiuta di serie ogni `Host` che non sia localhost, contro il
-    // DNS rebinding — e per lo stesso motivo blocca anche il tunnel
-    // Cloudflare, che in sviluppo passa da qui.
-    allowedHosts: ["try.fabulabz.com"],
+    allowedHosts: [
+      "try.fabulabz.com",
+      "visual.fabulabz.com",
+      "fabulabz.com",
+      ".trycloudflare.com",
+      "localhost",
+    ],
     // Senza questo, Vite ascolta solo su `localhost`, che su alcuni Mac si
     // risolve **solo** in IPv6 (`::1`): il browser che prova `127.0.0.1`
     // trova la porta chiusa anche col server sano. `0.0.0.0` ascolta su
