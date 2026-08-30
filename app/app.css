@@ -405,8 +405,69 @@
   --btn-case: uppercase;
 
   --glyph-free: "\25a0"; /* ■ */
+  --glyph-reserved: "\25d4"; /* ◔ */
   --glyph-out: "\25a8"; /* ▨ */
   --glyph-idle: "\2300"; /* ⌀ */
+}
+
+/* --- 3D tactile button & press styles --- */
+@utility btn-3d {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 2px solid #2b0016;
+  border-radius: 0;
+  box-shadow: 7px 7px 0px #2b0016;
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+  user-select: none;
+  cursor: pointer;
+}
+
+@utility btn-3d-press {
+  transform: translate(6px, 6px);
+  box-shadow: 1px 1px 0px #2b0016;
+}
+
+.btn-3d:active,
+.btn-3d[data-pressed="true"] {
+  transform: translate(6px, 6px);
+  box-shadow: 1px 1px 0px #2b0016;
+}
+
+.btn-3d-hero {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.9rem 2.4rem;
+  background-color: #e00069;
+  color: #ffffff;
+  border: 2.5px solid #2b0016;
+  border-radius: 0;
+  box-shadow: 11px 11px 0px #2b0016;
+  transition: transform 0.08s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.08s cubic-bezier(0.2, 0, 0, 1);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-3d-hero:hover {
+  background-color: #f00072;
+}
+
+.btn-3d-hero:active,
+.btn-3d-hero[data-pressed="true"] {
+  transform: translate(10px, 10px);
+  box-shadow: 1px 1px 0px #2b0016;
 }
 
 /**

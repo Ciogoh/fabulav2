@@ -25,7 +25,13 @@ const en = {
   "app.name": "Fabula",
   "app.tagline": "What the association owns, and when you can borrow it.",
 
+  "landing.subtitle": "The catalogue of tools and equipment of Fabula. Browse available items and borrow what you need for your projects.",
+  "landing.goToCatalogue": "Go to catalogue",
+
   "footer.credit": "Fabula is a project by MaMa · unibz · Bolzano",
+  "footer.mama": "MaMa",
+  "footer.unibz": "unibz",
+  "footer.calendar": "Calendar",
 
   "nav.catalogue": "Catalogue",
   "nav.myRequests": "My requests",
@@ -501,7 +507,13 @@ const it: Dictionary = {
   "app.name": "Fabula",
   "app.tagline": "Cosa ha l'associazione, e quando puoi prenderlo in prestito.",
 
+  "landing.subtitle": "Il catalogo degli strumenti e delle attrezzature di Fabula. Sfoglia gli oggetti disponibili, prenota ciò che ti serve per i tuoi progetti.",
+  "landing.goToCatalogue": "Vai al catalogo",
+
   "footer.credit": "Fabula è un progetto di MaMa · unibz · Bolzano",
+  "footer.mama": "MaMa",
+  "footer.unibz": "unibz",
+  "footer.calendar": "Calendario",
 
   "nav.catalogue": "Catalogo",
   "nav.myRequests": "Le mie richieste",
@@ -962,9 +974,15 @@ const it: Dictionary = {
 
 const de: Dictionary = {
   "app.name": "Fabula",
-  "app.tagline": "Was der Verein besitzt und wann du es ausleihen kannst.",
+  "app.tagline": "Was der Verein besitzt, und wann du es ausleihen kannst.",
+
+  "landing.subtitle": "Der Katalog der Werkzeuge und Geräte von Fabula. Entdecke verfügbare Objekte und leihe aus, was du für deine Projekte brauchst.",
+  "landing.goToCatalogue": "Zum Katalog",
 
   "footer.credit": "Fabula ist ein Projekt von MaMa · unibz · Bozen",
+  "footer.mama": "MaMa",
+  "footer.unibz": "unibz",
+  "footer.calendar": "Kalender",
 
   "nav.catalogue": "Katalog",
   "nav.myRequests": "Meine Anfragen",

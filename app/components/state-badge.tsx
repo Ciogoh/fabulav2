@@ -54,8 +54,8 @@ import { useFormatDay, useT } from "~/i18n/use-t";
 /** Lo stato di dominio che arriva dal motore di disponibilità. */
 export type BadgeState = DisplayState | "NOT_BOOKABLE";
 
-/** Quello che si vede davvero: «libero» o «no», più i due casi a parte. */
-type VisualState = Exclude<BadgeState, "RESERVED">;
+/** Quello che si vede davvero: «libero», «prenotato», «in uso», o «non prestabile». */
+type VisualState = BadgeState;
 
 /** Quanto forte parla il badge. Vedi il blocco in cima. */
 export type BadgeTone = "solid" | "soft";
@@ -73,6 +73,7 @@ export type BadgeInfo = {
 
 const SOFT: Record<VisualState, string> = {
   FREE: "text-free bg-free-bg",
+  RESERVED: "text-held bg-held-bg",
   IN_USE: "text-out bg-out-bg",
   UNAVAILABLE: "text-out bg-out-bg",
   NOT_BOOKABLE: "text-idle bg-idle-bg",
@@ -80,6 +81,7 @@ const SOFT: Record<VisualState, string> = {
 
 const SOLID: Record<VisualState, string> = {
   FREE: "text-on-free bg-free-solid",
+  RESERVED: "text-white bg-held",
   IN_USE: "text-on-out bg-out-solid",
   UNAVAILABLE: "text-on-out bg-out-solid",
   // Contorno e non riempimento: vedi il blocco in cima.
@@ -88,20 +90,19 @@ const SOLID: Record<VisualState, string> = {
 
 /**
  * La forma che dice lo stato quando il colore non c'è, e il token CSS che la
- * disegna. Non è testo in JSX: è `content` su `::before`, letto da un
- * `--glyph-*` in `app.css` che lo stile Riso ridefinisce con forme diverse
- * (■ ▨ ⌀ invece di ● ▪ ◇). Così questo componente non deve mai sapere quale
- * stile è attivo — la stessa ragione per cui i colori sono token e non `if`.
+ * disegna.
  */
 const GLYPH_VAR: Record<VisualState, string> = {
-  FREE: "--glyph-free", // «c'è»
-  IN_USE: "--glyph-out", // «bloccato»
+  FREE: "--glyph-free", // ■ «c'è»
+  RESERVED: "--glyph-reserved", // ◔ «prenotato»
+  IN_USE: "--glyph-out", // ▨ «in uso»
   UNAVAILABLE: "--glyph-out",
-  NOT_BOOKABLE: "--glyph-idle", // assenza di stato, non un guasto
+  NOT_BOOKABLE: "--glyph-idle", // ⌀ assenza di stato
 };
 
 const LABELS = {
   FREE: "state.free",
+  RESERVED: "state.reserved",
   IN_USE: "state.inUse",
   UNAVAILABLE: "state.unavailable",
   NOT_BOOKABLE: "state.notBookable",

@@ -157,7 +157,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
      l'assenza di `data-theme`/`data-skin`, e scriverli sarebbe un terzo caso
      da tenere allineato senza che nessuna regola lo guardi. */
   const theme = data?.theme ?? "auto";
-  const skin = data?.skin ?? "classic";
+  const skin = data?.skin ?? "riso";
 
   return (
     <html
