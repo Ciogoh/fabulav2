@@ -1,7 +1,8 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
 export default [
-  index("routes/catalogue.tsx"),
+  index("routes/landing.tsx"),
+  route("catalogue", "routes/catalogue.tsx"),
   route("items/:id", "routes/item.tsx"),
   route("calendar", "routes/calendar.tsx"),
   // Niente esportazione iCal globale: solo quella personale, una per persona.

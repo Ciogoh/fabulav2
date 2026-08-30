@@ -237,7 +237,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
         <div className="flex-1">
           <Outlet />
         </div>
-        <SiteFooter />
+        <SiteFooter skin={loaderData.skin} />
       </div>
     </LangProvider>
   );

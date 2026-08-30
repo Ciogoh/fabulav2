@@ -66,7 +66,7 @@ export function CartBar({
               {t("cart.submit")} ({cart.entries.length})
             </Button>
           ) : (
-            <ButtonLink to="/signin?next=/" variant="primary">
+            <ButtonLink to="/signin?next=/catalogue" variant="primary">
               {t("cart.submit")} ({cart.entries.length})
             </ButtonLink>
           )}

@@ -26,7 +26,12 @@ const en = {
   "app.tagline": "What the association owns, and when you can borrow it.",
 
   "landing.subtitle": "The catalogue of tools and equipment of Fabula. Browse available items and borrow what you need for your projects.",
+  "landing.abstract": "Welcome to Fabula, your tool library. Borrow what you need for your projects!",
   "landing.goToCatalogue": "Go to catalogue",
+  "landing.cta": "Go to catalogue →",
+  "landing.tutorial": "Tutorial",
+  "landing.calendar": "Calendar",
+  "landing.noTutorialVideo": "Tutorial video not uploaded yet — the admin can upload it from the dashboard",
 
   "footer.credit": "Fabula is a project by MaMa · unibz · Bolzano",
   "footer.mama": "MaMa",
@@ -508,7 +513,12 @@ const it: Dictionary = {
   "app.tagline": "Cosa ha l'associazione, e quando puoi prenderlo in prestito.",
 
   "landing.subtitle": "Il catalogo degli strumenti e delle attrezzature di Fabula. Sfoglia gli oggetti disponibili, prenota ciò che ti serve per i tuoi progetti.",
+  "landing.abstract": "Benvenuto in Fabula, la tua biblioteca degli strumenti. Prendi in prestito quello che ti serve per i tuoi progetti!",
   "landing.goToCatalogue": "Vai al catalogo",
+  "landing.cta": "Vai al catalogo →",
+  "landing.tutorial": "Tutorial",
+  "landing.calendar": "Calendario",
+  "landing.noTutorialVideo": "Video tutorial non ancora caricato — l'admin lo carica dal pannello",
 
   "footer.credit": "Fabula è un progetto di MaMa · unibz · Bolzano",
   "footer.mama": "MaMa",
@@ -976,8 +986,13 @@ const de: Dictionary = {
   "app.name": "Fabula",
   "app.tagline": "Was der Verein besitzt, und wann du es ausleihen kannst.",
 
-  "landing.subtitle": "Der Katalog der Werkzeuge und Geräte von Fabula. Entdecke verfügbare Objekte und leihe aus, was du für deine Projekte brauchst.",
+  "landing.subtitle": "Der Katalog der Werkzeuge und Ausrüstung von Fabula. Durchstöbere verfügbare Gegenstände und leih dir aus, was du für deine Projekte brauchst.",
+  "landing.abstract": "Willkommen bei Fabula, deiner Werkzeugbibliothek. Leih dir, was du für deine Projekte brauchst!",
   "landing.goToCatalogue": "Zum Katalog",
+  "landing.cta": "Zum Katalog →",
+  "landing.tutorial": "Tutorial",
+  "landing.calendar": "Kalender",
+  "landing.noTutorialVideo": "Tutorial-Video noch nicht hochgeladen — der Admin lädt es über das Dashboard hoch",
 
   "footer.credit": "Fabula ist ein Projekt von MaMa · unibz · Bozen",
   "footer.mama": "MaMa",

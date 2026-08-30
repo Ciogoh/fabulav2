@@ -40,7 +40,6 @@ import { Select } from "~/components/select";
 import { Button, ButtonLink } from "~/components/button";
 import { CartBar } from "~/components/cart-bar";
 import { useCart, type CartEntry } from "~/lib/use-cart";
-import { HeroFabula } from "~/components/hero-fabula";
 
 export function meta({ matches }: Route.MetaArgs) {
   return [
@@ -141,17 +140,6 @@ export default function Catalogue({ loaderData }: Route.ComponentProps) {
 
   return (
     <>
-      {/* 2a Landing Hero with 3D Logo and Walking Letter A */}
-      {!filtered && (
-        <HeroFabula
-          onScrollToCatalogue={() => {
-            document
-              .getElementById("catalogo")
-              ?.scrollIntoView({ behavior: "smooth" });
-          }}
-        />
-      )}
-
       <div id="catalogo">
         <FilterBar
           categories={categories}
@@ -283,7 +271,7 @@ function FilterBar({
 
           {(activeCategory || query) && (
             <ButtonLink
-              to="/"
+              to="/catalogue"
               variant="plain"
               className="font-mono text-sm font-semibold uppercase underline hover:text-[#E00069]"
             >

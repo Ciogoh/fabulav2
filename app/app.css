@@ -328,6 +328,22 @@
  * cioè `:root` qui sopra. Un terzo caso da scrivere sarebbe stato un terzo
  * caso da tenere allineato.
  */
+:root {
+  --landing-bg: light-dark(#fff6e8, #100a04);
+  --landing-ink: light-dark(#2b0016, #f6ede0);
+  --landing-shadow: light-dark(#2b0016, #31261a);
+  --landing-ocra: #ffac00;
+  --landing-magenta: light-dark(#e00069, #ff7fb2);
+  --landing-cta-bg: light-dark(#e00069, #ffac00);
+  --landing-cta-fg: light-dark(#ffffff, #2b0016);
+  --landing-cta-facet: light-dark(#ffac00, #e00069);
+  --landing-cta-shadow: light-dark(#2b0016, #ff7fb2);
+  --landing-modal-bg: light-dark(rgba(43, 0, 22, 0.92), rgba(16, 10, 4, 0.95));
+  --landing-modal-box: light-dark(#000000, #1d140c);
+  --landing-modal-border: light-dark(#ffac00, #ff7fb2);
+  --landing-modal-text: light-dark(#ffe3ee, #f6ede0);
+}
+
 :root[data-theme="light"] {
   color-scheme: light;
 }
@@ -351,6 +367,7 @@
  */
 :root[data-skin="riso"] {
   --font-sans: "VG5000", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "DepartureMono", monospace;
   --font-mono: "DepartureMono", ui-monospace, monospace;
   /* Vedi la nota sul `@font-face` di VG5000: un solo peso in mano, e senza
      questo il browser lo ispessisce da solo per finger i pesi mancanti. */

@@ -131,8 +131,8 @@ export function SiteHeader({
 }) {
   const t = useT();
   // Il fondo dell'admin resta sempre neutro: solo la barra pubblica diventa
-  // la fascia colorata nel Riso. Vedi la nota su `LINK_ADMIN`/`LINK_CHROME`.
-  const chrome = !user?.isAdmin;
+  // la fascia colorata nel Riso. Nel Classico la barra resta fondo carta/scheda.
+  const chrome = !user?.isAdmin && skin === "riso";
   const link = chrome ? LINK_CHROME : LINK_ADMIN;
 
   return (
@@ -140,7 +140,9 @@ export function SiteHeader({
       className={
         user?.isAdmin
           ? "border-b border-admin-rule bg-admin-bg"
-          : "border-b border-chrome-rule bg-chrome-bg"
+          : chrome
+          ? "border-b border-chrome-rule bg-chrome-bg"
+          : "border-b border-rule bg-card"
       }
     >
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-6 py-3">
@@ -165,7 +167,7 @@ export function SiteHeader({
         <nav className="order-last flex w-full min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-sm sm:order-none sm:w-auto">
           {/* `end` sul catalogo: senza, la rotta indice risulterebbe attiva
               su ogni pagina, perché ogni percorso comincia per "/". */}
-          <NavLink to="/" end className={link}>
+          <NavLink to="/catalogue" className={link}>
             {t("nav.catalogue")}
           </NavLink>
           <NavLink to="/calendar" className={link}>

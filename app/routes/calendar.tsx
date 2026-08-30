@@ -599,20 +599,62 @@ function Legend() {
  */
 function MonthJump({ anchor, showAll }: { anchor: string; showAll: boolean }) {
   const t = useT();
+  const lang = useLang();
   const navigate = useNavigate();
+
+  const selectedValue = anchor.slice(0, 7);
+  const [selectedYear, selectedMonthNum] = selectedValue.split("-").map(Number);
+  const baseYear = !isNaN(selectedYear) ? selectedYear : new Date().getUTCFullYear();
+  const baseMonth = !isNaN(selectedMonthNum) ? selectedMonthNum - 1 : new Date().getUTCMonth();
+
+  const formatter = new Intl.DateTimeFormat(
+    lang === "de" ? "de-DE" : lang === "it" ? "it-IT" : "en-US",
+    { month: "long", year: "numeric" }
+  );
+
+  const options: Array<{ value: string; label: string }> = [];
+  for (let offset = -12; offset <= 24; offset++) {
+    const d = new Date(Date.UTC(baseYear, baseMonth + offset, 1));
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const val = `${year}-${month}`;
+    const formatted = formatter.format(d);
+    // Capitalize first letter (e.g. "Agosto 2026", "August 2026")
+    const label = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    options.push({ value: val, label });
+  }
 
   return (
     <label className="flex items-center gap-2 text-sm text-muted">
       <span className="sr-only">{t("calendar.jumpToMonth")}</span>
-      <input
-        type="month"
-        defaultValue={anchor.slice(0, 7)}
-        onChange={(event) => {
-          if (!event.target.value) return;
-          navigate(`/calendar?from=${event.target.value}-01${showAll ? "&all=1" : ""}`);
-        }}
-        className="min-h-9 rounded-sm border border-rule bg-card px-2 py-1 font-mono text-xs text-muted hover:text-ink"
-      />
+      <span className="relative inline-block">
+        <select
+          value={selectedValue}
+          onChange={(event) => {
+            if (!event.target.value) return;
+            navigate(`/calendar?from=${event.target.value}-01${showAll ? "&all=1" : ""}`);
+          }}
+          className="min-h-9 appearance-none rounded-sm border border-rule bg-card py-1 pl-2.5 pr-7 font-mono text-xs text-muted hover:border-ink hover:text-ink cursor-pointer focus:outline-none"
+        >
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="pointer-events-none absolute right-2 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-muted"
+        >
+          <path d="M2.5 4.5 6 8l3.5-3.5" />
+        </svg>
+      </span>
     </label>
   );
 }

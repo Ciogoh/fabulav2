@@ -34,9 +34,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   const user = await getUser(request);
   if (user) throw redirect("/");
 
-  // Le due bandiere arrivano da `auth.server.ts`: è lì che si decide se un
-  // provider esiste, e disegnare un pulsante con un metro diverso vuol dire
-  // prima o poi mostrarne uno che non funziona.
   return { googleEnabled: googleConfigured, microsoftEnabled: microsoftConfigured };
 }
 
@@ -187,32 +184,33 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
 
             <p className="mt-4 text-sm text-muted">{t("signin.newHere")}</p>
 
-            {(loaderData.microsoftEnabled || loaderData.googleEnabled) && (
-              <>
-                <Divider label={t("signin.or")} />
+            <Divider label={t("signin.or")} />
 
-                {/* Microsoft davanti a Google: qui dentro l'account
-                    universitario ce l'hanno tutti, quello Google no. */}
-                {loaderData.microsoftEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => social("microsoft")}
-                    className={buttonClass("quiet", "md", "w-full")}
-                  >
-                    {t("signin.microsoft")}
-                  </button>
-                )}
+            {/* Pulsante Google — sempre visibile come da mockup */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!loaderData.googleEnabled) {
+                  setError(
+                    "Google Login non è configurato: imposta GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET nel file .env."
+                  );
+                  return;
+                }
+                void social("google");
+              }}
+              className={buttonClass("quiet", "md", "w-full")}
+            >
+              {t("signin.google")}
+            </button>
 
-                {loaderData.googleEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => social("google")}
-                    className={buttonClass("quiet", "md", "mt-3 w-full")}
-                  >
-                    {t("signin.google")}
-                  </button>
-                )}
-              </>
+            {loaderData.microsoftEnabled && (
+              <button
+                type="button"
+                onClick={() => social("microsoft")}
+                className={buttonClass("quiet", "md", "mt-3 w-full")}
+              >
+                {t("signin.microsoft")}
+              </button>
             )}
 
             <button
