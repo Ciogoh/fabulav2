@@ -165,6 +165,9 @@ export function SiteHeader({
         <nav className="order-last flex w-full min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-sm sm:order-none sm:w-auto">
           {/* `end` sul catalogo: senza, la rotta indice risulterebbe attiva
               su ogni pagina, perché ogni percorso comincia per "/". */}
+          <NavLink to="/landing-page" end className={link}>
+            {t("nav.landing-page")}
+          </NavLink>
           <NavLink to="/" end className={link}>
             {t("nav.catalogue")}
           </NavLink>
