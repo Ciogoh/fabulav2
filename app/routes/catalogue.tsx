@@ -298,7 +298,7 @@ function FilterBar({
           </noscript>
 
           {(activeCategory || query) && (
-            <ButtonLink to="/" variant="plain" className="px-1">
+            <ButtonLink to="/catalogue" variant="plain" className="px-1">
               {t("catalogue.clearFilter")}
             </ButtonLink>
           )}

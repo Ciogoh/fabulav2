@@ -1,7 +1,8 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
 export default [
-  index("routes/catalogue.tsx"),
+  index("routes/landing.tsx"),
+  route("catalogue", "routes/catalogue.tsx"),
   route("items/:id", "routes/item.tsx"),
   route("calendar", "routes/calendar.tsx"),
   // Niente esportazione iCal globale: solo quella personale, una per persona.
@@ -37,6 +38,7 @@ export default [
   route("admin/kits/:id", "routes/admin.kits.$id.tsx"),
   route("admin/categories", "routes/admin.categories.tsx"),
   route("admin/log", "routes/admin.log.tsx"),
+  route("admin/landing", "routes/admin.landing.tsx"),
   // Lo scanner e la consegna che ne segue: l'indirizzo qui sotto è quello
   // stampato dentro al QR di ogni oggetto, quindi non si cambia a cuor
   // leggero — gli adesivi già attaccati continuerebbero a puntare qui.
@@ -48,6 +50,9 @@ export default [
   route("h/:code", "routes/h.$code.tsx"),
   route("reset-password", "routes/reset-password.tsx"),
   route("uploads/*", "routes/uploads.tsx"),
+  // Video del tutorial: rotta a sé perché va servito in streaming con
+  // supporto a `Range` (seek), a differenza delle foto qui sopra.
+  route("uploads/tutorial", "routes/uploads.tutorial.tsx"),
   // Chi tiene su la piattaforma chiede qui se è viva: Coolify per decidere se
   // il container nuovo può prendere il traffico, il tunnel per lo stesso.
   route("healthz", "routes/healthz.tsx"),

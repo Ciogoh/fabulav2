@@ -163,9 +163,7 @@ export function SiteHeader({
             più: l'intestazione era arrivata a 185px, cioè un quarto dello
             schermo prima di vedere un oggetto. */}
         <nav className="order-last flex w-full min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-sm sm:order-none sm:w-auto">
-          {/* `end` sul catalogo: senza, la rotta indice risulterebbe attiva
-              su ogni pagina, perché ogni percorso comincia per "/". */}
-          <NavLink to="/" end className={link}>
+          <NavLink to="/catalogue" className={link}>
             {t("nav.catalogue")}
           </NavLink>
           <NavLink to="/calendar" className={link}>
@@ -655,10 +653,12 @@ function ProfileMenu({
 
             {/* Rosso solo al passaggio, come la variante `danger` del
                 pulsante: l'uscita non è un allarme finché non la si sta
-                davvero premendo. */}
+                davvero premendo. A bandiera a destra: è l'unica voce che fa
+                uscire, e staccarla a destra la distingue da «Profilo» e
+                «Pelle» senza bisogno di un colore o di una riga divisoria. */}
             <button
               type="button"
-              className={`${ITEM} hover:text-out`}
+              className={`${ITEM} justify-end text-right hover:text-out`}
               onClick={() =>
                 // `navigate` e non un ricaricamento: il loader di root rilegge
                 // la sessione e l'intestazione si aggiorna da sola.
@@ -697,6 +697,7 @@ const MANAGE = [
   { to: "/admin/assets", key: "nav.adminAssets" },
   { to: "/admin/scan", key: "nav.adminScan" },
   { to: "/admin/log", key: "nav.adminLog" },
+  { to: "/admin/landing", key: "nav.adminLanding" },
 ] as const;
 
 function ManageMenu() {
