@@ -54,7 +54,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
    * scheda griderebbe più del contenuto. Ma dentro alla finestra di conferma
    * la situazione è rovesciata: lì la scelta è già stata fatta, ci sono due
    * pulsanti soli, e quello che distrugge è **l'azione principale di quel
-   * dialogo** — con la fattura del `danger` quieto restava meno vistoso di
+   * dialogo** — con la fattura del `danger` quieto restava meno toso di
    * «Annulla», che è l'esatto contrario di quello che deve succedere.
    *
    * Come il primario, il testo sopra il fondo pieno viene da un token

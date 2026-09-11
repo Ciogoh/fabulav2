@@ -204,6 +204,17 @@ export function SiteHeader({
 
           {user ? (
             <ProfileMenu user={user} chrome={chrome} skin={skin} />
+          ) : chrome ? (
+            // `--accent` nella pelle Riso è un magenta vicino a `--chrome-bg`:
+            // il pulsante "secondary" (bordo e testo `--accent`) ci spariva
+            // sopra. Qui usiamo `--chrome-ink`, lo stesso token già leggibile
+            // per "Catalogo"/"Calendario" su questa stessa fascia.
+            <Link
+              to="/signin"
+              className="inline-flex min-h-11 items-center justify-center rounded-sm border border-chrome-ink px-4 text-sm font-medium text-chrome-ink hover:bg-chrome-ink/10"
+            >
+              {t("nav.signIn")}
+            </Link>
           ) : (
             <ButtonLink to="/signin" variant="secondary" size="md">
               {t("nav.signIn")}
