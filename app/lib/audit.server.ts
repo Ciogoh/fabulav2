@@ -37,12 +37,21 @@ export type AdminActionKind =
   | "member.resetSent"
   | "asset.archived"
   | "asset.deleted"
-  | "asset.handover";
+  | "asset.handover"
+  | "tutorial.videoReplaced"
+  | "tutorial.videoRemoved"
+  | "landing.textUpdated";
 
 export async function logAdminAction(params: {
   actorId: string;
   action: AdminActionKind;
-  targetType: "Request" | "RequestItem" | "User" | "Asset";
+  targetType:
+    | "Request"
+    | "RequestItem"
+    | "User"
+    | "Asset"
+    | "TutorialVideo"
+    | "LandingContent";
   targetId: string;
   detail?: string;
 }): Promise<void> {

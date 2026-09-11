@@ -112,6 +112,9 @@ model User {
   adminActions    AdminAction[]
 
   pushSubscriptions PushSubscription[]
+
+  tutorialVideosUploaded TutorialVideo[]
+  landingContentUpdates  LandingContent[]
 }
 
 /// Un'iscrizione alle notifiche push: **una per dispositivo**, non per
@@ -483,4 +486,31 @@ model AdminAction {
 
   @@index([actorId])
   @@index([createdAt])
+}
+
+/// Il video del tutorial mostrato nella landing pubblica. Una riga sola:
+/// l'id è sempre la costante `TUTORIAL_VIDEO_ID` in `lib/uploads.server.ts`,
+/// mai generato — non c'è un secondo video da distinguere.
+model TutorialVideo {
+  id           String   @id
+  url          String
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  uploadedAt   DateTime @default(now())
+}
+
+/// Il testo dell'abstract mostrato nella landing pubblica, modificabile dagli
+/// admin da `/admin/landing`. Una riga sola, stesso schema di id fisso di
+/// `TutorialVideo` — la costante è `LANDING_CONTENT_ID` in
+/// `lib/landing-content.server.ts`. Tre campi e non una tabella più generica
+/// per lingua: l'interfaccia di Fabula è tipizzata a tre lingue fisse (vedi
+/// `LANGUAGES` in `i18n/dictionaries.ts`), non ne arriva una quarta.
+model LandingContent {
+  id           String   @id
+  abstractEn   String
+  abstractIt   String
+  abstractDe   String
+  updatedById  String
+  updatedBy    User     @relation(fields: [updatedById], references: [id])
+  updatedAt    DateTime @updatedAt
 }

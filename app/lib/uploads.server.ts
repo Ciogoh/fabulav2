@@ -11,12 +11,12 @@
  * escono dati di posizione dal telefono di chi le ha scattate.
  */
 
-import { mkdir, unlink } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import sharp from "sharp";
 import { isUploadedAvatar } from "~/lib/person";
-import { MAX_UPLOAD_BYTES } from "~/lib/uploads.shared";
+import { MAX_UPLOAD_BYTES, MAX_TUTORIAL_VIDEO_BYTES } from "~/lib/uploads.shared";
 
 export const UPLOAD_ROOT = path.join(process.cwd(), "data", "uploads");
 
@@ -174,4 +174,59 @@ export async function deleteAssetPhotoFiles(
       )
     )
   );
+}
+
+/* --------------------------------------------------- video del tutorial */
+
+/** L'id fisso dell'unica riga di `TutorialVideo`: non ce n'è un secondo da
+ * distinguere, quindi non si genera mai un id nuovo. */
+export const TUTORIAL_VIDEO_ID = "singleton";
+
+/**
+ * Il tipo vero letto dai byte, come per le immagini — ma qui è l'unica
+ * barriera: a differenza delle foto non c'è una libreria come `sharp` a
+ * rielaborare il file e fare da seconda verifica, quindi questo controllo
+ * resta più debole di `looksLikeImage`. Legge il box MP4 `ftyp` (quattro
+ * byte di dimensione, poi la sigla ASCII) e controlla anche che la
+ * dimensione dichiarata dal box abbia senso rispetto ai byte letti, non solo
+ * che la sigla combaci.
+ */
+function looksLikeVideo(buffer: Buffer): boolean {
+  if (buffer.length < 12) return false;
+  const boxSize = buffer.readUInt32BE(0);
+  const boxType = buffer.toString("ascii", 4, 8);
+  if (boxType !== "ftyp") return false;
+  return boxSize >= 8 && boxSize <= buffer.length;
+}
+
+/**
+ * Salva il video del tutorial così com'è, senza elaborazione: non c'è
+ * transcodifica nel progetto, quindi il file caricato è il file servito.
+ * Un'unica cartella piatta (`tutorial/`, non una per utente/oggetto): è una
+ * risorsa globale sola.
+ */
+export async function saveTutorialVideo(
+  file: File
+): Promise<{ ok: true; url: string } | { ok: false; error: "tooBig" | "invalidType" }> {
+  if (file.size > MAX_TUTORIAL_VIDEO_BYTES) return { ok: false, error: "tooBig" };
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (!looksLikeVideo(buffer)) return { ok: false, error: "invalidType" };
+
+  const dir = path.join(UPLOAD_ROOT, "tutorial");
+  await mkdir(dir, { recursive: true });
+
+  const fileId = randomUUID();
+  const filePath = path.join(dir, `${fileId}.mp4`);
+  await writeFile(filePath, buffer);
+
+  return { ok: true, url: `/uploads/tutorial/${fileId}.mp4` };
+}
+
+/** Cancellazione best-effort del video precedente: ogni `url` qui dentro è
+ * per costruzione un file nostro (mai un indirizzo esterno), quindi non
+ * serve il controllo che ha `deleteAvatarFile`. */
+export async function deleteTutorialVideoFile(url: string | null): Promise<void> {
+  if (!url) return;
+  await unlink(path.join(UPLOAD_ROOT, url.replace(/^\/uploads\//, ""))).catch(() => {});
 }

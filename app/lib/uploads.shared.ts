@@ -26,3 +26,11 @@ export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 /** Da mettere nell'attributo `accept` di un `<input type="file">`. */
 export const ACCEPTED_IMAGE_ACCEPT = ACCEPTED_IMAGE_TYPES.join(",");
+
+/** Duecento megabyte: un video del tutorial, non un archivio. */
+export const MAX_TUTORIAL_VIDEO_BYTES = 200 * 1024 * 1024;
+
+/** Un formato solo — mp4 — perché è l'unico che tutti i browser sanno
+ * riprodurre senza plugin, ed è quello che chiede il tag `<video>` nativo. */
+export const ACCEPTED_VIDEO_TYPES = ["video/mp4"];
+export const ACCEPTED_VIDEO_ACCEPT = ACCEPTED_VIDEO_TYPES.join(",");
