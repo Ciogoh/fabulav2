@@ -28,7 +28,20 @@ export function SiteFooter({ skin = "riso" }: { skin?: Skin }) {
     >
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <div className="flex flex-wrap items-center gap-x-2">
-          <span>{t("footer.credit")}</span>
+          <span>{t("footer.creditPrefix")}</span>
+          <a
+            href="https://mamabz.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={
+              chrome
+                ? "underline hover:text-chrome-ink transition-colors"
+                : "underline hover:text-ink transition-colors"
+            }
+          >
+            {t("footer.mama")}
+          </a>
+          <span>{t("footer.creditSuffix")}</span>
           <span>·</span>
           <a
             href="https://www.instagram.com/mama.bz/"

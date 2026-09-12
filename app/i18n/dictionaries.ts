@@ -77,8 +77,9 @@ const en = {
   "landing.subtitle": "The catalogue of tools and equipment of Fabula. Browse available items and borrow what you need for your projects.",
   "landing.goToCatalogue": "Go to catalogue",
 
-  "footer.credit": "Fabula is a project by MaMa · unibz · Bolzano",
+  "footer.creditPrefix": "Fabula is a project by",
   "footer.mama": "MaMa",
+  "footer.creditSuffix": "· unibz · Bolzano",
   "footer.unibz": "unibz",
   "footer.calendar": "Calendar",
 
@@ -642,8 +643,9 @@ const it: Dictionary = {
   "landing.subtitle": "Il catalogo degli strumenti e delle attrezzature di Fabula. Sfoglia gli oggetti disponibili, prenota ciò che ti serve per i tuoi progetti.",
   "landing.goToCatalogue": "Vai al catalogo",
 
-  "footer.credit": "Fabula è un progetto di MaMa · unibz · Bolzano",
+  "footer.creditPrefix": "Fabula è un progetto di",
   "footer.mama": "MaMa",
+  "footer.creditSuffix": "· unibz · Bolzano",
   "footer.unibz": "unibz",
   "footer.calendar": "Calendario",
 
@@ -1194,8 +1196,9 @@ const de: Dictionary = {
   "landing.subtitle": "Der Katalog der Werkzeuge und Ausrüstung von Fabula. Durchstöbere verfügbare Gegenstände und leih dir aus, was du für deine Projekte brauchst.",
   "landing.goToCatalogue": "Zum Katalog",
 
-  "footer.credit": "Fabula ist ein Projekt von MaMa · unibz · Bozen",
+  "footer.creditPrefix": "Fabula ist ein Projekt von",
   "footer.mama": "MaMa",
+  "footer.creditSuffix": "· unibz · Bozen",
   "footer.unibz": "unibz",
   "footer.calendar": "Kalender",
 
