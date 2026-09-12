@@ -42,7 +42,7 @@ export function SiteFooter({ skin = "riso" }: { skin?: Skin }) {
         </div>
         <div className="flex items-center gap-x-3">
           <a
-            href="https://www.instagram.com/mama.bz/"
+            href="https://www.instagram.com/mama.unibz/"
             target="_blank"
             rel="noopener noreferrer"
             aria-label={t("footer.instagram")}
