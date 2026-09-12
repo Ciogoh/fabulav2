@@ -1,5 +1,5 @@
 /**
- * Il piè di pagina: il credito e la versione.
+ * Il piè di pagina: il credito e la build.
  *
  * Prima non esisteva — la versione si vedeva solo nel registro admin e nella
  * schermata di errore. Con lo stile Riso il telaio prende anche il fondo, e
@@ -7,16 +7,23 @@
  *
  * Legge `--chrome-*`, come `site-header.tsx`: nel classico è lo stesso fondo
  * della pagina, nel Riso è la fascia colorata.
+ *
+ * A destra sta solo il numero di build (`BUILD_NUMBER`, non `versionLabel()`
+ * per esteso): qui basta sapere «quale copia sta girando», la versione e la
+ * data per esteso restano nel registro admin e nella schermata di errore,
+ * dove servono davvero.
  */
 
-import { Link } from "react-router";
 import { useT } from "~/i18n/use-t";
-import { versionLabel } from "~/lib/version";
+import { BUILD_NUMBER } from "~/lib/version";
 import type { Skin } from "~/lib/skin";
 
 export function SiteFooter({ skin = "riso" }: { skin?: Skin }) {
   const t = useT();
   const chrome = skin === "riso";
+  const linkClass = chrome
+    ? "underline hover:text-chrome-ink transition-colors"
+    : "underline hover:text-ink transition-colors";
 
   return (
     <footer
@@ -29,52 +36,40 @@ export function SiteFooter({ skin = "riso" }: { skin?: Skin }) {
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2">
         <div className="flex flex-wrap items-center gap-x-2">
           <span>{t("footer.creditPrefix")}</span>
-          <a
-            href="https://mamabz.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={
-              chrome
-                ? "underline hover:text-chrome-ink transition-colors"
-                : "underline hover:text-ink transition-colors"
-            }
-          >
+          <a href="https://mamabz.com" target="_blank" rel="noopener noreferrer" className={linkClass}>
             {t("footer.mama")}
           </a>
-          <span>{t("footer.creditSuffix")}</span>
-          <span>·</span>
+        </div>
+        <div className="flex items-center gap-x-3">
           <a
             href="https://www.instagram.com/mama.bz/"
             target="_blank"
             rel="noopener noreferrer"
-            className={
-              chrome
-                ? "underline hover:text-chrome-ink transition-colors"
-                : "underline hover:text-ink transition-colors"
-            }
+            aria-label={t("footer.instagram")}
+            className={chrome ? "text-chrome-muted hover:text-chrome-ink transition-colors" : "hover:text-ink transition-colors"}
           >
-            Instagram (MaMa)
+            <InstagramIcon className="h-4 w-4" />
           </a>
-          <span>·</span>
-          <a
-            href="https://www.unibz.it"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-chrome-ink transition-colors"
-          >
-            unibz
-          </a>
-        </div>
-        <div className="flex items-center gap-x-4">
-          <Link
-            to="/calendar"
-            className="underline hover:text-chrome-ink transition-colors"
-          >
-            {t("footer.calendar")}
-          </Link>
-          <span>{versionLabel()}</span>
+          <span>build {BUILD_NUMBER}</span>
         </div>
       </div>
     </footer>
+  );
+}
+
+function InstagramIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4.2" />
+      <circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" />
+    </svg>
   );
 }

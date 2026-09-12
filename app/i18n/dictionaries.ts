@@ -79,9 +79,7 @@ const en = {
 
   "footer.creditPrefix": "Fabula is a project by",
   "footer.mama": "MaMa",
-  "footer.creditSuffix": "· unibz · Bolzano",
-  "footer.unibz": "unibz",
-  "footer.calendar": "Calendar",
+  "footer.instagram": "Instagram (MaMa)",
 
   "nav.catalogue": "Catalogue",
   "nav.myRequests": "My requests",
@@ -645,9 +643,7 @@ const it: Dictionary = {
 
   "footer.creditPrefix": "Fabula è un progetto di",
   "footer.mama": "MaMa",
-  "footer.creditSuffix": "· unibz · Bolzano",
-  "footer.unibz": "unibz",
-  "footer.calendar": "Calendario",
+  "footer.instagram": "Instagram (MaMa)",
 
   "nav.catalogue": "Catalogo",
   "nav.myRequests": "Le mie richieste",
@@ -1198,9 +1194,7 @@ const de: Dictionary = {
 
   "footer.creditPrefix": "Fabula ist ein Projekt von",
   "footer.mama": "MaMa",
-  "footer.creditSuffix": "· unibz · Bozen",
-  "footer.unibz": "unibz",
-  "footer.calendar": "Kalender",
+  "footer.instagram": "Instagram (MaMa)",
 
   "nav.catalogue": "Katalog",
   "nav.myRequests": "Meine Anfragen",
