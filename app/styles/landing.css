@@ -2,7 +2,13 @@
   --landing-surface: var(--paper);
   --landing-text: var(--ink);
   --landing-line: var(--rule);
-  --landing-pink: var(--accent);
+  /* Il nome dice "pink", ma puntava a `--accent` — che nell'interfaccia è il
+     blu/indaco delle azioni, non il rosa del marchio, e nel tema scuro
+     schiarisce fino al lavanda: il logo grande smetteva di essere rosa
+     proprio nel tema scuro. `--brand` è il colore del marchio: resta
+     costante fra chiaro e scuro (cambia solo con la pelle), quindi il logo
+     centrale resta sempre rosa qui, ovunque nel sito. */
+  --landing-pink: var(--brand);
   color: var(--landing-text);
   background: var(--landing-surface);
   letter-spacing: 0;
