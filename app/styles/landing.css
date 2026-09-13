@@ -41,22 +41,15 @@
 .fabula-steps li:nth-child(2) { border-color: var(--held); }
 .fabula-steps li:nth-child(3) { border-color: var(--free); }
 .fabula-step-number { display: block; font-family: var(--font-mono); font-size: 14px; margin-bottom: 24px; }
-.fabula-steps p, .fabula-features p { margin-top: 12px; font-size: 15px; }
+.fabula-steps p { margin-top: 12px; font-size: 15px; }
 .fabula-inline-note { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--landing-line); }
 .fabula-inline-note p { max-width: 720px; font-size: 14px; }
 .fabula-inline-note .btn { flex-shrink: 0; }
-.fabula-platform { background: var(--free-bg); }
-.fabula-features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 56px; margin-top: 36px; }
-.fabula-features article { display: flex; align-items: flex-start; gap: 20px; padding-block: 26px; border-top: 1px solid var(--landing-line); }
-.fabula-trust { display: grid; grid-template-columns: 1fr 2fr; gap: 32px; border-top: 1px solid var(--landing-line); padding-top: 28px; margin-top: 16px; }
-.fabula-trust p { font-size: 15px; }
 .fabula-faq-layout { display: grid; grid-template-columns: 1fr 1.4fr; gap: 64px; }
 .fabula-faq details { border-top: 1px solid var(--landing-line); padding-block: 20px; }
 .fabula-faq details:last-child { border-bottom: 1px solid var(--landing-line); }
 .fabula-faq summary { cursor: pointer; font-size: 18px; line-height: 1.4; padding-right: 12px; }
 .fabula-faq details p { padding-top: 16px; font-size: 15px; }
-.fabula-closing { padding-block: 56px; text-align: center; background: var(--accent-soft); }
-.fabula-closing p { margin: 16px auto 24px; max-width: 620px; }
 @media (max-width: 760px) {
   .fabula-inner { width: calc(100% - 40px); }
   .fabula-hero { padding-top: 24px; }
@@ -68,10 +61,9 @@
   .fabula-landing h2 { font-size: 28px; }
   .fabula-landing h3 { font-size: 21px; }
   .fabula-section { padding-block: 48px; }
-  .fabula-steps, .fabula-features, .fabula-trust, .fabula-faq-layout { grid-template-columns: 1fr; gap: 24px; }
+  .fabula-steps, .fabula-faq-layout { grid-template-columns: 1fr; gap: 24px; }
   .fabula-steps { margin-top: 28px; }
   .fabula-step-number { margin-bottom: 12px; }
-  .fabula-features { gap: 0; }
   .fabula-inline-note { align-items: flex-start; flex-direction: column; }
 }
 @media (min-width: 761px) and (max-height: 740px) {
@@ -86,8 +78,6 @@
 }
 
 .fabula-hero-spacer { height: 48px; }
-.fabula-feature-star { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 4px; color: var(--landing-pink); }
-.fabula-features article > div { min-width: 0; }
 /* I marchi originali restano sul fondo carta, anche nel tema scuro:
    le scritte scure degli SVG devono rimanere leggibili. */
 .fabula-network { color-scheme: light; background: var(--landing-surface); color: var(--landing-text); }
