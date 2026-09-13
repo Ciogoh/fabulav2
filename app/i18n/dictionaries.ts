@@ -22,8 +22,7 @@ export const LANGUAGE_NAMES: Record<Lang, string> = {
 };
 
 const en = {
-  "landing.eyebrow": "Shared equipment · Bolzano",
-  "landing.promise": "Borrow what Material Matters owns, whenever your project needs it.",
+  "landing.promise": "Borrow what Material Matters owns.",
   "landing.intro": "Shared equipment for your projects. Choose, request and follow each loan, from collection to return.",
   "landing.howLink": "How borrowing works",
   "landing.openCatalogue": "Explore the catalogue without an account.",
@@ -40,8 +39,8 @@ const en = {
   "landing.faq.storage.question": "Where are the items stored?",
   "landing.faq.storage.answer": "Items are usually kept at the university in room C403. Further information will be provided when arranging the loan.",
   "landing.networkLabel": "The network",
-  "landing.networkTitle": "Supported by public funding and local associations.",
-  "landing.networkBody": "Promoted by the Autonomous Region of Trentino-South Tyrol. Supported by the Province and Municipality of Bolzano and Fondazione Cassa di Risparmio, alongside the student associations Inside and Young Inside.",
+  "landing.networkTitle": "A shared project, rooted in the community.",
+  "landing.networkBody": "Institutions, local initiatives and university associations: a network around shared resources and the people who use them.",
   "landing.partner.province": "Autonomous Province of Bolzano - South Tyrol",
   "landing.partner.city": "Municipality of Bolzano",
   "landing.faqLabel": "Before you start",
@@ -568,8 +567,7 @@ export type TranslationKey = keyof typeof en;
 type Dictionary = Record<TranslationKey, string>;
 
 const it: Dictionary = {
-  "landing.eyebrow": "Attrezzature condivise · Bolzano",
-  "landing.promise": "Prendi in prestito l'attrezzatura di Material Matters, quando il tuo progetto ne ha bisogno.",
+  "landing.promise": "Prendi in prestito l'attrezzatura di Material Matters.",
   "landing.intro": "Attrezzature condivise per i tuoi progetti. Scegli, richiedi e segui ogni prestito, dal ritiro alla restituzione.",
   "landing.howLink": "Come funziona il prestito",
   "landing.openCatalogue": "Puoi esplorare il catalogo senza un account.",
@@ -586,8 +584,8 @@ const it: Dictionary = {
   "landing.faq.storage.question": "Dove vengono tenuti gli oggetti?",
   "landing.faq.storage.answer": "Gli oggetti solitamente si trovano in università, nell’aula C403. Maggiori informazioni seguiranno al momento del prestito.",
   "landing.networkLabel": "La rete",
-  "landing.networkTitle": "Sostenuto da fondi pubblici e associazioni del territorio.",
-  "landing.networkBody": "Promosso dalla Regione autonoma Trentino-Alto Adige. Sostenuto dalla Provincia e dal Comune di Bolzano e dalla Fondazione Cassa di Risparmio, insieme alle associazioni studentesche Inside e Young Inside.",
+  "landing.networkTitle": "Un progetto condiviso, radicato nel territorio.",
+  "landing.networkBody": "Istituzioni, iniziative locali e associazioni universitarie: una rete attorno alle risorse condivise e alle persone che le utilizzano.",
   "landing.partner.province": "Provincia autonoma di Bolzano - Alto Adige",
   "landing.partner.city": "Comune di Bolzano",
   "landing.faqLabel": "Prima di iniziare",
@@ -1101,8 +1099,7 @@ const it: Dictionary = {
 };
 
 const de: Dictionary = {
-  "landing.eyebrow": "Gemeinsame Ausstattung · Bozen",
-  "landing.promise": "Leih dir aus, was Material Matters besitzt – immer wenn dein Projekt es braucht.",
+  "landing.promise": "Leih dir aus, was Material Matters besitzt.",
   "landing.intro": "Gemeinsame Ausstattung für deine Projekte. Auswählen, anfragen und jede Ausleihe von der Abholung bis zur Rückgabe verfolgen.",
   "landing.howLink": "So funktioniert die Ausleihe",
   "landing.openCatalogue": "Den Katalog kannst du ohne Konto ansehen.",
@@ -1119,8 +1116,8 @@ const de: Dictionary = {
   "landing.faq.storage.question": "Wo werden die Gegenstände aufbewahrt?",
   "landing.faq.storage.answer": "Die Gegenstände befinden sich normalerweise an der Universität im Raum C403. Weitere Informationen folgen bei der Vereinbarung der Ausleihe.",
   "landing.networkLabel": "Das Netzwerk",
-  "landing.networkTitle": "Unterstützt von öffentlichen Fördermitteln und lokalen Vereinen.",
-  "landing.networkBody": "Gefördert von der Autonomen Region Trentino-Südtirol. Unterstützt von der Autonomen Provinz Bozen, der Stadt Bozen und der Stiftung Sparkasse, gemeinsam mit den Hochschulvereinen Inside und Young Inside.",
+  "landing.networkTitle": "Ein gemeinsames Projekt, lokal verwurzelt.",
+  "landing.networkBody": "Institutionen, lokale Initiativen und Hochschulvereine: ein Netzwerk rund um gemeinsame Ressourcen und die Menschen, die sie nutzen.",
   "landing.partner.province": "Autonome Provinz Bozen - Südtirol",
   "landing.partner.city": "Gemeinde Bozen",
   "landing.faqLabel": "Bevor du loslegst",
