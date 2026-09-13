@@ -40,16 +40,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 const steps = ["discover", "request", "return"] as const;
-const features = ["availability", "messages", "reminders", "management"] as const;
 const questions = ["account", "confirmation", "collection", "storage"] as const;
-
-function FeatureStar() {
-  return (
-    <svg className="fabula-feature-star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-      <path d="m12 2 2.9 6.2 6.8.9-5 4.7 1.3 6.8-6-3.3-6 3.3 1.3-6.8-5-4.7 6.8-.9Z" />
-    </svg>
-  );
-}
 
 export default function Landing({ loaderData }: Route.ComponentProps) {
   const t = useT();
@@ -101,32 +92,10 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
         </div>
       </section>
 
-      <section className="fabula-section fabula-platform" aria-labelledby="platform-title">
-        <div className="fabula-inner">
-          <div className="fabula-section-heading">
-            <p className="fabula-kicker">02 / {t("landing.platformLabel")}</p>
-            <h2 id="platform-title">{t("landing.platformTitle")}</h2>
-            <p>{t("landing.platformIntro")}</p>
-          </div>
-          <div className="fabula-features">
-            {features.map((feature) => (
-              <article key={feature}>
-                <FeatureStar />
-                <div><h3>{t(`landing.${feature}.title`)}</h3><p>{t(`landing.${feature}.body`)}</p></div>
-              </article>
-            ))}
-          </div>
-          <div className="fabula-trust">
-            <h3>{t("landing.trustTitle")}</h3>
-            <p>{t("landing.trustBody")}</p>
-          </div>
-        </div>
-      </section>
-
       <section className="fabula-section fabula-network" aria-labelledby="network-title">
         <div className="fabula-inner">
           <div className="fabula-section-heading">
-            <p className="fabula-kicker">03 / {t("landing.networkLabel")}</p>
+            <p className="fabula-kicker">02 / {t("landing.networkLabel")}</p>
             <h2 id="network-title">{t("landing.networkTitle")}</h2>
             <p>{t("landing.networkBody")}</p>
           </div>
@@ -143,7 +112,7 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
       <section className="fabula-section fabula-faq" aria-labelledby="faq-title">
         <div className="fabula-inner fabula-faq-layout">
           <div className="fabula-section-heading">
-            <p className="fabula-kicker">04 / {t("landing.faqLabel")}</p>
+            <p className="fabula-kicker">03 / {t("landing.faqLabel")}</p>
             <h2 id="faq-title">{t("landing.faqTitle")}</h2>
           </div>
           <div>
@@ -157,13 +126,6 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
         </div>
       </section>
 
-      <section className="fabula-closing" aria-labelledby="closing-title">
-        <div className="fabula-inner">
-          <h2 id="closing-title">{t("landing.closingTitle")}</h2>
-          <p>{t("landing.closingBody")}</p>
-          <ButtonLink to="/catalogue" variant="primary">{t("landing.goToCatalogue")}</ButtonLink>
-        </div>
-      </section>
       {tutorialOpen && (
         <Dialog onClose={onCloseTutorial} labelledBy="tutorial-title" panelClassName="max-w-3xl">
           <div className="flex items-center justify-between gap-4">
