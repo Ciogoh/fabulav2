@@ -8,10 +8,10 @@
  * Legge `--chrome-*`, come `site-header.tsx`: nel classico è lo stesso fondo
  * della pagina, nel Riso è la fascia colorata.
  *
- * A destra sta solo il numero di build (`BUILD_NUMBER`, non `versionLabel()`
- * per esteso): qui basta sapere «quale copia sta girando», la versione e la
- * data per esteso restano nel registro admin e nella schermata di errore,
- * dove servono davvero.
+ * A destra sta solo il numero di build, come `v72` (`BUILD_NUMBER`, non
+ * `versionLabel()` per esteso): qui basta sapere «quale copia sta girando»,
+ * la versione e la data per esteso restano nel registro admin e nella
+ * schermata di errore, dove servono davvero.
  */
 
 import { useT } from "~/i18n/use-t";
@@ -50,7 +50,7 @@ export function SiteFooter({ skin = "riso" }: { skin?: Skin }) {
           >
             <InstagramIcon className="h-4 w-4" />
           </a>
-          <span>build {BUILD_NUMBER}</span>
+          <span>v{BUILD_NUMBER}</span>
         </div>
       </div>
     </footer>

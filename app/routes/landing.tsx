@@ -51,7 +51,6 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
     <main className="fabula-landing">
       <section className="fabula-hero" aria-labelledby="fabula-title">
         <div className="fabula-inner">
-          <p className="fabula-kicker">{t("landing.eyebrow")}</p>
           <h1 id="fabula-title"><span className="sr-only">Fabula</span><span aria-hidden="true"><Logo className="fabula-wordmark" tone="current" /></span></h1>
           <p className="fabula-promise">{t("landing.promise")}</p>
           <p className="fabula-intro">{loaderData.abstract}</p>
