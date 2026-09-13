@@ -22,7 +22,7 @@ export const LANGUAGE_NAMES: Record<Lang, string> = {
 };
 
 const en = {
-  "landing.promise": "Borrow what Material Matters owns.",
+  "landing.promise": "Borrow what you need.",
   "landing.intro": "Shared equipment for your projects. Choose, request and follow each loan, from collection to return.",
   "landing.howLink": "How borrowing works",
   "landing.openCatalogue": "Explore the catalogue without an account.",
@@ -567,7 +567,7 @@ export type TranslationKey = keyof typeof en;
 type Dictionary = Record<TranslationKey, string>;
 
 const it: Dictionary = {
-  "landing.promise": "Prendi in prestito l'attrezzatura di Material Matters.",
+  "landing.promise": "Prendi in prestito quello che ti serve.",
   "landing.intro": "Attrezzature condivise per i tuoi progetti. Scegli, richiedi e segui ogni prestito, dal ritiro alla restituzione.",
   "landing.howLink": "Come funziona il prestito",
   "landing.openCatalogue": "Puoi esplorare il catalogo senza un account.",
@@ -1099,7 +1099,7 @@ const it: Dictionary = {
 };
 
 const de: Dictionary = {
-  "landing.promise": "Leih dir aus, was Material Matters besitzt.",
+  "landing.promise": "Leih dir aus, was du brauchst.",
   "landing.intro": "Gemeinsame Ausstattung für deine Projekte. Auswählen, anfragen und jede Ausleihe von der Abholung bis zur Rückgabe verfolgen.",
   "landing.howLink": "So funktioniert die Ausleihe",
   "landing.openCatalogue": "Den Katalog kannst du ohne Konto ansehen.",
