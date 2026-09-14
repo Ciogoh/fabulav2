@@ -81,11 +81,16 @@
 /* I marchi originali restano sul fondo carta, anche nel tema scuro:
    le scritte scure degli SVG devono rimanere leggibili. */
 .fabula-network { color-scheme: light; background: var(--landing-surface); color: var(--landing-text); }
-.fabula-partners { display: grid; grid-template-columns: 1.35fr 1fr 1.1fr .9fr .9fr 1.1fr; align-items: center; gap: 32px; margin: 40px 0 0; padding: 28px 0; list-style: none; border-block: 1px solid var(--landing-line); }
+.fabula-partner-lead { display: flex; justify-content: center; margin-top: 40px; }
+.fabula-partner-lead img { display: block; width: auto; height: 56px; }
+.fabula-partner-groups { margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--landing-line); display: flex; flex-direction: column; gap: 28px; }
+.fabula-partner-groups .eyebrow { display: block; margin-bottom: 16px; }
+.fabula-partners { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); align-items: center; gap: 28px; list-style: none; margin: 0; padding: 0; }
 .fabula-partners li { display: flex; align-items: center; justify-content: center; min-width: 0; }
-.fabula-partners img { display: block; width: 100%; height: 88px; object-fit: contain; }
+.fabula-partners img { display: block; width: 100%; height: 72px; object-fit: contain; }
 @media (max-width: 760px) {
   .fabula-hero-spacer { height: 32px; }
-  .fabula-partners { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 24px; }
-  .fabula-partners img { height: 80px; }
+  .fabula-partner-lead img { height: 48px; }
+  .fabula-partners { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  .fabula-partners img { height: 64px; }
 }
