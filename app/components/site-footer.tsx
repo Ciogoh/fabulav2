@@ -18,6 +18,11 @@
  * in un contenitore flex con gap, ma una frase sola con le virgole vere: un
  * gap uniforme fra figli avrebbe messo uno spazio anche prima di ogni
  * virgola ("MaMa , BITZ FabLab").
+ *
+ * **L'icona di Instagram sta subito dopo «MaMa», non isolata a destra.**
+ * Prima galleggiava accanto alla build, senza dire di chi fosse: era
+ * l'Instagram di MaMa, ma niente lo collegava al nome. Ora è lì, come un
+ * quarto elemento della stessa frase, e a destra resta solo la build.
  */
 
 import { useT } from "~/i18n/use-t";
@@ -48,6 +53,15 @@ export function SiteFooter({ skin = "riso" }: { skin?: Skin }) {
           {t("footer.creditPrefix")}{" "}
           <a href="https://mamabz.com" target="_blank" rel="noopener noreferrer" className={linkClass}>
             {t("footer.mama")}
+          </a>{" "}
+          <a
+            href="https://www.instagram.com/mama.unibz/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("footer.instagram")}
+            className={`inline-flex align-middle ${chrome ? "text-chrome-muted hover:text-chrome-ink" : "text-muted hover:text-ink"} transition-colors`}
+          >
+            <InstagramIcon className="h-3.5 w-3.5" />
           </a>
           {", "}
           <a href="https://bitzfablab.unibz.it/" target="_blank" rel="noopener noreferrer" className={linkClass}>
@@ -55,18 +69,7 @@ export function SiteFooter({ skin = "riso" }: { skin?: Skin }) {
           </a>
           {t("footer.creditSuffix")}
         </p>
-        <div className="flex items-center gap-x-3">
-          <a
-            href="https://www.instagram.com/mama.unibz/"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={t("footer.instagram")}
-            className={chrome ? "text-chrome-muted hover:text-chrome-ink transition-colors" : "hover:text-ink transition-colors"}
-          >
-            <InstagramIcon className="h-4 w-4" />
-          </a>
-          <span>v{BUILD_NUMBER}</span>
-        </div>
+        <span>v{BUILD_NUMBER}</span>
       </div>
     </footer>
   );
