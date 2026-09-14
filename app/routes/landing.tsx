@@ -104,6 +104,7 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
             <li><img src="/icons/loghi/sparkasse.svg" alt="Stiftung Fondazione Sparkasse" loading="lazy" width="693" height="283" /></li>
             <li><img src="/icons/loghi/inside.svg" alt="Inside" loading="lazy" width="621" height="390" /></li>
             <li><img src="/icons/loghi/young-inside.svg" alt="Young Inside" loading="lazy" width="525" height="226" /></li>
+            <li><img src="/icons/loghi/rigenera-logo-trasp.png" alt="Rigenera by Generazioni" loading="lazy" width="1005" height="324" /></li>
           </ul>
         </div>
       </section>

@@ -58,8 +58,10 @@ const en = {
   "landing.subtitle": "The catalogue of tools and equipment of Fabula. Browse available items and borrow what you need for your projects.",
   "landing.goToCatalogue": "Go to catalogue",
 
-  "footer.creditPrefix": "Fabula is a project by",
+  "footer.creditPrefix": "Fabula is a project by the FABULA COLLECTIVE:",
   "footer.mama": "MaMa",
+  "footer.bitz": "BITZ FabLab",
+  "footer.creditSuffix": ", Dario Vedova, Lorenzo Del Forno, Aurora Zampedri and Gioele Maines",
   "footer.instagram": "Instagram (MaMa)",
 
   "nav.catalogue": "Catalogue",
@@ -603,8 +605,10 @@ const it: Dictionary = {
   "landing.subtitle": "Il catalogo degli strumenti e delle attrezzature di Fabula. Sfoglia gli oggetti disponibili, prenota ciò che ti serve per i tuoi progetti.",
   "landing.goToCatalogue": "Vai al catalogo",
 
-  "footer.creditPrefix": "Fabula è un progetto di",
+  "footer.creditPrefix": "Fabula è un progetto del FABULA COLLECTIVE, composto da",
   "footer.mama": "MaMa",
+  "footer.bitz": "BITZ FabLab",
+  "footer.creditSuffix": ", Dario Vedova, Lorenzo Del Forno, Aurora Zampedri e Gioele Maines",
   "footer.instagram": "Instagram (MaMa)",
 
   "nav.catalogue": "Catalogo",
@@ -1135,8 +1139,10 @@ const de: Dictionary = {
   "landing.subtitle": "Der Katalog der Werkzeuge und Ausrüstung von Fabula. Durchstöbere verfügbare Gegenstände und leih dir aus, was du für deine Projekte brauchst.",
   "landing.goToCatalogue": "Zum Katalog",
 
-  "footer.creditPrefix": "Fabula ist ein Projekt von",
+  "footer.creditPrefix": "Fabula ist ein Projekt des FABULA COLLECTIVE:",
   "footer.mama": "MaMa",
+  "footer.bitz": "BITZ FabLab",
+  "footer.creditSuffix": ", Dario Vedova, Lorenzo Del Forno, Aurora Zampedri und Gioele Maines",
   "footer.instagram": "Instagram (MaMa)",
 
   "nav.catalogue": "Katalog",
