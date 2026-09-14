@@ -98,14 +98,36 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
             <h2 id="network-title">{t("landing.networkTitle")}</h2>
             <p>{t("landing.networkBody")}</p>
           </div>
-          <ul className="fabula-partners" aria-label={t("landing.networkLabel")}>
-            <li><img src="/icons/loghi/provincia-autonoma-bz.svg" alt={t("landing.partner.province")} loading="lazy" width="835" height="218" /></li>
-            <li><img src="/icons/loghi/citta-di-bolzano.svg" alt={t("landing.partner.city")} loading="lazy" width="640" height="278" /></li>
-            <li><img src="/icons/loghi/sparkasse.svg" alt="Stiftung Fondazione Sparkasse" loading="lazy" width="693" height="283" /></li>
-            <li><img src="/icons/loghi/inside.svg" alt="Inside" loading="lazy" width="621" height="390" /></li>
-            <li><img src="/icons/loghi/young-inside.svg" alt="Young Inside" loading="lazy" width="525" height="226" /></li>
-            <li><img src="/icons/loghi/rigenera-logo-trasp.png" alt="Rigenera by Generazioni" loading="lazy" width="1005" height="324" /></li>
-          </ul>
+          {/* Il logo di Rigenera sta a sé, senza etichetta "by": nel
+              materiale ufficiale (fascia-loghi-rigenera26) è lui il marchio
+              in testa, non uno dei partner elencati sotto. Gli altri sei
+              seguono lo stesso ordine e lo stesso raggruppamento di
+              quella fascia — "Organized by" e "Supported by". "Promoted
+              by" (Regione Autonoma Trentino-Alto Adige) manca perché non
+              abbiamo ancora il file del logo: va aggiunto quando arriva. */}
+          <div className="fabula-partner-lead">
+            <a href="https://www.generazioni.online/rigenera" target="_blank" rel="noopener noreferrer">
+              <img src="/icons/loghi/rigenera-logo-trasp.png" alt="Rigenera by Generazioni" loading="lazy" width="1005" height="324" />
+            </a>
+          </div>
+
+          <div className="fabula-partner-groups">
+            <div>
+              <p className="eyebrow">{t("landing.partner.organizedBy")}</p>
+              <ul className="fabula-partners">
+                <li><img src="/icons/loghi/young-inside.svg" alt="Young Inside" loading="lazy" width="525" height="226" /></li>
+                <li><img src="/icons/loghi/inside.svg" alt="Inside" loading="lazy" width="621" height="390" /></li>
+              </ul>
+            </div>
+            <div>
+              <p className="eyebrow">{t("landing.partner.supportedBy")}</p>
+              <ul className="fabula-partners">
+                <li><img src="/icons/loghi/provincia-autonoma-bz.svg" alt={t("landing.partner.province")} loading="lazy" width="835" height="218" /></li>
+                <li><img src="/icons/loghi/citta-di-bolzano.svg" alt={t("landing.partner.city")} loading="lazy" width="640" height="278" /></li>
+                <li><img src="/icons/loghi/sparkasse.svg" alt="Stiftung Fondazione Sparkasse" loading="lazy" width="693" height="283" /></li>
+              </ul>
+            </div>
+          </div>
         </div>
       </section>
 
