@@ -12,6 +12,12 @@
  * `versionLabel()` per esteso): qui basta sapere «quale copia sta girando»,
  * la versione e la data per esteso restano nel registro admin e nella
  * schermata di errore, dove servono davvero.
+ *
+ * Il credito nomina il FABULA COLLECTIVE per esteso — MaMa e BITZ FabLab
+ * linkati ai rispettivi siti, le quattro persone no. Non è a pezzi separati
+ * in un contenitore flex con gap, ma una frase sola con le virgole vere: un
+ * gap uniforme fra figli avrebbe messo uno spazio anche prima di ogni
+ * virgola ("MaMa , BITZ FabLab").
  */
 
 import { useT } from "~/i18n/use-t";
@@ -34,12 +40,21 @@ export function SiteFooter({ skin = "riso" }: { skin?: Skin }) {
       }
     >
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <div className="flex flex-wrap items-center gap-x-2">
-          <span>{t("footer.creditPrefix")}</span>
+        {/* Frase unica, non a pezzi in flex con gap: i nomi sono separati da
+            virgole vere ("MaMa, BITZ FabLab, Dario Vedova...") e un gap
+            uniforme fra figli flex avrebbe messo uno spazio anche prima di
+            ogni virgola. Qui il testo scorre come una frase normale. */}
+        <p className="max-w-3xl">
+          {t("footer.creditPrefix")}{" "}
           <a href="https://mamabz.com" target="_blank" rel="noopener noreferrer" className={linkClass}>
             {t("footer.mama")}
           </a>
-        </div>
+          {", "}
+          <a href="https://bitzfablab.unibz.it/" target="_blank" rel="noopener noreferrer" className={linkClass}>
+            {t("footer.bitz")}
+          </a>
+          {t("footer.creditSuffix")}
+        </p>
         <div className="flex items-center gap-x-3">
           <a
             href="https://www.instagram.com/mama.unibz/"
