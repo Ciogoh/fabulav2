@@ -69,6 +69,18 @@ RUN pnpm exec prisma generate
 
 COPY . .
 
+# Diagnostica temporanea: due tentativi (edc9cce, 0d34185) di correggere
+# "build ?" in produzione hanno dato per scontato *perché* git fallisse
+# (prima "dubious ownership", poi verificato che non lo era) senza mai
+# vedere l'errore vero al momento giusto — `versionStamp` lo cattura solo
+# dopo, filtrato da `execSync`. Questa riga lo mostra crudo, qui, prima di
+# qualunque altro sospetto. Va tolta una volta letto il log del prossimo
+# deploy.
+RUN echo "--- diagnostica .git ---" \
+    && ls -la .git 2>&1 || true \
+    && git rev-parse --short HEAD 2>&1 || true \
+    && echo "--- fine diagnostica ---"
+
 RUN pnpm run build
 
 FROM base
