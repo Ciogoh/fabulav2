@@ -36,7 +36,18 @@ FROM base AS build-env
 # finale parte da `base`, quindi installarlo lì lo spedirebbe in produzione per
 # niente. Questo stadio invece viene buttato via — ne sopravvivono solo
 # `build/`. Prima di ogni `COPY`, così resta nella cache e non si riscarica.
-RUN apk add --no-cache git
+#
+# **`safe.directory` non è decorazione: senza, la produzione mostrava sempre
+# `build ?`.** Git 2.35+ rifiuta di leggere un repository il cui proprietario
+# non combacia con l'utente che lo interroga ("dubious ownership") — ed è
+# esattamente il caso qui: Coolify clona `/artifacts/<uuid>` con un utente
+# suo sull'host, quel contesto arriva nella build con quella proprietà, e
+# `git rev-list` (chiamato da `vite.config.ts`) lo trova sospetto e fallisce
+# in silenzio (l'errore vero è nascosto apposta, vedi lì il perché). `*`
+# fida di qualunque cartella, e va bene: questo stadio viene buttato via, non
+# resta niente da cui qualcun altro possa approfittarsene.
+RUN apk add --no-cache git \
+    && git config --global --add safe.directory '*'
 
 # I manifesti servono anche qui, e non per scrupolo: `pnpm exec` fa scattare
 # un controllo automatico delle dipendenze, e senza `package.json` accanto a
@@ -57,16 +68,6 @@ ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build"
 RUN pnpm exec prisma generate
 
 COPY . .
-
-# Lo sha del commit, per la riga di versione quando `.git` non basta.
-#
-# `versionStamp` conta i commit con `git rev-list --count HEAD`, che vuole la
-# storia intera. Coolify però clona in profondità 1: il conteggio darebbe `1`
-# **senza errore**, quindi in silenzio, per sempre. Coolify passa da sé un
-# argomento di costruzione `SOURCE_COMMIT`; quando c'è, vince lui.
-# Vuoto in locale, dove `.git` c'è davvero e il conteggio è quello giusto.
-ARG SOURCE_COMMIT=""
-ENV SOURCE_COMMIT=$SOURCE_COMMIT
 
 RUN pnpm run build
 
