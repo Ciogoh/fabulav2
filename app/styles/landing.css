@@ -107,7 +107,10 @@
 .fabula-partner-lead { display: flex; justify-content: center; margin-top: 40px; }
 .fabula-partner-lead img { display: block; width: auto; height: 56px; }
 .fabula-partner-groups { margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--landing-line); display: flex; flex-direction: column; gap: 28px; }
-.fabula-partner-groups .eyebrow { display: block; margin-bottom: 16px; }
+/* Più grandi e più marcate della normale `eyebrow` (11px, --muted): qui sono
+   titoli di gruppo per un'intera fila di loghi, non un'etichetta accanto a
+   un campo — a quella misura si perdevano nel resto della pagina. */
+.fabula-partner-groups .eyebrow { display: block; margin-bottom: 16px; font-size: 13px; font-weight: 600; color: var(--landing-text); }
 .fabula-partners { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); align-items: center; gap: 28px; list-style: none; margin: 0; padding: 0; }
 .fabula-partners li { display: flex; align-items: center; justify-content: center; min-width: 0; }
 .fabula-partners img { display: block; width: 100%; height: 72px; object-fit: contain; }
