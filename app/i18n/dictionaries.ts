@@ -151,6 +151,10 @@ const en = {
   "signin.havePassword": "I have a password",
   "signin.useCode": "Use a code instead",
   "signin.password": "Password",
+  // Namespace condiviso: lo stesso occhiello serve qui, in reset-password.tsx
+  // e in welcome.tsx — vedi components/password-field.tsx.
+  "password.show": "Show password",
+  "password.hide": "Hide password",
   "signin.failed": "That did not work. Check the address and try again.",
   "signin.badCode": "Wrong or expired code.",
   "signin.tooManyRequests": "Too many tries in a short time. Wait a minute and try again.",
@@ -696,6 +700,8 @@ const it: Dictionary = {
   "signin.havePassword": "Ho una password",
   "signin.useCode": "Usa invece un codice",
   "signin.password": "Password",
+  "password.show": "Mostra la password",
+  "password.hide": "Nascondi la password",
   "signin.failed": "Non ha funzionato. Controlla l'indirizzo e riprova.",
   "signin.badCode": "Codice sbagliato o scaduto.",
   "signin.tooManyRequests": "Troppi tentativi in poco tempo. Aspetta un minuto e riprova.",
@@ -1234,6 +1240,8 @@ const de: Dictionary = {
   "signin.havePassword": "Ich habe ein Passwort",
   "signin.useCode": "Lieber einen Code",
   "signin.password": "Passwort",
+  "password.show": "Passwort anzeigen",
+  "password.hide": "Passwort verbergen",
   "signin.failed": "Hat nicht geklappt. Prüfe die Adresse und versuche es nochmal.",
   "signin.badCode": "Code falsch oder abgelaufen.",
   "signin.tooManyRequests": "Zu viele Versuche in kurzer Zeit. Warte eine Minute und versuche es erneut.",

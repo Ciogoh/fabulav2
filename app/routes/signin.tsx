@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/signin";
 import { PageShell } from "~/components/page";
+import { PasswordField } from "~/components/password-field";
 import { Button, buttonClass } from "~/components/button";
 import { pageTitle } from "~/i18n/meta";
 import { authClient } from "~/lib/auth-client";
@@ -334,10 +335,9 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
                 autoComplete="email"
                 required
               />
-              <Field
+              <PasswordField
                 label={t("signin.password")}
                 name="password"
-                type="password"
                 autoComplete="current-password"
                 required
               />

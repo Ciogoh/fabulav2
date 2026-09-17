@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/reset-password";
 import { PageShell } from "~/components/page";
+import { PasswordField } from "~/components/password-field";
 import { buttonClass } from "~/components/button";
 import { pageTitle } from "~/i18n/meta";
 import { authClient } from "~/lib/auth-client";
@@ -72,18 +73,16 @@ export default function ResetPassword() {
             <p className="mt-2 text-sm text-muted">{t("resetPassword.intro")}</p>
 
             <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-              <Field
+              <PasswordField
                 label={t("resetPassword.newPassword")}
                 name="newPassword"
-                type="password"
                 autoComplete="new-password"
                 minLength={10}
                 required
               />
-              <Field
+              <PasswordField
                 label={t("resetPassword.confirmPassword")}
                 name="confirmPassword"
-                type="password"
                 autoComplete="new-password"
                 minLength={10}
                 required
@@ -106,31 +105,5 @@ export default function ResetPassword() {
         )}
       </PageShell>
     </main>
-  );
-}
-
-function Field({
-  label,
-  name,
-  ...rest
-}: {
-  label: string;
-  name: string;
-} & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label
-        htmlFor={name}
-        className="eyebrow"
-      >
-        {label}
-      </label>
-      <input
-        id={name}
-        name={name}
-        className="min-h-11 rounded-sm border border-rule bg-card px-3 py-2.5 text-sm"
-        {...rest}
-      />
-    </div>
   );
 }
