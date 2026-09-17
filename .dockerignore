@@ -25,13 +25,20 @@ app/generated
 build
 .react-router
 
-# `.git` **non** è escluso, ed è una scelta.
+# `.git` **non** è escluso, ed è una scelta — anche se su Coolify non basta.
 #
-# La riga di versione mostra `build 27`, cioè il numero di commit, e quel
-# numero lo sa solo git: escludendo `.git` dentro al container non c'è niente
-# da leggere e bisognerebbe passare il valore come argomento di costruzione a
-# ogni rilascio — cioè un gesto da ricordare, che è il genere di gesto che si
-# dimentica. Costa 2,3 MB su un contesto di 5,7.
+# Quando `.git` c'è (sviluppo locale, o una build fatta a mano altrove con un
+# clone vero — la «via di fuga» del `docker-compose.yml`, vedi CLAUDE.md), la
+# riga di versione mostra il conteggio dei commit, e quel numero lo sa solo
+# git. Escluderlo qui vorrebbe dire non poterlo mai leggere in quei casi, per
+# 2,3 MB risparmiati su un contesto di 5,7 — non ne vale la pena.
+#
+# **Su Coolify però non serve a niente**, e non per colpa di questa riga:
+# verificato con un log di build crudo il 2026-09-17, `.git` non arriva
+# proprio nel contesto — Coolify lo toglie a monte, prima che Docker veda
+# qualunque cosa, quindi né `.dockerignore` né il `Dockerfile` possono
+# cambiarlo. `versionStamp` in `vite.config.ts` lo sa e ripiega da solo su un
+# altro tipo di impronta quando git non risponde — vedi lì il perché.
 #
 # Non è in contraddizione con l'esclusione del `.env` qui sopra: quello
 # contiene segreti vivi che in git non ci sono, quindi lo strato intermedio
@@ -42,12 +49,6 @@ build
 #
 # Vale finché nella storia non finisce un segreto. Se succede, il problema è
 # il commit — ma allora questa riga va rimessa.
-#
-# Nota per chi costruisce su Coolify: lì `.git` c'è ma è un clone di
-# profondità 1, quindi il conteggio dei commit darebbe `1` in silenzio.
-# `versionStamp` in `vite.config.ts` lo riconosce e usa lo sha corto al suo
-# posto — vedi lì il perché (non è più `SOURCE_COMMIT`, che Coolify non passa
-# mai: verificato coi log veri del 2026-09-17).
 
 # Non servono a `vite build`.
 .gitignore
