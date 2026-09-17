@@ -18,6 +18,14 @@
  *   si leggeva da nessuna parte e la foto non si ingrandiva.
  * - **Una griglia sola.** I kit stavano in una griglia a due colonne sopra
  *   una griglia a tre: due larghezze di scheda diverse, una sotto l'altra.
+ *
+ * **La veste visiva è quella dei token in `app.css`, mai colori scritti a
+ * mano qui dentro.** Una versione precedente aveva sostituito bordo, fondo e
+ * pulsanti con esadecimali fissi (`#2B0016`, `#FFAC00`, …) per provare uno
+ * stile «riso»: il risultato restava identico a ogni cambio di pelle o tema,
+ * perché niente in quella schermata leggeva più `--card`, `--rule`,
+ * `--accent`. Lo stile alternativo esiste già, ed è `data-skin="riso"` in
+ * `app.css` — si sceglie da lì, non da un colore incollato in un componente.
  */
 
 import { Link, useSearchParams, useSubmit } from "react-router";
@@ -53,6 +61,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   const categorySlug = url.searchParams.get("cat");
   const query = (url.searchParams.get("q") ?? "").trim();
 
+  // Nome oppure categoria: chi cerca «audio» pensa alla categoria, chi cerca
+  // «SM58» pensa all'oggetto, e nessuno dei due vuole sapere quale dei due
+  // campi sta interrogando.
   const search = query
     ? {
         OR: [
@@ -71,11 +82,15 @@ export async function loader({ request }: Route.LoaderArgs) {
       db.category.findMany({ orderBy: { sortOrder: "asc" } }),
       db.asset.findMany({
         where: {
+          // Archiviato vuol dire «non è più roba nostra»: fuori dal catalogo,
+          // fuori dal conteggio, fuori dai kit.
           archivedAt: null,
           ...(categorySlug ? { category: { slug: categorySlug } } : {}),
           ...search,
         },
         orderBy: [{ category: { sortOrder: "asc" } }, { name: "asc" }],
+        // Campo per campo, mai `include`: `location` e `adminNotes` non
+        // devono poter finire in una risposta pubblica per distrazione.
         select: {
           id: true,
           name: true,
@@ -115,6 +130,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   return {
     assets,
+    // I kit sono scorciatoie del catalogo intero: filtrarne uno a metà
+    // darebbe un «kit audio» senza le casse. Spariscono quando si filtra.
     kits: categorySlug || query ? [] : kits,
     categories,
     availability,
@@ -148,9 +165,9 @@ export default function Catalogue({ loaderData }: Route.ComponentProps) {
         />
       </div>
 
-      <main className="bg-[#FFF6E8]">
+      <main>
         <PageShell className="pb-32 pt-8">
-          <p className="eyebrow text-[#2B0016]">
+          <p className="eyebrow">
             {filtered
               ? t("catalogue.showingSome", {
                   count: assets.length,
@@ -159,7 +176,12 @@ export default function Catalogue({ loaderData }: Route.ComponentProps) {
               : t("catalogue.showingAll", { count: assets.length })}
           </p>
 
-          <div className="mt-6 grid items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Una griglia sola per kit e oggetti: stessa larghezza di scheda,
+              stessa colonna sinistra, nessun salto fra le due sezioni.
+              `items-start` perché finché le foto sono poche una scheda con
+              foto è alta il triplo delle altre: senza, le vicine si
+              stiravano fino a diventare riquadri quasi vuoti. */}
+          <div className="mt-6 grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {kits.map((kit) => (
               <KitCard
                 key={kit.id}
@@ -183,7 +205,7 @@ export default function Catalogue({ loaderData }: Route.ComponentProps) {
           </div>
 
           {assets.length === 0 && (
-            <p className="mt-16 text-center text-muted font-mono">{t("catalogue.empty")}</p>
+            <p className="mt-16 text-center text-muted">{t("catalogue.empty")}</p>
           )}
         </PageShell>
       </main>
@@ -207,9 +229,15 @@ function FilterBar({
   const t = useT();
   const submit = useSubmit();
   const formRef = useRef<HTMLFormElement>(null);
+  // Campo controllato, ma il valore di partenza arriva dal server: così
+  // tornando indietro col browser la casella mostra quello che sta filtrando.
   const [value, setValue] = useState(query);
   useEffect(() => setValue(query), [query]);
 
+  /* Si cerca mentre si scrive, con un respiro: senza il ritardo ogni tasto
+     sarebbe una richiesta al server. `replace` per non riempire la cronologia
+     di uno stato per lettera — il tasto «indietro» deve riportare al catalogo
+     intero, non a «SM5». */
   useEffect(() => {
     if (value === query) return;
     const timer = setTimeout(() => {
@@ -218,21 +246,19 @@ function FilterBar({
       }
     }, 250);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   return (
-    <div className="border-y-2 border-[#2B0016] bg-[#FFAC00] text-[#2B0016]">
+    <div className="border-b border-rule bg-card">
       <PageShell className="py-5 sm:py-6">
-        <h1 className="font-mono text-2xl sm:text-3xl font-bold uppercase tracking-tight text-[#2B0016]">
+        <h1 className="font-serif text-3xl font-semibold tracking-tight">
           {t("catalogue.heading")}
         </h1>
 
-        <form ref={formRef} method="get" className="mt-4 flex flex-wrap items-end gap-4">
-          <div className="flex min-w-44 flex-1 flex-col gap-1.5 sm:max-w-xs">
-            <label
-              htmlFor="q"
-              className="font-mono text-xs uppercase tracking-wider text-[#2B0016] font-semibold"
-            >
+        <form ref={formRef} method="get" className="mt-5 flex flex-wrap items-end gap-3">
+          <div className="flex min-w-40 flex-1 flex-col gap-1.5 sm:max-w-xs">
+            <label htmlFor="q" className="eyebrow">
               {t("catalogue.search")}
             </label>
             <input
@@ -242,15 +268,12 @@ function FilterBar({
               value={value}
               placeholder={t("catalogue.searchPlaceholder")}
               onChange={(event) => setValue(event.target.value)}
-              className="field border-2 border-[#2B0016] bg-white font-mono placeholder:text-[#2B0016]/50"
+              className="field"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="cat"
-              className="font-mono text-xs uppercase tracking-wider text-[#2B0016] font-semibold"
-            >
+            <label htmlFor="cat" className="eyebrow">
               {t("catalogue.category")}
             </label>
             <Select
@@ -258,7 +281,6 @@ function FilterBar({
               name="cat"
               defaultValue={activeCategory}
               onChange={(event) => submit(event.currentTarget.form, { replace: true })}
-              className="border-2 border-[#2B0016] bg-white font-mono text-sm"
             >
               <option value="">{t("catalogue.allCategories")}</option>
               {categories.map((category) => (
@@ -269,12 +291,18 @@ function FilterBar({
             </Select>
           </div>
 
-          {(activeCategory || query) && (
-            <ButtonLink
-              to="/catalogue"
-              variant="plain"
-              className="font-mono text-sm font-semibold uppercase underline hover:text-[#E00069]"
+          {/* Senza JavaScript resta un modulo normale che si manda con Invio. */}
+          <noscript>
+            <button
+              type="submit"
+              className="min-h-11 rounded border border-accent px-4 text-sm font-medium text-accent"
             >
+              {t("catalogue.search")}
+            </button>
+          </noscript>
+
+          {(activeCategory || query) && (
+            <ButtonLink to="/catalogue" variant="plain" className="px-1">
               {t("catalogue.clearFilter")}
             </ButtonLink>
           )}
@@ -335,41 +363,41 @@ function AssetCard({
        scheda, e il titolo rinuncia al suo; `a:focus-visible` e non
        `focus-within`, o si accenderebbe anche al click del mouse e su
        «Aggiungi», che il suo anello ce l'ha già. */
-    <article className="relative flex flex-col overflow-hidden rounded-none border-2 border-[#2B0016] bg-white shadow-[4px_4px_0px_#2b0016] hover:shadow-[6px_6px_0px_#2b0016] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all duration-150 has-[a:focus-visible]:outline has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-[#E00069]">
-      <span aria-hidden="true" className={`h-1.5 w-full border-b border-[#2B0016] ${STRIPE[visual]}`} />
+    <article className="relative flex flex-col overflow-hidden rounded border border-rule bg-card hover:border-accent has-[a:focus-visible]:outline has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-accent">
+      <span aria-hidden="true" className={`h-[3px] w-full ${STRIPE[visual]}`} />
       {photo && (
-        <div className="border-b border-[#2B0016]">
-          <img
-            src={photo}
-            alt=""
-            className="aspect-4/3 w-full bg-[#FFE9C2]/30 object-cover"
-            loading="lazy"
-          />
-        </div>
+        <img
+          src={photo}
+          alt=""
+          className="aspect-4/3 w-full bg-sunk object-cover"
+          loading="lazy"
+        />
       )}
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-start gap-3">
+          {/* Senza foto, un monogramma piccolo di fianco al titolo. Prima era
+              un rettangolo 4:3 grigio: l'elemento più grande della scheda per
+              l'informazione minore della pagina. */}
           {!photo && (
             <span
               aria-hidden="true"
-              className="flex h-12 w-12 shrink-0 items-center justify-center border-2 border-[#2B0016] bg-[#FFE9C2] font-mono text-lg font-bold text-[#2B0016]"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-sunk font-serif text-lg text-faint"
             >
               {initialsOf(asset.name)}
             </span>
           )}
 
           <div className="flex min-w-0 flex-col gap-1">
-            {asset.category && (
-              <span className="font-mono text-2xs uppercase tracking-wider text-[#7A5C68] font-medium">
-                {asset.category.name}
-              </span>
-            )}
+            {asset.category && <span className="eyebrow">{asset.category.name}</span>}
 
-            <h2 className="text-base font-semibold leading-snug text-[#2B0016]">
+            <h2 className="text-md font-semibold leading-snug">
+              {/* Il collegamento copre tutta la scheda tramite lo pseudo
+                  elemento; i pulsanti sotto stanno sopra di lui con `z-10`,
+                  così restano cliccabili. */}
               <Link
                 to={`/items/${asset.id}`}
-                className="focus-visible:outline-none after:absolute after:inset-0 after:content-[''] hover:text-[#E00069] transition-colors"
+                className="focus-visible:outline-none after:absolute after:inset-0 after:content-['']"
               >
                 {asset.name}
               </Link>
@@ -377,7 +405,7 @@ function AssetCard({
           </div>
         </div>
 
-        <div className="mt-auto pt-3">
+        <div className="mt-auto pt-2">
           {asset.isBookable ? (
             <StateBadge
               state={availability.state}
@@ -395,16 +423,16 @@ function AssetCard({
           <Button
             variant="danger"
             size="sm"
-            className="relative z-10 mt-3 w-full border-2 border-[#2B0016] font-mono uppercase"
+            className="relative z-10 mt-3 w-full"
             onClick={onRemove}
           >
             {t("cart.remove")}
           </Button>
         ) : (
           <Button
-            variant="primary"
+            variant="secondary"
             size="sm"
-            className="relative z-10 mt-3 w-full border-2 border-[#2B0016] font-mono uppercase shadow-[2px_2px_0px_#2b0016]"
+            className="relative z-10 mt-3 w-full"
             disabled={!canAdd}
             onClick={onAdd}
           >
@@ -444,22 +472,20 @@ function KitCard({
   const hidden = members.length - shown.length;
 
   return (
-    <article className="flex flex-col rounded-none border-2 border-[#2B0016] bg-white p-4 shadow-[4px_4px_0px_#2b0016] hover:shadow-[6px_6px_0px_#2b0016] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all duration-150">
+    <article className="flex flex-col rounded border border-rule bg-card p-4">
       <div className="flex items-center gap-2">
-        <span className="rounded-none border border-[#2B0016] bg-[#FFAC00] px-2 py-0.5 font-mono text-2xs font-bold uppercase tracking-wider text-[#2B0016]">
+        <span className="rounded-full bg-accent-soft px-2 py-0.5 font-mono text-2xs font-medium uppercase tracking-wider text-accent">
           {t("kit.badge")}
         </span>
-        <span className="font-mono text-2xs text-[#7A5C68] font-medium">
+        <span className="font-mono text-2xs text-muted">
           {t("kit.itemCount", { count: members.length })}
         </span>
       </div>
 
-      <h2 className="mt-2 font-mono text-lg font-bold text-[#2B0016]">{kit.name}</h2>
-      {kit.description && (
-        <p className="mt-1 text-sm text-[#2B0016]/80">{kit.description}</p>
-      )}
+      <h2 className="mt-2 font-serif text-lg font-semibold">{kit.name}</h2>
+      {kit.description && <p className="mt-1 text-sm text-muted">{kit.description}</p>}
 
-      <ul className="mt-3 flex-1 border-t-2 border-[#2B0016] pt-3 text-sm">
+      <ul className="mt-3 flex-1 border-t border-rule pt-3 text-sm">
         {shown.map((member) => {
           const usable = canAdd(member.id);
           return (
@@ -467,35 +493,38 @@ function KitCard({
               key={member.id}
               className={usable ? "py-0.5" : "flex flex-wrap items-baseline gap-x-2 py-0.5"}
             >
+              {/* `inline-block py-1`: da riga di testo a bersaglio da toccare —
+                  l'elenco dei pezzi di un kit è fatto di collegamenti, e a
+                  venti pixel di altezza col pollice si sbaglia. */}
               <Link
                 to={`/items/${member.id}`}
                 className={
                   usable
-                    ? "inline-block py-1 font-medium hover:text-[#E00069] transition-colors"
-                    : "inline-block py-1 text-muted line-through decoration-1 hover:text-[#E00069]"
+                    ? "inline-block py-1 hover:text-accent"
+                    : "inline-block py-1 text-muted line-through decoration-1 hover:text-accent"
                 }
               >
                 {member.name}
               </Link>
-              {!usable && (
-                <span className="font-mono text-2xs uppercase tracking-wider text-muted">
-                  {t("state.notBookable")}
-                </span>
-              )}
+              {/* **Il tratto sopra al nome non dice perché.** Un pezzo
+                  sbarrato dentro a un kit da quattro, e un pulsante che ne
+                  aggiunge tre senza spiegarsi: chi guarda conta male e crede
+                  che l'aggiunta sia andata storta. La parola è la stessa che
+                  porta il badge di quell'oggetto, così le due schermate
+                  raccontano la stessa cosa. */}
+              {!usable && <span className="eyebrow">{t("state.notBookable")}</span>}
             </li>
           );
         })}
         {hidden > 0 && (
-          <li className="py-0.5 font-mono text-2xs text-muted">
-            {t("kit.more", { count: hidden })}
-          </li>
+          <li className="py-0.5 text-muted">{t("kit.more", { count: hidden })}</li>
         )}
       </ul>
 
       <Button
-        variant="primary"
+        variant="secondary"
         size="sm"
-        className="mt-4 w-full border-2 border-[#2B0016] font-mono uppercase shadow-[2px_2px_0px_#2b0016]"
+        className="mt-4 w-full"
         disabled={available.length === 0}
         onClick={() =>
           onAdd(
