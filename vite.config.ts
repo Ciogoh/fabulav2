@@ -26,14 +26,25 @@ import { defineConfig } from "vite";
  * sull'app, più `COOLIFY_URL`/`FQDN`/`BRANCH`/`RESOURCE_UUID`). Quel ramo non
  * ha mai fatto niente, ed è per questo che in produzione si leggeva sempre
  * `build ?`: il conteggio dei commit *da solo* avrebbe detto `1` (clone in
- * profondità 1, vedi sotto), ma perfino quello falliva — la vera causa era
- * `git`, non `SOURCE_COMMIT` (vedi il `Dockerfile`, "dubious ownership").
+ * profondità 1, vedi sotto), ma perfino quello falliva.
  *
- * Quindi ora: **se il conteggio è `1`, il clone è quasi certamente
- * superficiale** (Fabula ha centinaia di commit, non uno), e si usa lo sha
- * corto al suo posto — identifica comunque quale commit sta girando, anche
- * senza la storia intera per contarli. In locale, dove `.git` ha la storia
- * vera, resta il conteggio di sempre.
+ * **Perché falliva è ancora sotto verifica.** Il sospetto principale è git
+ * che rifiuta un repository il cui proprietario non combacia con chi lo
+ * interroga ("dubious ownership", git 2.35+) — vedi il `Dockerfile`, dove
+ * `safe.directory` prova a coprirlo — ma finché non arriva un `build`
+ * diverso da `?` in produzione non è confermato. Per questo, se anche il
+ * secondo tentativo qui sotto fallisce, l'errore vero finisce comunque nei
+ * log di costruzione invece di sparire in silenzio: la prossima volta si sa
+ * *cosa* dice git, non solo che ha fallito.
+ *
+ * **I due tentativi sono indipendenti, non annidati.** Prima versione: lo sha
+ * corto partiva solo se `rev-list` *riusciva* e diceva `1` — se falliva del
+ * tutto (qualunque motivo), il fallback non scattava mai, ed è esattamente
+ * quello che è successo. Ora un fallimento del primo non impedisce il
+ * secondo: se il conteggio non è disponibile o è `1` (clone superficiale,
+ * dove Fabula con centinaia di commit vedrebbe comunque solo quello estratto)
+ * si prova lo sha corto, che identifica il commit senza bisogno della storia
+ * intera.
  */
 function versionStamp() {
   let version = "?";
@@ -43,19 +54,25 @@ function versionStamp() {
     // Non può succedere, ma se succede la costruzione continua.
   }
 
-  // Senza questo, quando git fallisce il suo errore finisce nel terminale e
-  // sembra un guasto della costruzione, che invece prosegue benissimo.
-  const gitStdio: Array<"ignore" | "pipe"> = ["ignore", "pipe", "ignore"];
+  let lastGitError: unknown = null;
+  function git(command: string): string | null {
+    try {
+      // Cattura anche stderr (a differenza di prima): se anche il ripiego
+      // fallisce, serve a dire perché nei log di costruzione — vedi sopra.
+      return execSync(command, { stdio: ["ignore", "pipe", "pipe"] }).toString().trim();
+    } catch (error) {
+      lastGitError = error;
+      return null;
+    }
+  }
 
-  let build = "?";
-  try {
-    const count = execSync("git rev-list --count HEAD", { stdio: gitStdio }).toString().trim();
-    build =
-      count === "1"
-        ? execSync("git rev-parse --short HEAD", { stdio: gitStdio }).toString().trim()
-        : count;
-  } catch {
-    // Niente cartella .git (o niente git installato): `build ?`.
+  const count = git("git rev-list --count HEAD");
+  const build = count && count !== "1" ? count : (git("git rev-parse --short HEAD") ?? "?");
+
+  if (build === "?" && lastGitError) {
+    // `console.warn` e non `throw`: la build non deve mai fallire per
+    // questo, ma l'errore vero va detto, non inghiottito come prima.
+    console.warn("[versionStamp] git non risponde, build resta \"?\":", lastGitError);
   }
 
   return {
