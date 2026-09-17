@@ -63,7 +63,7 @@ const en = {
   "landing.goToCatalogue": "Go to catalogue",
 
   "footer.creditPrefix": "Fabula is a project by the FABULA COLLECTIVE:",
-  "footer.mama": "MaMa",
+  "footer.mama": "récupérathèque di unibz MaMa ♡ Material Matters",
   "footer.bitz": "BITZ FabLab",
   "footer.creditSuffix": ", Dario Vedova, Lorenzo Del Forno, Aurora Zampedri and Gioele Maines",
   "footer.instagram": "Instagram (MaMa)",
@@ -614,7 +614,7 @@ const it: Dictionary = {
   "landing.goToCatalogue": "Vai al catalogo",
 
   "footer.creditPrefix": "Fabula è un progetto del FABULA COLLECTIVE, composto da",
-  "footer.mama": "MaMa",
+  "footer.mama": "récupérathèque di unibz MaMa ♡ Material Matters",
   "footer.bitz": "BITZ FabLab",
   "footer.creditSuffix": ", Dario Vedova, Lorenzo Del Forno, Aurora Zampedri e Gioele Maines",
   "footer.instagram": "Instagram (MaMa)",
@@ -1152,7 +1152,7 @@ const de: Dictionary = {
   "landing.goToCatalogue": "Zum Katalog",
 
   "footer.creditPrefix": "Fabula ist ein Projekt des FABULA COLLECTIVE:",
-  "footer.mama": "MaMa",
+  "footer.mama": "récupérathèque di unibz MaMa ♡ Material Matters",
   "footer.bitz": "BITZ FabLab",
   "footer.creditSuffix": ", Dario Vedova, Lorenzo Del Forno, Aurora Zampedri und Gioele Maines",
   "footer.instagram": "Instagram (MaMa)",
