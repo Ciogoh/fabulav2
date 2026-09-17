@@ -153,16 +153,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // avvolge anche l'`ErrorBoundary`, dove il loader può non aver girato.
   const data = useRouteLoaderData<typeof loader>("root");
 
-  /* «auto» e «classic» non mettono nessun attributo: in `app.css` sono
-     l'assenza di `data-theme`/`data-skin`, e scriverli sarebbe un terzo caso
-     da tenere allineato senza che nessuna regola lo guardi. */
-  const theme = data?.theme ?? "auto";
+  /* «classic» non mette nessun attributo: in `app.css` è l'assenza di
+     `data-skin`, e scriverlo sarebbe un terzo caso da tenere allineato senza
+     che nessuna regola lo guardi. Il tema invece è sempre uno dei due —
+     niente più «automatico» — quindi `data-theme` è sempre presente. */
+  const theme = data?.theme ?? "light";
   const skin = data?.skin ?? "riso";
 
   return (
     <html
       lang={data?.lang ?? "en"}
-      data-theme={theme === "auto" ? undefined : theme}
+      data-theme={theme}
       data-skin={skin === "classic" ? undefined : skin}
       className="h-full"
     >
@@ -170,34 +171,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-        {/* Il colore della barra di sistema quando Fabula gira come app. I
-            valori sono `--chrome-bg` di stile e tema, presi da `app.css` — la
+        {/* Il colore della barra di sistema quando Fabula gira come app. Il
+            valore è `--chrome-bg` di stile e tema, preso da `app.css` — la
             barra deve continuare il telaio, non annunciarsi. `CHROME_COLOR`
-            copre le quattro combinazioni.
-
-            Finché il tema è automatico sono due righe e non una, perché il
-            manifesto ne accetta un solo valore e sarebbe per forza sbagliato
-            per metà delle persone. Quando invece la scelta è stata fatta, le
-            due righe con la media query direbbero il contrario di quello che
-            si vede: chi tiene il telefono in chiaro e Fabula in scuro si
-            ritroverebbe la barra bianca sopra a una pagina nera. Lì ne serve
-            una sola, e senza media query. */}
-        {theme === "auto" ? (
-          <>
-            <meta
-              name="theme-color"
-              media="(prefers-color-scheme: light)"
-              content={CHROME_COLOR[skin].light}
-            />
-            <meta
-              name="theme-color"
-              media="(prefers-color-scheme: dark)"
-              content={CHROME_COLOR[skin].dark}
-            />
-          </>
-        ) : (
-          <meta name="theme-color" content={CHROME_COLOR[skin][theme]} />
-        )}
+            copre le quattro combinazioni; qui il tema è sempre scelto, quindi
+            basta una riga sola, senza media query. */}
+        <meta name="theme-color" content={CHROME_COLOR[skin][theme]} />
 
         {/* Quello che iOS legge al posto del manifesto. Il nome corto conta:
             senza, sotto all'icona finisce il `<title>` della pagina da cui è
@@ -237,7 +216,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
         <div className="flex-1">
           <Outlet />
         </div>
-        <SiteFooter skin={loaderData.skin} />
+        <SiteFooter />
       </div>
     </LangProvider>
   );
@@ -272,7 +251,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       <div className="flex min-h-screen flex-col">
         <SiteHeader
           user={data?.user ?? null}
-          theme={data?.theme ?? "auto"}
+          theme={data?.theme ?? "light"}
           skin={data?.skin ?? "classic"}
         />
         <main className="flex-1">

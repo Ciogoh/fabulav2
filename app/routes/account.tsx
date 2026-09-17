@@ -314,15 +314,12 @@ export default function Account({ loaderData, actionData }: Route.ComponentProps
 /* --------------------------------------------------------------- aspetto */
 
 /**
- * Chiaro, scuro o automatico.
+ * Chiaro o scuro.
  *
- * **Automatico è il primo della lista e il valore di partenza**, non una via
- * di mezzo messa lì per completezza: il sistema operativo quella domanda
- * l'ha già fatta una volta, e chi tiene il telefono in scuro dalle sette di
- * sera vuole che Fabula faccia lo stesso senza doverglielo dire due volte.
- * Le altre due servono a chi quella risposta la vuole smentire proprio qui —
- * ed è un caso vero: un magazzino con la luce al neon si legge meglio in
- * chiaro anche se il telefono è in scuro.
+ * **C'era anche «automatico»** (segui il sistema operativo), tolto su
+ * richiesta esplicita: due stati da capire al volo battono tre, e chi vuole
+ * lo scuro lo sceglie qui una volta sola invece di doversi chiedere perché
+ * la pagina ha cambiato colore da sola.
  *
  * Si salva da sé al cambio, come il canale delle notifiche e come la lingua
  * nell'intestazione: un menu a tendina con accanto un «Salva» per un campo
@@ -365,16 +362,12 @@ function AppearanceSettings({ theme }: { theme: Theme }) {
             value={active}
             onChange={(event) => fetcher.submit(event.currentTarget.form)}
           >
-            <option value="auto">{t("account.themeAuto")}</option>
             <option value="light">{t("account.themeLight")}</option>
             <option value="dark">{t("account.themeDark")}</option>
           </Select>
         </div>
       </fetcher.Form>
 
-      {/* Chi non ha fatto l'accesso non passa di qui, e resta su
-          «automatico» — che è la risposta giusta per chi non ha mai chiesto
-          niente. */}
       <p className="mt-3 max-w-prose text-xs text-muted">{t("account.themeHint")}</p>
     </section>
   );

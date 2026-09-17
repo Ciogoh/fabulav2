@@ -20,9 +20,7 @@ const ONE_YEAR = 60 * 60 * 24 * 365;
 
 export function getTheme(request: Request): Theme {
   const value = readCookie(request.headers.get("Cookie"), COOKIE_NAME);
-  // «auto» non è un ripiego: è la scelta giusta finché nessuno ne ha fatta
-  // un'altra, perché il sistema operativo la domanda l'ha già fatta una volta.
-  return isTheme(value) ? value : "auto";
+  return isTheme(value) ? value : "light";
 }
 
 export function themeCookie(theme: Theme): string {
