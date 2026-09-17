@@ -13,7 +13,7 @@ const ONE_YEAR = 60 * 60 * 24 * 365;
 
 export function getSkin(request: Request): Skin {
   const value = readCookie(request.headers.get("Cookie"), COOKIE_NAME);
-  return isSkin(value) ? value : "riso";
+  return isSkin(value) ? value : "classic";
 }
 
 export function skinCookie(skin: Skin): string {
