@@ -100,11 +100,9 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
           </div>
           {/* Il logo di Rigenera sta a sé, senza etichetta "by": nel
               materiale ufficiale (fascia-loghi-rigenera26) è lui il marchio
-              in testa, non uno dei partner elencati sotto. Gli altri sei
-              seguono lo stesso ordine e lo stesso raggruppamento di
-              quella fascia — "Organized by" e "Supported by". "Promoted
-              by" (Regione Autonoma Trentino-Alto Adige) manca perché non
-              abbiamo ancora il file del logo: va aggiunto quando arriva. */}
+              in testa, non uno dei partner elencati sotto. Gli altri sette
+              seguono lo stesso ordine e lo stesso raggruppamento di quella
+              fascia — "Organized by", "Promoted by", "Supported by". */}
           <div className="fabula-partner-lead">
             <a href="https://www.generazioni.online/rigenera" target="_blank" rel="noopener noreferrer">
               <img src="/icons/loghi/rigenera-logo-trasp.png" alt="Rigenera by Generazioni" loading="lazy" width="1005" height="324" />
@@ -117,6 +115,12 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
               <ul className="fabula-partners">
                 <li><img src="/icons/loghi/young-inside.svg" alt="Young Inside" loading="lazy" width="525" height="226" /></li>
                 <li><img src="/icons/loghi/inside.svg" alt="Inside" loading="lazy" width="621" height="390" /></li>
+              </ul>
+            </div>
+            <div>
+              <p className="eyebrow">{t("landing.partner.promotedBy")}</p>
+              <ul className="fabula-partners">
+                <li><img src="/icons/loghi/regione-trentino-alto-adige.svg" alt={t("landing.partner.region")} loading="lazy" width="715" height="268" /></li>
               </ul>
             </div>
             <div>
