@@ -8,7 +8,7 @@
  * Legge `--chrome-*`, come `site-header.tsx`: nel classico è lo stesso fondo
  * della pagina, nel Riso è la fascia colorata.
  *
- * A destra sta solo il numero di build, come `v72` (`BUILD_NUMBER`, non
+ * A destra sta solo il numero di build, come `v.72` (`BUILD_NUMBER`, non
  * `versionLabel()` per esteso): qui basta sapere «quale copia sta girando»,
  * la versione e la data per esteso restano nel registro admin e nella
  * schermata di errore, dove servono davvero.
@@ -69,7 +69,7 @@ export function SiteFooter({ skin = "riso" }: { skin?: Skin }) {
           </a>
           {t("footer.creditSuffix")}
         </p>
-        <span>v{BUILD_NUMBER}</span>
+        <span>v.{BUILD_NUMBER}</span>
       </div>
     </footer>
   );

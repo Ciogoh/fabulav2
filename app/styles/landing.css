@@ -2,13 +2,14 @@
   --landing-surface: var(--paper);
   --landing-text: var(--ink);
   --landing-line: var(--rule);
-  /* Il nome dice "pink", ma puntava a `--accent` — che nell'interfaccia è il
-     blu/indaco delle azioni, non il rosa del marchio, e nel tema scuro
-     schiarisce fino al lavanda: il logo grande smetteva di essere rosa
-     proprio nel tema scuro. `--brand` è il colore del marchio: resta
-     costante fra chiaro e scuro (cambia solo con la pelle), quindi il logo
-     centrale resta sempre rosa qui, ovunque nel sito. */
-  --landing-pink: var(--brand);
+  /* Il nome dice "pink", ma puntava prima a `--accent` (blu/indaco, cambiava
+     col tema) e poi a `--brand` (che invece cambia con la pelle — in Riso
+     diventa l'arancio del telaio). Il logo grande della landing non deve
+     seguire né l'uno né l'altro: resta il fucsia del marchio classico
+     sempre, tema e pelle non lo toccano — è l'unico punto della pagina che
+     lo richiede, per questo un valore fisso qui e non un token che altri
+     componenti condividono. */
+  --landing-pink: #ec008c;
   color: var(--landing-text);
   background: var(--landing-surface);
   letter-spacing: 0;
@@ -78,9 +79,31 @@
 }
 
 .fabula-hero-spacer { height: 48px; }
-/* I marchi originali restano sul fondo carta, anche nel tema scuro:
-   le scritte scure degli SVG devono rimanere leggibili. */
-.fabula-network { color-scheme: light; background: var(--landing-surface); color: var(--landing-text); }
+/* I marchi originali restano sul fondo carta, anche nel tema scuro: le
+   scritte scure degli SVG (Inside, Città di Bolzano) devono rimanere
+   leggibili.
+   `color-scheme: light` da solo NON bastava — verificato, sfondo e testo
+   restavano scuri lo stesso in produzione col tema scuro attivo. Il motivo:
+   `--landing-surface`/`--landing-text` sono *variabili* che contengono
+   `light-dark(...)`, e quella funzione, attraversando una catena di
+   variabili ereditate da un antenato con `color-scheme` diverso, non sempre
+   si ricalcola in base al `color-scheme` locale — è un'ambiguità nota di
+   CSS, non affidabile fra motori diversi. Qui sotto niente `light-dark()`:
+   colori fissi, diversi solo per pelle, mai per tema — così questa sezione
+   ha sempre lo stesso aspetto, come le foto del catalogo che già ignorano
+   il tema scuro per lo stesso identico motivo (leggibilità dei marchi). */
+.fabula-network {
+  --landing-surface: #edeff2;
+  --landing-text: #16202e;
+  --landing-line: #d3d9e2;
+  background: var(--landing-surface);
+  color: var(--landing-text);
+}
+:root[data-skin="riso"] .fabula-network {
+  --landing-surface: #fff6e8;
+  --landing-text: #2b0016;
+  --landing-line: #2b0016;
+}
 .fabula-partner-lead { display: flex; justify-content: center; margin-top: 40px; }
 .fabula-partner-lead img { display: block; width: auto; height: 56px; }
 .fabula-partner-groups { margin-top: 32px; padding-top: 28px; border-top: 1px solid var(--landing-line); display: flex; flex-direction: column; gap: 28px; }

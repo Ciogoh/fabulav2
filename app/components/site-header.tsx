@@ -126,7 +126,7 @@ export function SiteHeader({
    * cambio vero resta un modulo verso `/theme`, come sempre — vedi
    * `ThemeCycleButton`. */
   theme: Theme;
-  /** Per il selettore nel menu del profilo — vedi `SkinMenuSection`. */
+  /** Per il selettore in barra, per chiunque — vedi `SkinMenu`. */
   skin: Skin;
 }) {
   const t = useT();
@@ -198,10 +198,11 @@ export function SiteHeader({
 
         <div className="ml-auto flex flex-wrap items-center gap-3">
           <ThemeCycleButton theme={theme} chrome={chrome} />
+          <SkinMenu skin={skin} chrome={chrome} />
           <LanguageMenu chrome={chrome} />
 
           {user ? (
-            <ProfileMenu user={user} chrome={chrome} skin={skin} />
+            <ProfileMenu user={user} chrome={chrome} />
           ) : chrome ? (
             // `--accent` nella pelle Riso è un magenta vicino a `--chrome-bg`:
             // il pulsante "secondary" (bordo e testo `--accent`) ci spariva
@@ -538,54 +539,129 @@ const SKIN_LABEL_KEY: Record<Skin, "account.skinClassic" | "account.skinRiso"> =
 };
 
 /**
- * Classico o Riso, dentro al menu del profilo — non nella barra: è una
- * scelta che si tocca una volta ogni tanto, non a ogni pagina, e nella barra
- * pesava quanto la lingua senza servire quanto la lingua. La stessa scelta
- * sta anche nella sezione «Aspetto» di `/account`, per chi ci arriva
- * cercandola invece che scoprendola qui.
+ * Classico o Riso, in barra per chiunque — anche senza account.
  *
- * Stessa fattura di `LanguageMenu`: un `fetcher.Form` per voce verso
- * `/skin`, `redirectTo` per tornare dov'eravamo, funziona senza JavaScript.
+ * Prima stava solo dentro al menu del profilo: chi non aveva fatto accesso
+ * non aveva modo di cambiarla, mentre il tema (`ThemeCycleButton`, qui
+ * accanto) è sempre stato per tutti. Le due preferenze sono gemelle — stesso
+ * cookie di dispositivo, stessa `routes/skin.tsx` — e non c'era ragione per
+ * cui una fosse pubblica e l'altra no. La stessa scelta resta anche nella
+ * sezione «Aspetto» di `/account`, per chi ci arriva cercandola da lì.
+ *
+ * Stessa fattura di `LanguageMenu` — disclosure, `fetcher.Form` verso
+ * `/skin`, `redirectTo` per tornare dov'eravamo — perché con due sole voci
+ * un elenco a tendina si legge più chiaramente di un ciclo a un tocco come
+ * quello del tema.
  */
-function SkinMenuSection({ skin }: { skin: Skin }) {
+function SkinMenu({ skin, chrome }: { skin: Skin; chrome: boolean }) {
   const t = useT();
   const location = useLocation();
   const fetcher = useFetcher();
   const pending = fetcher.formData?.get("skin");
   const active = SKINS.find((name) => name === pending) ?? skin;
+  const { open, setOpen, wrapRef, triggerRef, openedByHover } = useDisclosure();
+
+  useEffect(() => {
+    if (fetcher.state !== "idle") setOpen(false);
+  }, [fetcher.state, setOpen]);
 
   return (
-    <fetcher.Form method="post" action="/skin">
-      <input
-        type="hidden"
-        name="redirectTo"
-        value={location.pathname + location.search}
-      />
-      <span className="block px-3 pt-2 pb-1 eyebrow">{t("account.skin")}</span>
-      {SKINS.map((name) => (
-        <button
-          key={name}
-          type="submit"
-          name="skin"
-          value={name}
-          aria-current={name === active ? "true" : undefined}
-          className={`${ITEM} ${name === active ? "font-medium text-ink" : ""}`}
+    <div
+      ref={wrapRef}
+      className="relative"
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "mouse") return;
+        openedByHover.current = true;
+        setOpen(true);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== "mouse") return;
+        openedByHover.current = false;
+        setOpen(false);
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
+        className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-2 text-sm ${
+          chrome
+            ? "text-chrome-muted hover:text-chrome-ink aria-expanded:text-chrome-ink"
+            : "text-muted hover:text-ink aria-expanded:text-ink"
+        }`}
+      >
+        <SkinGlyph className="h-4 w-4" />
+        <span className="sr-only">{t("account.skin")}</span>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`h-2.5 w-2.5 transition-transform ${open ? "rotate-180" : ""}`}
         >
-          {t(SKIN_LABEL_KEY[name])}
-        </button>
-      ))}
-    </fetcher.Form>
+          <path d="M2.5 4.5 6 8l3.5-3.5" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-20 pt-2">
+          <fetcher.Form
+            method="post"
+            action="/skin"
+            aria-label={t("account.skin")}
+            className="min-w-36 rounded-sm border border-rule bg-card p-1 shadow-lg"
+          >
+            <input
+              type="hidden"
+              name="redirectTo"
+              value={location.pathname + location.search}
+            />
+            {SKINS.map((name) => (
+              <button
+                key={name}
+                type="submit"
+                name="skin"
+                value={name}
+                aria-current={name === active ? "true" : undefined}
+                className={`${ITEM} ${name === active ? "font-medium text-ink" : ""}`}
+              >
+                {t(SKIN_LABEL_KEY[name])}
+              </button>
+            ))}
+          </fetcher.Form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Due quadrati sovrapposti — «più di un aspetto solo», senza dover
+ * disegnare un pennello o una tavolozza in 16px. */
+function SkinGlyph({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className={className}>
+      <rect x="2.5" y="2.5" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" fill="currentColor" />
+    </svg>
   );
 }
 
 function ProfileMenu({
   user,
   chrome,
-  skin,
 }: {
   user: HeaderUser;
   chrome: boolean;
-  skin: Skin;
 }) {
   const t = useT();
   const navigate = useNavigate();
@@ -662,13 +738,11 @@ function ProfileMenu({
               {t("account.heading")}
             </Link>
 
-            <SkinMenuSection skin={skin} />
-
             {/* Rosso solo al passaggio, come la variante `danger` del
                 pulsante: l'uscita non è un allarme finché non la si sta
                 davvero premendo. A bandiera a destra: è l'unica voce che fa
-                uscire, e staccarla a destra la distingue da «Profilo» e
-                «Pelle» senza bisogno di un colore o di una riga divisoria. */}
+                uscire, e staccarla a destra la distingue da «Profilo» senza
+                bisogno di un colore o di una riga divisoria. */}
             <button
               type="button"
               className={`${ITEM} justify-end text-right hover:text-out`}
