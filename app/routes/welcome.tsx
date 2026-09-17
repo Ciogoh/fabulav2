@@ -22,6 +22,7 @@ import { Form, redirect, useSearchParams } from "react-router";
 import type { Route } from "./+types/welcome";
 import { pageTitle } from "~/i18n/meta";
 import { PageShell } from "~/components/page";
+import { PasswordField } from "~/components/password-field";
 import { buttonClass } from "~/components/button";
 import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
@@ -153,37 +154,21 @@ export default function Welcome({
           <div className="mt-2 rounded-sm border border-rule bg-sunk/40 p-4">
             <p className="text-sm text-muted">{t("welcome.passwordIntro")}</p>
 
-            <div className="mt-4 flex flex-col gap-1.5">
-              <label
-                htmlFor="password"
-                className="eyebrow"
-              >
-                {t("welcome.password")}
-              </label>
-              <input
-                id="password"
+            <div className="mt-4">
+              <PasswordField
+                label={t("welcome.password")}
                 name="password"
-                type="password"
                 autoComplete="new-password"
                 minLength={10}
-                className="min-h-11 rounded-sm border border-rule bg-card px-3 py-2.5 text-sm"
               />
             </div>
 
-            <div className="mt-4 flex flex-col gap-1.5">
-              <label
-                htmlFor="confirmPassword"
-                className="eyebrow"
-              >
-                {t("welcome.confirmPassword")}
-              </label>
-              <input
-                id="confirmPassword"
+            <div className="mt-4">
+              <PasswordField
+                label={t("welcome.confirmPassword")}
                 name="confirmPassword"
-                type="password"
                 autoComplete="new-password"
                 minLength={10}
-                className="min-h-11 rounded-sm border border-rule bg-card px-3 py-2.5 text-sm"
               />
             </div>
           </div>
