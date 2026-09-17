@@ -20,16 +20,10 @@
  * `landing.css`). Chi introduce una pelle nuova non deve più toccare
  * questo file per farci stare dentro il proprio accento.
  *
- * **Il contorno sottile è la conseguenza, non un capriccio.** Nella pelle
- * Riso la fascia dell'intestazione è magenta (`--chrome-bg`) — vicina al
- * fucsia fisso del marchio quanto basta per farlo quasi sparire, verificato
- * sul telefono. Un contorno `currentColor` risolve senza reintrodurre la
- * dipendenza dalla pelle che questo file aveva appena tolto: chi lo chiama
- * imposta già `text-chrome-ink`/`text-ink` sul genitore (vedi
- * `site-header.tsx`), la stessa coppia pensata per leggersi sopra quel
- * fondo — il contorno la eredita gratis. Per `tone="current"` (il logo
- * grande della landing) `stroke` e `fill` coincidono: nessun effetto, nessun
- * bisogno di un secondo ramo.
+ * **Niente contorno.** Un tentativo di contorno `currentColor` (per la
+ * pelle Riso, dove la fascia magenta è vicina al fucsia) è stato provato e
+ * tolto su richiesta esplicita: il marchio deve restare fucsia pulito,
+ * senza bordo, anche a costo del contrasto più basso su quella fascia.
  */
 
 export function Logo({
@@ -48,9 +42,6 @@ export function Logo({
       role="img"
       aria-label="Fabula"
       fill={tone === "brand" ? "#ec008c" : "currentColor"}
-      stroke="currentColor"
-      strokeWidth="8"
-      paintOrder="stroke"
       className={className}
     >
       <polygon points="161.98 27 161.98 54 80.99 54 80.99 80.99 134.98 80.99 134.98 107.99 80.99 107.99 80.99 161.99 0 161.99 0 107.99 26.99 107.99 26.99 134.99 53.99 134.99 53.99 54 26.99 54 26.99 27" />
