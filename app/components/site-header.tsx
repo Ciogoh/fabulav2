@@ -62,19 +62,16 @@ export type HeaderUser = Person & {
  * 44px: il minimo per un tocco affidabile, non i 36px che "ci stava il
  * pollice" lasciava intendere — vedi ITEM più sotto per la stessa misura.
  *
- * Due fatture, non una: la barra dell'admin resta sempre il fondo neutro
- * `--admin-bg` (in tutti e due gli stili), mentre la barra pubblica diventa
- * la fascia `--chrome-bg` nel Riso. `LINK_ADMIN` legge `--ink`/`--muted`,
- * che su un fondo chiaro leggono bene in entrambi gli stili; `LINK_CHROME`
- * legge `--chrome-ink`/`--chrome-muted`, pensati apposta per stare sopra
- * `--chrome-bg`. `InboxLink` e `ManageMenu` compaiono solo per gli admin,
- * quindi usano sempre `LINK_ADMIN`; i tre collegamenti sempre visibili
- * scelgono in base a `user?.isAdmin`.
+ * **C'era anche una seconda fattura**, `LINK_CHROME`, per una fascia
+ * pubblica a fondo pieno (`--chrome-bg`) nella pelle Riso. Tolta su
+ * richiesta esplicita: quella fascia era un magenta vicinissimo al fucsia
+ * fisso del marchio (`components/logo.tsx`), e per chi non aveva fatto
+ * l'accesso il logo spariva dentro al proprio sfondo. L'intestazione ora è
+ * sempre la stessa — fondo `--card`, o `--admin-bg` per gli admin — in ogni
+ * pelle e in ogni stato di accesso: quella «ufficiale», leggibile ovunque.
  */
 const LINK_ADMIN =
   "inline-flex min-h-11 items-center rounded-sm px-0.5 text-muted hover:text-ink aria-[current=page]:font-medium aria-[current=page]:text-ink";
-const LINK_CHROME =
-  "inline-flex min-h-11 items-center rounded-sm px-0.5 text-chrome-muted hover:text-chrome-ink aria-[current=page]:font-medium aria-[current=page]:text-chrome-ink";
 
 /**
  * Il Centro, con una pastiglia sola.
@@ -130,18 +127,12 @@ export function SiteHeader({
   skin: Skin;
 }) {
   const t = useT();
-  // Il fondo dell'admin resta sempre neutro: solo la barra pubblica diventa
-  // la fascia colorata nel Riso. Nel Classico la barra resta fondo carta/scheda.
-  const chrome = !user?.isAdmin && skin === "riso";
-  const link = chrome ? LINK_CHROME : LINK_ADMIN;
 
   return (
     <header
       className={
         user?.isAdmin
           ? "border-b border-admin-rule bg-admin-bg"
-          : chrome
-          ? "border-b border-chrome-rule bg-chrome-bg"
           : "border-b border-rule bg-card"
       }
     >
@@ -149,7 +140,7 @@ export function SiteHeader({
         <NavLink
           to="/"
           aria-label={t("app.name")}
-          className={`inline-flex min-h-11 items-center ${chrome ? "text-chrome-ink" : "text-ink"}`}
+          className="inline-flex min-h-11 items-center text-ink"
         >
           {/* Il marchio vero al posto della scritta. Il punto colorato che
               stava qui era un surrogato del logo, fatto quando il logo non
@@ -165,14 +156,14 @@ export function SiteHeader({
             più: l'intestazione era arrivata a 185px, cioè un quarto dello
             schermo prima di vedere un oggetto. */}
         <nav className="order-last flex w-full min-w-0 flex-wrap items-center gap-x-5 gap-y-1 text-sm sm:order-none sm:w-auto">
-          <NavLink to="/catalogue" className={link}>
+          <NavLink to="/catalogue" className={LINK_ADMIN}>
             {t("nav.catalogue")}
           </NavLink>
-          <NavLink to="/calendar" className={link}>
+          <NavLink to="/calendar" className={LINK_ADMIN}>
             {t("nav.calendar")}
           </NavLink>
           {user && (
-            <NavLink to="/requests" className={link}>
+            <NavLink to="/requests" className={LINK_ADMIN}>
               {t("nav.myRequests")}
               {/* Il segnale che a chi chiede in prestito è sempre mancato:
                   «ti hanno risposto». Un pallino e non un numero — quante
@@ -197,23 +188,12 @@ export function SiteHeader({
         </nav>
 
         <div className="ml-auto flex flex-wrap items-center gap-2 sm:gap-3">
-          <ThemeCycleButton theme={theme} chrome={chrome} />
-          <SkinMenu skin={skin} chrome={chrome} />
-          <LanguageMenu chrome={chrome} />
+          <ThemeCycleButton theme={theme} />
+          <SkinMenu skin={skin} />
+          <LanguageMenu />
 
           {user ? (
-            <ProfileMenu user={user} chrome={chrome} />
-          ) : chrome ? (
-            // `--accent` nella pelle Riso è un magenta vicino a `--chrome-bg`:
-            // il pulsante "secondary" (bordo e testo `--accent`) ci spariva
-            // sopra. Qui usiamo `--chrome-ink`, lo stesso token già leggibile
-            // per "Catalogo"/"Calendario" su questa stessa fascia.
-            <Link
-              to="/signin"
-              className="inline-flex min-h-11 items-center justify-center rounded-sm border border-chrome-ink px-3 text-sm font-medium text-chrome-ink hover:bg-chrome-ink/10 sm:px-4"
-            >
-              {t("nav.signIn")}
-            </Link>
+            <ProfileMenu user={user} />
           ) : (
             <ButtonLink to="/signin" variant="secondary" size="md" className="!px-3 sm:!px-4">
               {t("nav.signIn")}
@@ -274,16 +254,13 @@ function useDisclosure() {
 const ITEM =
   "flex min-h-11 w-full items-center rounded-sm px-3 text-left text-sm text-muted hover:bg-sunk hover:text-ink";
 
-/** Il ciclo del tema: dall'attuale al prossimo. `auto` è il punto di
- * partenza e il punto d'arrivo — un giro chiuso, non una linea. */
+/** Il ciclo del tema: solo due stati, quindi un giro è anche un interruttore. */
 const NEXT_THEME: Record<Theme, Theme> = {
-  auto: "light",
   light: "dark",
-  dark: "auto",
+  dark: "light",
 };
 
-const THEME_LABEL_KEY: Record<Theme, "nav.themeAuto" | "nav.themeLight" | "nav.themeDark"> = {
-  auto: "nav.themeAuto",
+const THEME_LABEL_KEY: Record<Theme, "nav.themeLight" | "nav.themeDark"> = {
   light: "nav.themeLight",
   dark: "nav.themeDark",
 };
@@ -291,18 +268,19 @@ const THEME_LABEL_KEY: Record<Theme, "nav.themeAuto" | "nav.themeLight" | "nav.t
 /**
  * Il tema, in cima, come un pulsante che cicla.
  *
- * Non un menu: un tocco solo che gira `auto → light → dark → auto`, come i
- * selettori di tema di un editor di codice. Il prezzo dichiarato è che da
- * `auto` a `dark` servono due tocchi e non si vede in anticipo dove si sta
- * andando — in cambio del controllo più piccolo possibile nella barra. Chi
- * preferisce vedere i tre nomi per esteso li trova nella sezione «Aspetto»
- * di `/account`, che resta invariata.
+ * Non un menu: un tocco solo che gira `light → dark → light`, come i
+ * selettori di tema di un editor di codice. Chi preferisce vedere i nomi per
+ * esteso li trova nella sezione «Aspetto» di `/account`, che resta invariata.
+ *
+ * **C'era anche «automatico»**, tolto su richiesta esplicita: due stati
+ * bastano, e il pulsante mostra sempre dove si sta andando invece di un terzo
+ * stato che dipende da cosa dice il sistema operativo in quel momento.
  *
  * Un modulo e un pulsante solo, come `LanguageMenu` e `routes/theme.tsx`:
  * funziona anche senza JavaScript, e la scelta che sta viaggiando si accende
  * subito da `fetcher.formData`, senza aspettare il giro dal server.
  */
-function ThemeCycleButton({ theme, chrome }: { theme: Theme; chrome: boolean }) {
+function ThemeCycleButton({ theme }: { theme: Theme }) {
   const t = useT();
   const location = useLocation();
   const fetcher = useFetcher();
@@ -322,11 +300,7 @@ function ThemeCycleButton({ theme, chrome }: { theme: Theme; chrome: boolean }) 
         name="theme"
         value={next}
         aria-label={t("nav.themeNext", { theme: t(THEME_LABEL_KEY[next]) })}
-        className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-sm ${
-          chrome
-            ? "text-chrome-muted hover:text-chrome-ink"
-            : "text-muted hover:text-ink"
-        }`}
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-sm text-muted hover:text-ink"
       >
         <ThemeIcon theme={active} />
       </button>
@@ -334,8 +308,8 @@ function ThemeCycleButton({ theme, chrome }: { theme: Theme; chrome: boolean }) 
   );
 }
 
-/** Sole, luna, o le due insieme per l'automatico — lo stesso vocabolario di
- * icona che l'associazione già si aspetta da qualunque altro editor. */
+/** Sole o luna — lo stesso vocabolario di icona che l'associazione già si
+ * aspetta da qualunque altro editor. */
 function ThemeIcon({ theme }: { theme: Theme }) {
   if (theme === "light") {
     return (
@@ -350,25 +324,14 @@ function ThemeIcon({ theme }: { theme: Theme }) {
       </svg>
     );
   }
-  if (theme === "dark") {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="h-4 w-4">
-        <path
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-          d="M13.5 9.35A5.75 5.75 0 0 1 6.65 2.5a5.75 5.75 0 1 0 6.85 6.85Z"
-        />
-      </svg>
-    );
-  }
   return (
     <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="h-4 w-4">
       <path
-        d="M8 1.5a6.5 6.5 0 1 0 0 13V1.5Z"
-        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        d="M13.5 9.35A5.75 5.75 0 0 1 6.65 2.5a5.75 5.75 0 1 0 6.85 6.85Z"
       />
-      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
 }
@@ -389,7 +352,7 @@ function ThemeIcon({ theme }: { theme: Theme }) {
  * lingua premuta si accende subito senza aspettare il server —
  * `fetcher.formData` contiene già quella che sta viaggiando.
  */
-function LanguageMenu({ chrome }: { chrome: boolean }) {
+function LanguageMenu() {
   const t = useT();
   const lang = useLang();
   const location = useLocation();
@@ -440,11 +403,7 @@ function LanguageMenu({ chrome }: { chrome: boolean }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
-        className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-1.5 text-sm sm:px-2 ${
-          chrome
-            ? "text-chrome-muted hover:text-chrome-ink aria-expanded:text-chrome-ink"
-            : "text-muted hover:text-ink aria-expanded:text-ink"
-        }`}
+        className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-1.5 text-sm text-muted hover:text-ink aria-expanded:text-ink sm:px-2"
       >
         {/* «EN» è un'abbreviazione: da sola, un lettore di schermo la
             leggerebbe come una parola. Il nome del controllo viaggia
@@ -557,7 +516,7 @@ const SKIN_LABEL_KEY: Record<Skin, "account.skinClassic" | "account.skinRiso"> =
  * un elenco a tendina si legge più chiaramente di un ciclo a un tocco come
  * quello del tema.
  */
-function SkinMenu({ skin, chrome }: { skin: Skin; chrome: boolean }) {
+function SkinMenu({ skin }: { skin: Skin }) {
   const t = useT();
   const location = useLocation();
   const fetcher = useFetcher();
@@ -595,11 +554,7 @@ function SkinMenu({ skin, chrome }: { skin: Skin; chrome: boolean }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
-        className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-1.5 text-sm sm:px-2 ${
-          chrome
-            ? "text-chrome-muted hover:text-chrome-ink aria-expanded:text-chrome-ink"
-            : "text-muted hover:text-ink aria-expanded:text-ink"
-        }`}
+        className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-1.5 text-sm text-muted hover:text-ink aria-expanded:text-ink sm:px-2"
       >
         <SkinGlyph className="h-4 w-4" />
         <span className="sr-only">{t("account.skin")}</span>
@@ -660,13 +615,7 @@ function SkinGlyph({ className }: { className?: string }) {
   );
 }
 
-function ProfileMenu({
-  user,
-  chrome,
-}: {
-  user: HeaderUser;
-  chrome: boolean;
-}) {
+function ProfileMenu({ user }: { user: HeaderUser }) {
   const t = useT();
   const navigate = useNavigate();
   const { open, setOpen, wrapRef, triggerRef, openedByHover } =
@@ -700,11 +649,7 @@ function ProfileMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
-        className={`flex min-h-11 items-center gap-2 rounded-sm px-1 text-sm ${
-          chrome
-            ? "text-chrome-muted hover:text-chrome-ink aria-expanded:text-chrome-ink"
-            : "text-muted hover:text-ink aria-expanded:text-ink"
-        }`}
+        className="flex min-h-11 items-center gap-2 rounded-sm px-1 text-sm text-muted hover:text-ink aria-expanded:text-ink"
       >
         <Avatar person={user} size="sm" />
         {/* Sotto ai 640px resta l'avatar: il proprio nome scritto per esteso

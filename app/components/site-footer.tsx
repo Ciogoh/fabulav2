@@ -2,11 +2,15 @@
  * Il piè di pagina: il credito e la build.
  *
  * Prima non esisteva — la versione si vedeva solo nel registro admin e nella
- * schermata di errore. Con lo stile Riso il telaio prende anche il fondo, e
- * un piè di pagina è la metà mancante dell'intestazione a fascia.
+ * schermata di errore.
  *
- * Legge `--chrome-*`, come `site-header.tsx`: nel classico è lo stesso fondo
- * della pagina, nel Riso è la fascia colorata.
+ * **Fondo sempre neutro, in ogni pelle.** C'era anche una fascia a fondo
+ * pieno nel Riso (`--chrome-*`, gemella di quella tolta da `site-header.tsx`
+ * per lo stesso motivo): un magenta vicinissimo al fucsia fisso del logo, che
+ * nell'intestazione lo rendeva illeggibile. Il piè di pagina non porta il
+ * logo, ma tenerlo colorato mentre l'intestazione è tornata neutra avrebbe
+ * lasciato la pagina con un'isola di colore senza ragione. Ora legge sempre
+ * `--card`/`--rule`/`--muted`, come il resto dell'interfaccia.
  *
  * A destra sta solo il numero di build, come `v.72` (`BUILD_NUMBER`, non
  * `versionLabel()` per esteso): qui basta sapere «quale copia sta girando»,
@@ -27,23 +31,12 @@
 
 import { useT } from "~/i18n/use-t";
 import { BUILD_NUMBER } from "~/lib/version";
-import type { Skin } from "~/lib/skin";
 
-export function SiteFooter({ skin = "riso" }: { skin?: Skin }) {
+export function SiteFooter() {
   const t = useT();
-  const chrome = skin === "riso";
-  const linkClass = chrome
-    ? "underline hover:text-chrome-ink transition-colors"
-    : "underline hover:text-ink transition-colors";
 
   return (
-    <footer
-      className={
-        chrome
-          ? "border-t border-chrome-rule bg-chrome-bg px-6 py-4 font-mono text-2xs text-chrome-muted"
-          : "border-t border-rule bg-card px-6 py-4 font-mono text-2xs text-muted"
-      }
-    >
+    <footer className="border-t border-rule bg-card px-6 py-4 font-mono text-2xs text-muted">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2">
         {/* Frase unica, non a pezzi in flex con gap: i nomi sono separati da
             virgole vere ("MaMa, BITZ FabLab, Dario Vedova...") e un gap
@@ -51,7 +44,12 @@ export function SiteFooter({ skin = "riso" }: { skin?: Skin }) {
             ogni virgola. Qui il testo scorre come una frase normale. */}
         <p className="max-w-3xl">
           {t("footer.creditPrefix")}{" "}
-          <a href="https://mamabz.com" target="_blank" rel="noopener noreferrer" className={linkClass}>
+          <a
+            href="https://mamabz.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline transition-colors hover:text-ink"
+          >
             {t("footer.mama")}
           </a>{" "}
           <a
@@ -59,12 +57,17 @@ export function SiteFooter({ skin = "riso" }: { skin?: Skin }) {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={t("footer.instagram")}
-            className={`inline-flex align-middle ${chrome ? "text-chrome-muted hover:text-chrome-ink" : "text-muted hover:text-ink"} transition-colors`}
+            className="inline-flex align-middle text-muted transition-colors hover:text-ink"
           >
             <InstagramIcon className="h-3.5 w-3.5" />
           </a>
           {", "}
-          <a href="https://bitzfablab.unibz.it/" target="_blank" rel="noopener noreferrer" className={linkClass}>
+          <a
+            href="https://bitzfablab.unibz.it/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline transition-colors hover:text-ink"
+          >
             {t("footer.bitz")}
           </a>
           {t("footer.creditSuffix")}

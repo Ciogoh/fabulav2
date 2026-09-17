@@ -495,11 +495,10 @@ const en = {
     "{pending} to approve, {unread} unread, {overdue} overdue",
   "nav.myRequestsUnread": "New reply",
 
-  /* Le tre etichette del pulsante che cicla il tema in cima — corte apposta,
+  /* Le due etichette del pulsante che cicla il tema in cima — corte apposta,
      per entrare in un `aria-label` come "Switch theme: Dark". Le voci di
-     `/account` restano frasi per esteso: `account.themeAuto` e le altre. */
+     `/account` restano frasi per esteso. */
   "nav.themeNext": "Switch theme: {theme}",
-  "nav.themeAuto": "Automatic",
   "nav.themeLight": "Light",
   "nav.themeDark": "Dark",
 
@@ -526,10 +525,8 @@ const en = {
      dispositivo: sono due cose e i testi devono farlo capire, o si accendono
      le notifiche sul portatile e si esce dall'ufficio. */
   "account.themeHeading": "Appearance",
-  "account.themeIntro":
-    "Light, dark, or whatever your device is set to.",
+  "account.themeIntro": "Light or dark.",
   "account.theme": "Theme",
-  "account.themeAuto": "Follow my device",
   "account.themeLight": "Light",
   "account.themeDark": "Dark",
   "account.themeHint":
@@ -1040,7 +1037,6 @@ const it: Dictionary = {
   "nav.myRequestsUnread": "Nuova risposta",
 
   "nav.themeNext": "Cambia tema: {theme}",
-  "nav.themeAuto": "Automatico",
   "nav.themeLight": "Chiaro",
   "nav.themeDark": "Scuro",
 
@@ -1067,10 +1063,8 @@ const it: Dictionary = {
      dispositivo: sono due cose e i testi devono farlo capire, o si accendono
      le notifiche sul portatile e si esce dall'ufficio. */
   "account.themeHeading": "Aspetto",
-  "account.themeIntro":
-    "Chiaro, scuro, o quello che dice il tuo dispositivo.",
+  "account.themeIntro": "Chiaro o scuro.",
   "account.theme": "Tema",
-  "account.themeAuto": "Come il dispositivo",
   "account.themeLight": "Chiaro",
   "account.themeDark": "Scuro",
   "account.themeHint":
@@ -1580,7 +1574,6 @@ const de: Dictionary = {
   "nav.myRequestsUnread": "Neue Antwort",
 
   "nav.themeNext": "Design wechseln: {theme}",
-  "nav.themeAuto": "Automatisch",
   "nav.themeLight": "Hell",
   "nav.themeDark": "Dunkel",
 
@@ -1607,10 +1600,8 @@ const de: Dictionary = {
      dispositivo: sono due cose e i testi devono farlo capire, o si accendono
      le notifiche sul portatile e si esce dall'ufficio. */
   "account.themeHeading": "Erscheinungsbild",
-  "account.themeIntro":
-    "Hell, dunkel, oder wie dein Gerät es eingestellt hat.",
+  "account.themeIntro": "Hell oder dunkel.",
   "account.theme": "Design",
-  "account.themeAuto": "Wie mein Gerät",
   "account.themeLight": "Hell",
   "account.themeDark": "Dunkel",
   "account.themeHint":
