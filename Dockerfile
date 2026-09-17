@@ -37,15 +37,16 @@ FROM base AS build-env
 # niente. Questo stadio invece viene buttato via — ne sopravvivono solo
 # `build/`. Prima di ogni `COPY`, così resta nella cache e non si riscarica.
 #
-# **`safe.directory` non è decorazione: senza, la produzione mostrava sempre
-# `build ?`.** Git 2.35+ rifiuta di leggere un repository il cui proprietario
-# non combacia con l'utente che lo interroga ("dubious ownership") — ed è
-# esattamente il caso qui: Coolify clona `/artifacts/<uuid>` con un utente
-# suo sull'host, quel contesto arriva nella build con quella proprietà, e
-# `git rev-list` (chiamato da `vite.config.ts`) lo trova sospetto e fallisce
-# in silenzio (l'errore vero è nascosto apposta, vedi lì il perché). `*`
-# fida di qualunque cartella, e va bene: questo stadio viene buttato via, non
-# resta niente da cui qualcun altro possa approfittarsene.
+# **Non serve a molto in produzione, ed è saputo.** Su Coolify `.git` non
+# arriva mai nel contesto di build — verificato leggendo un log crudo il
+# 2026-09-17 (`ls: .git: No such file or directory`, con `.dockerignore` che
+# non lo esclude e il clone di Coolify che funziona benissimo): lo toglie
+# Coolify stesso prima di passare il contesto a Docker, e nessuna riga qui
+# può farci niente. `git` resta installato per il caso in cui questa stessa
+# immagine si costruisca altrove con un `.git` vero — la «via di fuga» del
+# `docker-compose.yml`, vedi CLAUDE.md — dove il conteggio dei commit torna
+# utile. `safe.directory` costa una riga e non fa mai danno (questo stadio
+# viene buttato via), quindi resta per coprire quel caso.
 RUN apk add --no-cache git \
     && git config --global --add safe.directory '*'
 
@@ -68,18 +69,6 @@ ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build"
 RUN pnpm exec prisma generate
 
 COPY . .
-
-# Diagnostica temporanea: due tentativi (edc9cce, 0d34185) di correggere
-# "build ?" in produzione hanno dato per scontato *perché* git fallisse
-# (prima "dubious ownership", poi verificato che non lo era) senza mai
-# vedere l'errore vero al momento giusto — `versionStamp` lo cattura solo
-# dopo, filtrato da `execSync`. Questa riga lo mostra crudo, qui, prima di
-# qualunque altro sospetto. Va tolta una volta letto il log del prossimo
-# deploy.
-RUN echo "--- diagnostica .git ---" \
-    && ls -la .git 2>&1 || true \
-    && git rev-parse --short HEAD 2>&1 || true \
-    && echo "--- fine diagnostica ---"
 
 RUN pnpm run build
 

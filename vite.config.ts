@@ -11,40 +11,24 @@ import { defineConfig } from "vite";
  *
  * Ognuno ha il suo ripiego, e non è pignoleria: **la costruzione non deve mai
  * fallire per colpa del numero di versione**. È decorazione, non una
- * funzione — se git non risponde si legge `build ?` e si va avanti.
+ * funzione.
  *
- * Perché `git` funziona anche dentro al container: `.dockerignore` non
- * esclude più `.git` (pesa 2,3 MB su un contesto di 5,7) e il `Dockerfile`
- * installa `git` nello stadio di costruzione, che viene poi buttato via.
- * Prima si passava tutto come argomento di costruzione, cioè un gesto da
- * ricordare a ogni rilascio — ed è il genere di gesto che si dimentica.
+ * **In produzione su Coolify `git` non funziona mai, e non è aggiustabile da
+ * qui.** Tre correzioni diverse (2026-09-17: ownership, poi la struttura del
+ * fallback) hanno dato per scontate cause sempre più specifiche, finché un
+ * log di build letto crudo non ha mostrato la verità:
+ * `ls: .git: No such file or directory`. La cartella non arriva proprio nel
+ * contesto — non `.dockerignore` (non la esclude), non git stesso (il clone
+ * di Coolify funziona, lo si vede dal commit letto subito dopo) — a monte
+ * Coolify assembla il contesto di build senza `.git`, prima ancora che
+ * Docker entri in gioco. Nessuna riga di `Dockerfile` può recuperarla.
  *
- * **`SOURCE_COMMIT` non arriva mai da Coolify — verificato coi log veri del
- * 2026-09-17.** Un vecchio commento qui e nel `Dockerfile` dava per scontato
- * che Coolify lo passasse come argomento di costruzione; il comando `docker
- * build` che genera davvero non lo passa (solo le variabili configurate
- * sull'app, più `COOLIFY_URL`/`FQDN`/`BRANCH`/`RESOURCE_UUID`). Quel ramo non
- * ha mai fatto niente, ed è per questo che in produzione si leggeva sempre
- * `build ?`: il conteggio dei commit *da solo* avrebbe detto `1` (clone in
- * profondità 1, vedi sotto), ma perfino quello falliva.
- *
- * **Perché falliva è ancora sotto verifica.** Il sospetto principale è git
- * che rifiuta un repository il cui proprietario non combacia con chi lo
- * interroga ("dubious ownership", git 2.35+) — vedi il `Dockerfile`, dove
- * `safe.directory` prova a coprirlo — ma finché non arriva un `build`
- * diverso da `?` in produzione non è confermato. Per questo, se anche il
- * secondo tentativo qui sotto fallisce, l'errore vero finisce comunque nei
- * log di costruzione invece di sparire in silenzio: la prossima volta si sa
- * *cosa* dice git, non solo che ha fallito.
- *
- * **I due tentativi sono indipendenti, non annidati.** Prima versione: lo sha
- * corto partiva solo se `rev-list` *riusciva* e diceva `1` — se falliva del
- * tutto (qualunque motivo), il fallback non scattava mai, ed è esattamente
- * quello che è successo. Ora un fallimento del primo non impedisce il
- * secondo: se il conteggio non è disponibile o è `1` (clone superficiale,
- * dove Fabula con centinaia di commit vedrebbe comunque solo quello estratto)
- * si prova lo sha corto, che identifica il commit senza bisogno della storia
- * intera.
+ * Quindi: **il conteggio dei commit resta un extra per lo sviluppo locale**
+ * (dove `.git` c'è davvero, con la storia intera) **e non il meccanismo
+ * principale.** Il ripiego di sempre — sempre disponibile, ovunque, senza
+ * bisogno di git — è l'istante della build stessa: non sale con ogni commit,
+ * ma è comunque un'impronta che risponde alla domanda vera, «quale copia sta
+ * girando», ed è quella che conta quando l'altra non è disponibile.
  */
 function versionStamp() {
   let version = "?";
@@ -54,26 +38,23 @@ function versionStamp() {
     // Non può succedere, ma se succede la costruzione continua.
   }
 
-  let lastGitError: unknown = null;
-  function git(command: string): string | null {
-    try {
-      // Cattura anche stderr (a differenza di prima): se anche il ripiego
-      // fallisce, serve a dire perché nei log di costruzione — vedi sopra.
-      return execSync(command, { stdio: ["ignore", "pipe", "pipe"] }).toString().trim();
-    } catch (error) {
-      lastGitError = error;
-      return null;
-    }
+  let count: string | null = null;
+  try {
+    count = execSync("git rev-list --count HEAD", {
+      // Senza questo, quando git fallisce il suo errore finisce nel terminale
+      // e sembra un guasto della costruzione, che invece prosegue benissimo.
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    // Niente `.git` (sempre così su Coolify) o niente git installato.
   }
 
-  const count = git("git rev-list --count HEAD");
-  const build = count && count !== "1" ? count : (git("git rev-parse --short HEAD") ?? "?");
-
-  if (build === "?" && lastGitError) {
-    // `console.warn` e non `throw`: la build non deve mai fallire per
-    // questo, ma l'errore vero va detto, non inghiottito come prima.
-    console.warn("[versionStamp] git non risponde, build resta \"?\":", lastGitError);
-  }
+  // Base36 e non un ISO leggibile: la data per esteso c'è già in
+  // `__BUILD_DATE__`, ripeterla qui nella stessa riga sarebbe ridondante —
+  // questo è solo un'impronta, non ha bisogno di dirsi da solo cos'è.
+  const build = count && count !== "1" ? count : Date.now().toString(36);
 
   return {
     __APP_VERSION__: JSON.stringify(version),

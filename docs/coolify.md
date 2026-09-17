@@ -102,13 +102,17 @@ tenere allineati, ce n'è uno solo.
 ## 4. Cosa succede a ogni `git push`
 
 1. GitHub avvisa Coolify.
-2. Coolify clona (profondità 1) e costruisce il `Dockerfile`. **Non passa
-   nessuno sha come argomento di costruzione** — un vecchio commento qui e
+2. Coolify clona e costruisce il `Dockerfile`. **Il contesto di build che
+   arriva a Docker non ha `.git`** — verificato leggendo un log di build
+   crudo il 2026-09-17 (`ls: .git: No such file or directory`, con
+   `.dockerignore` che non lo esclude e il clone che funziona benissimo):
+   Coolify lo toglie a monte, prima che Docker entri in gioco. Non passa
+   nemmeno lo sha come argomento di costruzione (un vecchio commento qui e
    nel `Dockerfile` dava per scontato un `SOURCE_COMMIT` che i log veri del
-   comando `docker build` (controllati il 2026-09-17) non contengono affatto.
-   Per la riga di versione, `versionStamp` in `vite.config.ts` riconosce da
-   solo il clone superficiale (il conteggio dei commit darebbe sempre `1`) e
-   usa lo sha corto al suo posto.
+   comando `docker build` non contengono affatto). Per la riga di versione,
+   `versionStamp` in `vite.config.ts` non dipende più da nessuno dei due: usa
+   l'istante della build come impronta quando git non risponde, il che in
+   produzione è sempre.
 3. Parte il container nuovo. `docker-entrypoint.sh` esegue
    `prisma migrate deploy` **prima** di servire.
 4. Se le migrazioni falliscono il container esce, `/healthz` non risponde mai,
