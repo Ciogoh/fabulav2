@@ -44,9 +44,10 @@ build
 # il commit — ma allora questa riga va rimessa.
 #
 # Nota per chi costruisce su Coolify: lì `.git` c'è ma è un clone di
-# profondità 1, quindi il conteggio dei commit darebbe `1` in silenzio. Per
-# quel caso c'è l'argomento di costruzione `SOURCE_COMMIT`, che Coolify passa
-# da sé e che `versionStamp` preferisce quando c'è.
+# profondità 1, quindi il conteggio dei commit darebbe `1` in silenzio.
+# `versionStamp` in `vite.config.ts` lo riconosce e usa lo sha corto al suo
+# posto — vedi lì il perché (non è più `SOURCE_COMMIT`, che Coolify non passa
+# mai: verificato coi log veri del 2026-09-17).
 
 # Non servono a `vite build`.
 .gitignore
