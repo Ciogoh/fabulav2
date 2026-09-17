@@ -12,8 +12,13 @@
  * un'icona installata non può leggere `var(--brand)` — è congelata al
  * momento dell'installazione, come le altre icone della PWA.
  *
- * Qui invece il colore è `--brand` (`app.css`), non un valore fisso: lo
- * stile Riso lo cambia insieme al resto senza toccare questo file.
+ * **Il fucsia qui è fisso, non `var(--brand)`.** Prima seguiva la pelle
+ * (in Riso diventava l'arancio del telaio, per intonarsi alla fascia
+ * magenta — una scelta scritta a suo tempo in CLAUDE.md). Non più: il
+ * marchio deve restare riconoscibile ovunque compaia, stesso principio già
+ * applicato al logo grande della landing (`--landing-pink` in
+ * `landing.css`). Chi introduce una pelle nuova non deve più toccare
+ * questo file per farci stare dentro il proprio accento.
  */
 
 export function Logo({
@@ -31,7 +36,7 @@ export function Logo({
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label="Fabula"
-      fill={tone === "brand" ? "var(--brand)" : "currentColor"}
+      fill={tone === "brand" ? "#ec008c" : "currentColor"}
       className={className}
     >
       <polygon points="161.98 27 161.98 54 80.99 54 80.99 80.99 134.98 80.99 134.98 107.99 80.99 107.99 80.99 161.99 0 161.99 0 107.99 26.99 107.99 26.99 134.99 53.99 134.99 53.99 54 26.99 54 26.99 27" />

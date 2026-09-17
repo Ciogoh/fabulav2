@@ -401,7 +401,9 @@
   --admin-bg: light-dark(#f2f0ec, #191d26);
   --admin-rule: light-dark(#ddd8d0, #333a47);
 
-  /* Il logo: l'arancio del telaio sopra la fascia magenta, come nel mockup. */
+  /* Non più letto dal logo (`components/logo.tsx`), che ora è fucsia fisso
+     in ogni pelle: il marchio deve restare lo stesso ovunque compaia. Resta
+     qui come accento della pelle Riso per un eventuale uso futuro. */
   --brand: #ffac00;
 
   /* Il telaio: fascia piena, non più indistinguibile dal resto della
