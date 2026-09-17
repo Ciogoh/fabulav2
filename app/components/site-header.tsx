@@ -145,7 +145,7 @@ export function SiteHeader({
           : "border-b border-rule bg-card"
       }
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-6 py-3">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-1 gap-y-2 px-6 py-3 sm:gap-x-8">
         <NavLink
           to="/"
           aria-label={t("app.name")}
@@ -196,7 +196,7 @@ export function SiteHeader({
           )}
         </nav>
 
-        <div className="ml-auto flex flex-wrap items-center gap-3">
+        <div className="ml-auto flex flex-wrap items-center gap-2 sm:gap-3">
           <ThemeCycleButton theme={theme} chrome={chrome} />
           <SkinMenu skin={skin} chrome={chrome} />
           <LanguageMenu chrome={chrome} />
@@ -210,12 +210,12 @@ export function SiteHeader({
             // per "Catalogo"/"Calendario" su questa stessa fascia.
             <Link
               to="/signin"
-              className="inline-flex min-h-11 items-center justify-center rounded-sm border border-chrome-ink px-4 text-sm font-medium text-chrome-ink hover:bg-chrome-ink/10"
+              className="inline-flex min-h-11 items-center justify-center rounded-sm border border-chrome-ink px-3 text-sm font-medium text-chrome-ink hover:bg-chrome-ink/10 sm:px-4"
             >
               {t("nav.signIn")}
             </Link>
           ) : (
-            <ButtonLink to="/signin" variant="secondary" size="md">
+            <ButtonLink to="/signin" variant="secondary" size="md" className="!px-3 sm:!px-4">
               {t("nav.signIn")}
             </ButtonLink>
           )}
@@ -440,7 +440,7 @@ function LanguageMenu({ chrome }: { chrome: boolean }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
-        className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-2 text-sm ${
+        className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-1.5 text-sm sm:px-2 ${
           chrome
             ? "text-chrome-muted hover:text-chrome-ink aria-expanded:text-chrome-ink"
             : "text-muted hover:text-ink aria-expanded:text-ink"
@@ -456,6 +456,10 @@ function LanguageMenu({ chrome }: { chrome: boolean }) {
           {active}
         </span>
         <span className="sr-only">{t("nav.language")}</span>
+        {/* La freccina sparisce sotto ai 640px: uno dei pochi grammi che si
+            potevano togliere quando il selettore pelle si è aggiunto in
+            barra, e l'intestazione tornava a spezzarsi su tre righe invece
+            di due — vedi la nota sopra `<nav>`. */}
         <svg
           aria-hidden="true"
           viewBox="0 0 12 12"
@@ -464,7 +468,7 @@ function LanguageMenu({ chrome }: { chrome: boolean }) {
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className={`h-2.5 w-2.5 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`hidden h-2.5 w-2.5 transition-transform sm:block ${open ? "rotate-180" : ""}`}
         >
           <path d="M2.5 4.5 6 8l3.5-3.5" />
         </svg>
@@ -591,7 +595,7 @@ function SkinMenu({ skin, chrome }: { skin: Skin; chrome: boolean }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((was) => (openedByHover.current ? true : !was))}
-        className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-2 text-sm ${
+        className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-sm px-1.5 text-sm sm:px-2 ${
           chrome
             ? "text-chrome-muted hover:text-chrome-ink aria-expanded:text-chrome-ink"
             : "text-muted hover:text-ink aria-expanded:text-ink"
@@ -607,7 +611,7 @@ function SkinMenu({ skin, chrome }: { skin: Skin; chrome: boolean }) {
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className={`h-2.5 w-2.5 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`hidden h-2.5 w-2.5 transition-transform sm:block ${open ? "rotate-180" : ""}`}
         >
           <path d="M2.5 4.5 6 8l3.5-3.5" />
         </svg>
