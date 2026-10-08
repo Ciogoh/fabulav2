@@ -37,7 +37,8 @@
 import type { NotifyChannel } from "~/generated/prisma/enums";
 import { formatDay } from "~/lib/availability.server";
 import { db } from "~/lib/db.server";
-import { extraAdminEmails, sendEmail } from "~/lib/email.server";
+import { sendEmail } from "~/lib/email.server";
+import { selectAdminNotificationRecipients } from "~/lib/admin-notifications";
 import { sendPush } from "~/lib/push.server";
 
 type RequestSummary = {
@@ -139,25 +140,25 @@ async function channelOf(userId: string): Promise<NotifyChannel> {
  *
  * Prima era una lista fissa nel `.env`, e una lista di indirizzi non ha
  * preferenze: chi voleva solo le notifiche continuava a ricevere la posta.
- * Adesso i destinatari veri sono **gli utenti con ruolo `ADMIN`** letti dal
- * database, ciascuno sul canale che ha scelto.
+ * I destinatari sono gli admin selezionati dalla pagina Soci, ciascuno sul
+ * canale che ha scelto. Il ruolo da solo non implica ricevere gli avvisi.
  *
  * `ADMIN_EMAILS` resta, per la casella condivisa dell'associazione o per chi
  * vuole l'avviso senza avere un account — ma gli indirizzi che coincidono con
- * un admin registrato vengono scartati (in `email.server.ts`), o l'avviso
+ * un admin registrato vengono scartati, o l'avviso
  * rientrerebbe dalla porta di servizio proprio a chi aveva chiesto di non
  * riceverlo.
  */
 async function adminRecipients(): Promise<{ people: Recipient[]; extras: string[] }> {
   const admins = await db.user.findMany({
     where: { role: "ADMIN" },
-    select: { id: true, email: true, name: true, notifyChannel: true },
+    select: {
+      id: true, email: true, name: true, notifyChannel: true,
+      receivesAdminNotifications: true,
+    },
   });
 
-  return {
-    people: admins,
-    extras: extraAdminEmails(admins.map((admin) => admin.email)),
-  };
+  return selectAdminNotificationRecipients(admins, process.env.ADMIN_EMAILS ?? "");
 }
 
 export async function notifyAdminsNewRequest(

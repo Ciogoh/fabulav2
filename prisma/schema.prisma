@@ -90,6 +90,11 @@ model User {
   /// amministratore da solo.
   role Role @default(MEMBER)
 
+  /// Avvisi operativi agli admin: nuove richieste e riepilogo dei ritardi.
+  /// Non dà permessi e non modifica gli avvisi sui propri prestiti o l'accesso.
+  /// I nuovi admin vanno scelti esplicitamente dalla pagina Soci.
+  receivesAdminNotifications Boolean @default(false)
+
   /// Socio dell'associazione. Non dà permessi: serve agli admin per
   /// riconoscere chi conoscono quando valutano una richiesta.
   isMember Boolean @default(false)

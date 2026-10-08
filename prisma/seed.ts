@@ -126,6 +126,7 @@ async function main() {
       email: "mogno.samu@gmail.com",
       name: "Samu",
       role: "ADMIN",
+      receivesAdminNotifications: true,
       isMember: true,
       language: "IT",
     },

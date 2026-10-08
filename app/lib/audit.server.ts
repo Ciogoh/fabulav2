@@ -34,6 +34,7 @@ export type AdminActionKind =
   | "requestItem.pickup"
   | "requestItem.return"
   | "member.roleChanged"
+  | "member.notificationsChanged"
   | "member.resetSent"
   | "asset.archived"
   | "asset.deleted"

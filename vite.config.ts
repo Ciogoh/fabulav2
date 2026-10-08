@@ -69,6 +69,15 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  optimizeDeps: {
+    // React Router include già React e il renderer. Preparare anche accesso
+    // e scanner prima della prima pagina evita ricompilazioni tardive con
+    // moduli React di generazioni diverse nella stessa sessione del browser.
+    // La scoperta automatica leggerebbe anche le dipendenze solo server
+    // delle rotte; qui servono soltanto quelle usate dal client.
+    noDiscovery: true,
+    include: ["better-auth/react", "better-auth/client/plugins", "qr-scanner"],
+  },
   server: {
     allowedHosts: [
       ".fabulabz.com",

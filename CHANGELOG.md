@@ -14,6 +14,23 @@ la prova su iPhone e Android veri di quello che la 0.7.0 ha aggiunto.
 
 ---
 
+## 0.11.0 — 8 ottobre 2026
+
+**Essere admin non significa dover ricevere tutte le email.** In Soci c'è
+una sezione con uno switch per amministratore: sceglie chi riceve le nuove
+richieste e il riepilogo giornaliero dei ritardi, senza cambiare i permessi.
+La scelta si salva subito e compare nel registro delle azioni admin.
+
+La migrazione mantiene selezionati gli admin esistenti, così nessun avviso
+sparisce prima di aver scelto i destinatari. Le nuove nomine richiedono una
+selezione esplicita. Gli avvisi sui propri prestiti e le email di accesso
+restano attivi. Gli indirizzi aggiuntivi di `ADMIN_EMAILS` sono visibili nella
+sezione e non possono aggirare lo switch di un admin registrato.
+
+**Preview locale più stabile.** Le dipendenze del browser, compresi accesso e
+scanner QR, vengono preparate all'avvio. La navigazione fra pagine non deve
+più innescare ricompilazioni tardive con copie React non allineate in cache.
+
 ## 0.10.0 — 29 agosto 2026
 
 **Una seconda pelle, scelta dall'utente.** Fabula ha adesso due aspetti:

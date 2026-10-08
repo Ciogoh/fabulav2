@@ -17,6 +17,9 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   test: {
+    // Le copie in .claude/worktrees hanno client e dipendenze propri.
+    // Questa suite verifica soltanto l'applicazione del checkout corrente.
+    include: ["app/**/*.test.{ts,tsx}"],
     environment: "node",
     setupFiles: ["./vitest.setup.ts"],
   },

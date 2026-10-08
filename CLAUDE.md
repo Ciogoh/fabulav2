@@ -190,6 +190,10 @@ verificato dal vivo, non solo compilato:**
   stessi, mai l'ultimo admin rimasto) e mandare un link di reset password
   (`/reset-password`) — è anche il modo in cui chi è entrato solo col codice
   via email si aggiunge una password.
+  La sezione **Destinatari email degli oggetti** seleziona gli admin che
+  ricevono nuove richieste e riepilogo dei ritardi, senza cambiare i ruoli.
+  `User.receivesAdminNotifications` è indipendente da `notifyChannel` e dagli
+  avvisi personali. Le nuove nomine richiedono una selezione esplicita.
 - Caricamento delle foto, con anteprima prima di spedire, tipo vero validato
   sui byte (non sull'estensione) e ridimensionamento in JPEG — oggetti e
   avatar.
