@@ -1,3 +1,4 @@
+import { PUBLISHED_ASSET } from "~/lib/asset-publication.server";
 /**
  * Il calendario condiviso.
  *
@@ -63,7 +64,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const [assets, occupancy] = await Promise.all([
     db.asset.findMany({
-      where: { archivedAt: null },
+      where: PUBLISHED_ASSET,
       orderBy: [{ category: { sortOrder: "asc" } }, { name: "asc" }],
       select: {
         id: true,

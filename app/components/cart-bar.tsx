@@ -13,14 +13,19 @@
  * toglierli tutti in un colpo.
  */
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useFetcher, useNavigate } from "react-router";
+import { submissionContent } from "~/lib/marketplace";
+import type { loader as previewLoader } from "~/routes/requests.preview";
 import type { loader as availabilityLoader } from "~/routes/availability";
 import type { action as createRequestAction } from "~/routes/requests";
 import { useT } from "~/i18n/use-t";
 import { Button, ButtonLink } from "~/components/button";
 import { Dialog } from "~/components/dialog";
-import { DateRangeFields, daysBetweenInclusive } from "~/components/date-range-fields";
+import {
+  DateRangeFields,
+  daysBetweenInclusive,
+} from "~/components/date-range-fields";
 import { MAX_ORDINARY_SPAN_DAYS } from "~/lib/availability.shared";
 import type { CartEntry, useCart } from "~/lib/use-cart";
 
@@ -31,7 +36,7 @@ export function CartBar({
 }: {
   cart: ReturnType<typeof useCart>;
   today: string;
-  user: { name: string } | null;
+  user: { id: string; name: string } | null;
 }) {
   const t = useT();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -75,6 +80,7 @@ export function CartBar({
 
       {dialogOpen && (
         <RequestDialog
+          userId={user!.id}
           entries={cart.entries}
           today={today}
           onRemove={cart.remove}
@@ -99,12 +105,14 @@ export function CartBar({
  */
 
 function RequestDialog({
+  userId,
   entries,
   today,
   onRemove,
   onClose,
   onSuccess,
 }: {
+  userId: string;
   entries: CartEntry[];
   today: string;
   onRemove: (assetId: string) => void;
@@ -115,6 +123,13 @@ function RequestDialog({
   const navigate = useNavigate();
   const fetcher = useFetcher<typeof createRequestAction>();
   const availability = useFetcher<typeof availabilityLoader>();
+  const preview = useFetcher<typeof previewLoader>();
+  const [submission, setSubmission] = useState<{
+    content: string;
+    key: string;
+  } | null>(null);
+  const attemptedKey = useRef<string | null>(null);
+  const retryStore = `fabula:request-submission:${userId}`;
   const headingId = useId();
 
   const [from, setFrom] = useState(today);
@@ -124,6 +139,60 @@ function RequestDialog({
 
   const busy = fetcher.state !== "idle";
   const ids = entries.map((entry) => entry.assetId).join(",");
+  const content = submissionContent(
+    entries.map((e) => ({ assetId: e.assetId, fromKitId: e.fromKitId })),
+    from,
+    to,
+    purpose.slice(0, 2000),
+  );
+  const submissionKey = submission?.content === content ? submission.key : "";
+  function attempts(): Array<{ content: string; key: string }> {
+    try {
+      const raw: unknown = JSON.parse(
+        sessionStorage.getItem(retryStore) ?? "[]",
+      );
+      return Array.isArray(raw)
+        ? raw
+            .filter(
+              (row) =>
+                row &&
+                typeof row.content === "string" &&
+                typeof row.key === "string",
+            )
+            .slice(-20)
+        : [];
+    } catch {
+      return [];
+    }
+  }
+  useEffect(() => {
+    const key =
+      attempts().find((row) => row.content === content)?.key ??
+      crypto.randomUUID();
+    setSubmission({ content, key });
+  }, [content, retryStore]);
+  function rememberAttempt() {
+    if (!submissionKey) return;
+    attemptedKey.current = submissionKey;
+    // Conservare solo invii tentati evita che digitare il motivo cancelli
+    // la chiave di una risposta persa. Riaprire il foglio consente lo stesso retry.
+    try {
+      sessionStorage.setItem(
+        retryStore,
+        JSON.stringify(
+          [
+            ...attempts().filter((row) => row.content !== content),
+            { content, key: submissionKey },
+          ].slice(-20),
+        ),
+      );
+    } catch {
+      /* Memoria del browser non disponibile; la chiave resta nella pagina. */
+    }
+  }
+  useEffect(() => {
+    preview.load(`/requests/preview?ids=${encodeURIComponent(ids)}`);
+  }, [ids]);
 
   /* Disponibilità dal vivo: a ogni cambio di date o di carrello. Il ritardo
      serve a non partire a ogni tasto premuto dentro al campo data. */
@@ -131,7 +200,7 @@ function RequestDialog({
     if (!from || !to || to < from) return;
     const timer = setTimeout(() => {
       availability.load(
-        `/availability?from=${from}&to=${to}&ids=${encodeURIComponent(ids)}`
+        `/availability?from=${from}&to=${to}&ids=${encodeURIComponent(ids)}`,
       );
     }, 200);
     return () => clearTimeout(timer);
@@ -145,8 +214,22 @@ function RequestDialog({
   /* A richiesta creata, si va sulla sua pagina. */
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data?.ok) {
+      try {
+        sessionStorage.setItem(
+          retryStore,
+          JSON.stringify(
+            attempts().filter((row) => row.key !== attemptedKey.current),
+          ),
+        );
+      } catch {
+        /* Nessuna cache da ripulire. */
+      }
       onSuccess();
-      navigate(`/requests/${fetcher.data.id}`);
+      navigate(
+        fetcher.data.requestIds.length === 1
+          ? `/requests/${fetcher.data.requestIds[0]}`
+          : `/requests/batches/${fetcher.data.batchId}`,
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state, fetcher.data]);
@@ -154,128 +237,188 @@ function RequestDialog({
   const result = fetcher.data && !fetcher.data.ok ? fetcher.data : null;
   const span = daysBetweenInclusive(from, to);
   const tooLong = !longer && span > MAX_ORDINARY_SPAN_DAYS;
+  const itemRow = (entry: CartEntry) => (
+    <li key={entry.assetId} className="flex items-center justify-between gap-3">
+      <span
+        className={`min-w-0 break-words ${taken.has(entry.assetId) ? "text-out" : "text-muted"}`}
+      >
+        {entry.name}
+        {taken.has(entry.assetId) && (
+          <span className="ml-2 text-xs">{t("request.taken")}</span>
+        )}
+      </span>
+      <Button
+        variant="plain"
+        onClick={() => onRemove(entry.assetId)}
+        aria-label={`${t("cart.remove")} ${entry.name}`}
+        className="shrink-0"
+      >
+        {t("cart.remove")}
+      </Button>
+    </li>
+  );
+  const grouped = new Set(
+    preview.data?.groups.flatMap((g) => g.items.map((i) => i.id)) ?? [],
+  );
+  const ungrouped = entries.filter((entry) => !grouped.has(entry.assetId));
 
   return (
-    <Dialog onClose={onClose} labelledBy={headingId} panelClassName="max-w-md">
-        <div className="flex items-start justify-between gap-4">
-          <h2 id={headingId} className="font-serif text-xl font-semibold">
-            {t("request.heading")}
-          </h2>
+    <Dialog onClose={onClose} labelledBy={headingId} panelClassName="max-w-xl">
+      <div className="flex items-start justify-between gap-4">
+        <h2 id={headingId} className="font-serif text-xl font-semibold">
+          {t("request.heading")}
+        </h2>
+        <Button
+          variant="plain"
+          onClick={onClose}
+          aria-label={t("request.close")}
+          className="-mr-2 -mt-1 px-2 no-underline"
+        >
+          ✕
+        </Button>
+      </div>
+
+      <div className="mt-4 max-h-80 shrink-0 overflow-y-auto text-sm">
+        {preview.data && (
+          <section>
+            <ul className="flex flex-col gap-3">
+              {preview.data.groups.map((g) => (
+                <li key={g.number} className="rounded-sm bg-sunk px-3 py-2">
+                  <h3 className="font-medium">
+                    {g.institutional
+                      ? "Material Matters"
+                      : t("p2p.group", { number: g.number })}
+                  </h3>
+                  <ul className="mt-1">
+                    {g.items
+                      .map((i) => entries.find((e) => e.assetId === i.id))
+                      .filter((e): e is CartEntry => Boolean(e))
+                      .map(itemRow)}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        {ungrouped.length > 0 && (
+          <ul className="mt-2">{ungrouped.map(itemRow)}</ul>
+        )}
+      </div>
+      {preview.data && (
+        <p className="mt-3 text-sm text-muted">
+          {t(
+            preview.data.groups.length === 1
+              ? "p2p.singleNote"
+              : "p2p.splitNote",
+            { count: preview.data.groups.length },
+          )}
+        </p>
+      )}
+      {preview.data?.selfLoan && (
+        <p role="alert" className="mt-3 text-sm text-out">
+          {t("p2p.errorSelfLoan")}
+        </p>
+      )}
+      {preview.data?.unavailable && (
+        <p role="alert" className="mt-3 text-sm text-out">
+          {t("request.errorUnavailable")}
+        </p>
+      )}
+      <p className="mt-3 text-xs text-muted">{t("p2p.notReserved")}</p>
+      <fetcher.Form
+        method="post"
+        action="/requests"
+        onSubmit={rememberAttempt}
+        className="mt-5 flex flex-col gap-4"
+      >
+        <input type="hidden" name="submissionKey" value={submissionKey} />
+        <input
+          type="hidden"
+          name="items"
+          value={JSON.stringify(
+            entries.map((entry) => ({
+              assetId: entry.assetId,
+              fromKitId: entry.fromKitId,
+            })),
+          )}
+        />
+
+        <DateRangeFields
+          today={today}
+          from={from}
+          to={to}
+          longer={longer}
+          purpose={purpose}
+          onFromChange={setFrom}
+          onToChange={setTo}
+          onLongerChange={setLonger}
+          onPurposeChange={setPurpose}
+        />
+
+        {/* L'esito del controllo, nel punto in cui si scelgono le date. */}
+        <p
+          aria-live="polite"
+          className={`text-xs ${
+            takenEntries.length > 0 ? "text-out" : "text-muted"
+          }`}
+        >
+          {checking
+            ? t("request.checking")
+            : takenEntries.length === 1
+              ? t("request.takenOne")
+              : takenEntries.length > 1
+                ? t("request.takenCount", { count: takenEntries.length })
+                : t("request.allFree")}
+        </p>
+
+        {takenEntries.length > 0 && (
           <Button
-            variant="plain"
-            size="sm"
-            onClick={onClose}
-            aria-label={t("request.close")}
-            className="-mr-2 -mt-1 px-2 no-underline"
+            variant="quiet"
+            className="self-start"
+            onClick={() =>
+              takenEntries.forEach((entry) => onRemove(entry.assetId))
+            }
           >
-            ✕
+            {t("request.removeTaken")}
+          </Button>
+        )}
+
+        {result && (
+          <p
+            role="alert"
+            className="rounded-sm bg-out-bg px-3 py-2 text-sm text-out"
+          >
+            {t(result.error)}
+            {result.conflicts && result.conflicts.length > 0 && (
+              <> — {result.conflicts.join(", ")}</>
+            )}
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <Button variant="plain" onClick={onClose}>
+            {t("request.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            busy={busy}
+            disabled={
+              tooLong ||
+              takenEntries.length > 0 ||
+              !submissionKey ||
+              !preview.data ||
+              preview.state !== "idle" ||
+              preview.data.selfLoan ||
+              preview.data.unavailable
+            }
+          >
+            {preview.data && preview.data.groups.length > 1
+              ? t("p2p.sendRequests", { count: preview.data.groups.length })
+              : t("request.submit")}
           </Button>
         </div>
-
-        {/* L'elenco non è più una finestrella alta 96px che scorreva senza
-            dirlo: si vede intero fino a sei pezzi, e ogni riga porta il suo
-            stato nelle date scelte. */}
-        <ul className="mt-3 flex max-h-56 flex-col gap-1 overflow-y-auto text-sm">
-          {entries.map((entry) => {
-            const conflict = taken.has(entry.assetId);
-            return (
-              <li
-                key={entry.assetId}
-                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"
-              >
-                <span className={conflict ? "text-out" : "text-muted"}>
-                  {entry.name}
-                </span>
-                {conflict && (
-                  <span className="rounded-full bg-out-bg px-2 py-0.5 font-mono text-2xs font-medium uppercase tracking-wider text-out">
-                    {t("request.taken")}
-                  </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-
-        <fetcher.Form
-          method="post"
-          action="/requests"
-          className="mt-5 flex flex-col gap-4"
-        >
-          <input
-            type="hidden"
-            name="items"
-            value={JSON.stringify(
-              entries.map((entry) => ({
-                assetId: entry.assetId,
-                fromKitId: entry.fromKitId,
-              }))
-            )}
-          />
-
-          <DateRangeFields
-            today={today}
-            from={from}
-            to={to}
-            longer={longer}
-            purpose={purpose}
-            onFromChange={setFrom}
-            onToChange={setTo}
-            onLongerChange={setLonger}
-            onPurposeChange={setPurpose}
-          />
-
-          {/* L'esito del controllo, nel punto in cui si scelgono le date. */}
-          <p
-            aria-live="polite"
-            className={`text-xs ${
-              takenEntries.length > 0 ? "text-out" : "text-muted"
-            }`}
-          >
-            {checking
-              ? t("request.checking")
-              : takenEntries.length === 1
-                ? t("request.takenOne")
-                : takenEntries.length > 1
-                  ? t("request.takenCount", { count: takenEntries.length })
-                  : t("request.allFree")}
-          </p>
-
-          {takenEntries.length > 0 && (
-            <Button
-              variant="quiet"
-              size="sm"
-              className="self-start"
-              onClick={() =>
-                takenEntries.forEach((entry) => onRemove(entry.assetId))
-              }
-            >
-              {t("request.removeTaken")}
-            </Button>
-          )}
-
-          {result && (
-            <p role="alert" className="rounded-sm bg-out-bg px-3 py-2 text-sm text-out">
-              {t(result.error)}
-              {result.conflicts && result.conflicts.length > 0 && (
-                <> — {result.conflicts.join(", ")}</>
-              )}
-            </p>
-          )}
-
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <Button variant="plain" onClick={onClose}>
-              {t("request.cancel")}
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              busy={busy}
-              disabled={tooLong || takenEntries.length > 0}
-            >
-              {t("request.submit")}
-            </Button>
-          </div>
-        </fetcher.Form>
+      </fetcher.Form>
     </Dialog>
   );
 }

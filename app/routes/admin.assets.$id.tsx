@@ -22,6 +22,8 @@ import { PageShell } from "~/components/page";
 import { buttonClass } from "~/components/button";
 import { useConfirm } from "~/components/confirm";
 import { pageTitle } from "~/i18n/meta";
+import { publishProposalChange } from "~/lib/events.server";
+import { notifyAssetAdminChanged } from "~/lib/marketplace-notifications.server";
 import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
 import { logAdminAction } from "~/lib/audit.server";
@@ -44,6 +46,8 @@ async function loadAsset(id: string) {
     where: { id },
     select: {
       id: true,
+      ownerId: true,
+      status: true,
       name: true,
       description: true,
       location: true,
@@ -58,6 +62,7 @@ async function loadAsset(id: string) {
     },
   });
   if (!asset) throw new Response("Not found", { status: 404 });
+  if (asset.ownerId && asset.status !== "APPROVED") throw redirect(`/admin/proposals/${id}`);
   return asset;
 }
 
@@ -128,6 +133,13 @@ export async function action({ request, params }: Route.ActionArgs) {
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "save");
 
+  async function recordPersonalChange(event: string) {
+    if (!asset.ownerId) return;
+    await logAdminAction({ actorId: admin.id, action: "asset.reviewEdited", targetType: "Asset", targetId: asset.id, detail: `${asset.name} · ${event} · intervento admin` });
+    publishProposalChange(asset.id, asset.ownerId);
+    await notifyAssetAdminChanged(asset.id, admin.id, event);
+  }
+
   /**
    * La copertina è semplicemente la prima per `sortOrder`, che è come la
    * legge il catalogo. Per promuoverne una basta darle un numero più basso di
@@ -145,6 +157,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         where: { id: photoId },
         data: { sortOrder: (lowest._min.sortOrder ?? 0) - 1 },
       });
+      await recordPersonalChange("setCover");
     }
     return { ok: true as const, intent };
   }
@@ -166,11 +179,13 @@ export async function action({ request, params }: Route.ActionArgs) {
       detail: asset.name,
     });
 
+    if (asset.ownerId) { publishProposalChange(asset.id, asset.ownerId); await notifyAssetAdminChanged(asset.id, admin.id, "archive"); }
     return redirect("/admin/assets");
   }
 
   if (intent === "restore") {
     await db.asset.update({ where: { id: asset.id }, data: { archivedAt: null } });
+    if (asset.ownerId) { publishProposalChange(asset.id, asset.ownerId); await notifyAssetAdminChanged(asset.id, admin.id, "restore"); }
     return { ok: true as const, intent };
   }
 
@@ -207,6 +222,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     if (photo) {
       await db.assetPhoto.delete({ where: { id: photo.id } });
       await deleteAssetPhotoFiles(photo.url, photo.thumbUrl);
+      await recordPersonalChange("deletePhoto");
     }
     return { ok: true as const, intent };
   }
@@ -265,6 +281,11 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
   }
 
+  if (asset.ownerId) {
+    await logAdminAction({ actorId: admin.id, action: "asset.reviewEdited", targetType: "Asset", targetId: asset.id, detail: `${asset.name} · intervento admin` });
+    publishProposalChange(asset.id, asset.ownerId);
+    await notifyAssetAdminChanged(asset.id, admin.id, "save");
+  }
   return { ok: true as const, intent: "save", error: photoError ?? undefined };
 }
 
@@ -287,6 +308,7 @@ export default function EditAsset({ loaderData, actionData }: Route.ComponentPro
           {t("assets.editHeading")}
         </h1>
 
+        {asset.ownerId && <p className="mt-4 rounded-sm border border-rule bg-card p-4 text-sm text-muted">{t("p2p.adminAsset")}</p>}
         {asset.archivedAt && (
           <p className="mt-4 rounded-sm border border-rule bg-sunk px-3 py-2 text-sm text-muted">
             {t("assets.archivedNote")}

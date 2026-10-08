@@ -3,6 +3,7 @@
  * quella da modificare — e che sarebbero copiate identiche in due file.
  */
 
+import { INSTITUTIONAL_ASSET } from "~/lib/asset-publication.server";
 import { db } from "~/lib/db.server";
 import type { KitAssetOption } from "~/components/kit-fields";
 
@@ -13,7 +14,7 @@ import type { KitAssetOption } from "~/components/kit-fields";
  */
 export async function assetOptions(): Promise<KitAssetOption[]> {
   const assets = await db.asset.findMany({
-    where: { archivedAt: null },
+    where: INSTITUTIONAL_ASSET,
     orderBy: [{ category: { sortOrder: "asc" } }, { name: "asc" }],
     select: {
       id: true,
@@ -42,6 +43,11 @@ export function assetIdsFrom(form: FormData): string[] {
   return [...new Set(form.getAll("assetIds").map(String).filter(Boolean))];
 }
 
+/** Rifiuta una selezione vecchia o manipolata prima di modificare il kit. */
+export async function isInstitutionalSelection(assetIds: string[]) {
+  return assetIds.length > 0 && await db.asset.count({ where: { id: { in: assetIds }, ...INSTITUTIONAL_ASSET } }) === assetIds.length;
+}
+
 /**
  * Riscrive i pezzi di un kit.
  *
@@ -58,7 +64,7 @@ export async function replaceKitAssets(kitId: string, assetIds: string[]) {
      qualunque cosa: uno che non esiste più farebbe fallire il vincolo di
      chiave esterna con un 500 invece che con un salvataggio. */
   const known = await db.asset.findMany({
-    where: { id: { in: assetIds } },
+    where: { id: { in: assetIds }, ...INSTITUTIONAL_ASSET },
     select: { id: true },
   });
   const exists = new Set(known.map((asset) => asset.id));

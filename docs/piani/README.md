@@ -10,6 +10,7 @@ I nomi dei file cominciano con la data in cui il piano è stato scritto.
 
 | Piano | Stato |
 | --- | --- |
+| [Prestare gli oggetti dei soci in Fabula](2026-10-08-marketplace-p2p.md) — proposte, revisione, carrello per proprietario, prestiti personali e notifiche | ✅ fatto — 0.12.0; [verifica locale](../verifiche/2026-10-09-marketplace-p2p.md) |
 | [Il badge del catalogo risponde a «adesso»](2026-08-22-badge-catalogo.md) — perché `RESERVED` non poteva restare un colore solo | ✅ fatto |
 | [Promemoria automatico, notifiche e il resto del brainstorm](2026-08-22-promemoria-e-brainstorm.md) — le email in un posto solo, lo spazzatore orario, le azioni del dettaglio richiesta | ✅ fatto |
 | [Intestazione mobile](2026-08-24-intestazione-mobile.md) — bersagli di tocco da 44px e menu lingua raccolto in un pulsante | ✅ fatto |

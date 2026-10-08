@@ -2,7 +2,8 @@
 
 Piattaforma di prestito degli oggetti dell'associazione **Material Matters**
 (mamabz.com, Bolzano). Chiunque vede il catalogo e la disponibilità, chi ha un
-account chiede in prestito, gli admin approvano.
+account chiede in prestito, il prestatore approva: team admin per Material
+Matters, proprietario per gli oggetti dei soci.
 
 Specifica completa e ragionata:
 https://claude.ai/code/artifact/aec1d912-adc8-48d2-b327-87a8bdd4d1b3
@@ -237,6 +238,50 @@ verificato dal vivo, non solo compilato:**
 
 La storia di come ci siamo arrivati sta in [`CHANGELOG.md`](./CHANGELOG.md), i
 ragionamenti dietro a ogni passo in [`docs/piani/`](./docs/piani/).
+
+---
+
+## Marketplace P2P — 0.12.0
+
+Il flusso completo è in [`docs/marketplace-p2p.md`](docs/marketplace-p2p.md),
+con le prove in [`docs/verifiche/2026-10-09-marketplace-p2p.md`](docs/verifiche/2026-10-09-marketplace-p2p.md).
+I nuovi percorsi sono `/presta`, `/account/items`, `/account/lending`,
+`/admin/proposals` e `/requests/batches/:id`. Su telefono Presta sta nel menu
+profilo, per non allungare la barra dei controlli.
+
+Regole aggiuntive da mantenere:
+
+- `Asset.status` descrive **pubblicazione**, mai disponibilità. Il criterio
+  condiviso è `APPROVED` e non archiviato; pausa significa `isBookable=false`.
+  Le nuove righe sono `DRAFT`; creazione istituzionale admin e seed sono
+  esplicitamente `APPROVED`. I kit accettano soltanto asset istituzionali.
+- Nel pubblico il prestatore personale è «Un socio». Non serializzare
+  proprietario, alias, avatar, email, location o note interne per costruire
+  le schede. Foto di proposte non pubblicate: owner/admin anche conoscendo
+  l'URL. Foto personali e documenti con sessione sono `private, no-store`.
+- `Request.lenderId` conserva il responsabile della pratica; proprietario e
+  prestatore hanno relazione `Restrict`, non si trasformano in Material
+  Matters cancellando una persona. Non trasferire proprietà nella prima versione.
+- Carrello atomico: una pratica per prestatore, `RequestBatch` senza stato
+  aggregato, chiave d'invio unica per utente e impronta del contenuto.
+  Ritentare lo stesso invio recupera le pratiche e non rinotifica.
+- Tutte le scritture che possono impegnare un asset usano `lockAssets`
+  nell'ordine condiviso, rileggono dentro la transazione e ricontrollano
+  disponibilità. Vale per approvazione, nuove richieste, modifica date e
+  consegna diretta. Non introdurre un percorso che aggiri questi lock.
+- Permessi e non letti dipendono dall'identità: borrower, lender, operatore
+  admin. Un admin richiedente non approva la propria pratica. I segnalibri
+  personali restano distinti dal segnalibro del team; i messaggi propri
+  non sono nuovi. Leggere `AssetMessage` **non cambia `Asset.updatedAt`**:
+  quel valore protegge la revisione dei contenuti.
+- Modifiche del socio dopo pubblicazione: ritorno in bozza e nuova revisione,
+  soltanto senza pratiche aperte. La pausa mantiene i prestiti esistenti.
+  L'assistenza admin e l'archiviazione eccezionale rimangono disponibili,
+  tracciate e comunicate. Nessuna cancellazione con storico di `RequestItem`.
+- Gli switch email admin non limitano gli avvisi personali. Le richieste
+  P2P vanno al prestatore; la revisione agli admin selezionati. Digest
+  personali separati e guardiano chat persistente per conversazione/persona.
+  L'invio resta best effort dopo il commit; non c'è una coda di consegna.
 
 ---
 

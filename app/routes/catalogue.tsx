@@ -41,6 +41,7 @@ import {
 import { getUser } from "~/lib/session.server";
 import { useT } from "~/i18n/use-t";
 import { initialsOf } from "~/lib/initials";
+import { PUBLISHED_ASSET, INSTITUTIONAL_ASSET } from "~/lib/asset-publication.server";
 import { pageTitle, tagline } from "~/i18n/meta";
 import { StateBadge, visualStateOf } from "~/components/state-badge";
 import { PageShell } from "~/components/page";
@@ -84,7 +85,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         where: {
           // Archiviato vuol dire «non è più roba nostra»: fuori dal catalogo,
           // fuori dal conteggio, fuori dai kit.
-          archivedAt: null,
+          ...PUBLISHED_ASSET,
           ...(categorySlug ? { category: { slug: categorySlug } } : {}),
           ...search,
         },
@@ -95,6 +96,7 @@ export async function loader({ request }: Route.LoaderArgs) {
           id: true,
           name: true,
           isBookable: true,
+          ownerId: true,
           category: { select: { name: true, slug: true } },
           photos: {
             orderBy: { sortOrder: "asc" },
@@ -110,7 +112,7 @@ export async function loader({ request }: Route.LoaderArgs) {
           name: true,
           description: true,
           assets: {
-            where: { asset: { archivedAt: null } },
+            where: { asset: INSTITUTIONAL_ASSET },
             orderBy: { sortOrder: "asc" },
             select: { asset: { select: { id: true, name: true } } },
           },
@@ -118,7 +120,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       }),
       getUser(request),
       getCurrentAvailability(),
-      db.asset.count({ where: { archivedAt: null } }),
+      db.asset.count({ where: PUBLISHED_ASSET }),
     ]);
 
   const availability: Record<string, AssetAvailability> = Object.fromEntries(
@@ -129,7 +131,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   );
 
   return {
-    assets,
+    assets: assets.map(({ ownerId, ...asset }) => ({ ...asset, personal: ownerId !== null })),
     // I kit sono scorciatoie del catalogo intero: filtrarne uno a metà
     // darebbe un «kit audio» senza le casse. Spariscono quando si filtra.
     kits: categorySlug || query ? [] : kits,
@@ -138,7 +140,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     totalAssets,
     query,
     today: formatDay(todayUtc()),
-    user: user ? { name: user.name } : null,
+    user: user ? { id: user.id, name: user.name } : null,
   };
 }
 
@@ -402,6 +404,11 @@ function AssetCard({
                 {asset.name}
               </Link>
             </h2>
+            <p className="text-xs text-muted">
+              {t("catalogue.lentBy", {
+                name: asset.personal ? t("p2p.memberLender") : "Material Matters",
+              })}
+            </p>
           </div>
         </div>
 

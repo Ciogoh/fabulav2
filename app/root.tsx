@@ -62,7 +62,7 @@ export async function loader({ request }: Route.LoaderArgs) {
      guarda il catalogo da anonimo non paga niente di tutto questo a ogni
      pagina. Il conto delle interrogazioni resta quello di prima — due —
      perché attesa e messaggi non letti viaggiano insieme (`inbox.server.ts`). */
-  const inbox = isAdmin ? await adminCounts() : undefined;
+  const inbox = isAdmin ? await adminCounts(user.id) : undefined;
 
   /* Una in più per chi ha fatto l'accesso, admin o no: è il segnale che a chi
      chiede in prestito è sempre mancato — «ti hanno risposto». È indicizzata
@@ -107,17 +107,10 @@ export async function loader({ request }: Route.LoaderArgs) {
  */
 export function headers(): HeadersInit {
   return {
-    // Il documento non va mai in cache: contiene i nomi (con l'impronta)
-    // dei file in `/assets/*` prodotti dalla build **corrente**. Un rilascio
-    // sostituisce quei file per intero — quelli vecchi non restano sul
-    // server — quindi un HTML vecchio servito da una cache intermedia (o
-    // ricevuto durante la finestra di scambio fra container in Coolify)
-    // punta a un file che non esiste più: la pagina arriva senza foglio di
-    // stile, con l'HTML però perfettamente valido. `no-cache` forza sempre
-    // una richiesta di conferma al server, che a quel punto risponde con
-    // l'HTML e i nomi giusti. Gli `/assets/*` restano cacheable per un anno
-    // (`immutable`, impostato da Vite): solo il documento va rivalidato.
-    "Cache-Control": "no-cache",
+    // Il documento contiene sessione e dati privati oltre ai nomi della build.
+    // Non conservarlo: dopo logout o ritiro di una proposta una cache non deve
+    // riproporli. Gli asset compilati continuano a usare la cache immutabile.
+    "Cache-Control": "private, no-store",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Content-Security-Policy": "frame-ancestors 'none'",

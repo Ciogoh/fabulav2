@@ -24,9 +24,11 @@ export type AssetDefaults = {
 export function AssetFields({
   categories,
   defaults,
+  isAdmin = true,
 }: {
   categories: Array<{ id: string; name: string }>;
   defaults?: AssetDefaults;
+  isAdmin?: boolean;
 }) {
   const t = useT();
 
@@ -49,46 +51,54 @@ export function AssetFields({
           id="description"
           name="description"
           rows={3}
+          maxLength={5000}
           defaultValue={defaults?.description ?? ""}
           className={FIELD}
         />
       </Field>
 
-      <Field label={t("assets.location")} name="location">
-        <input
-          id="location"
-          name="location"
-          defaultValue={defaults?.location ?? ""}
-          className={FIELD}
-        />
-      </Field>
+      {isAdmin && (
+        <Field label={t("assets.location")} name="location">
+          <input
+            id="location"
+            name="location"
+            defaultValue={defaults?.location ?? ""}
+            className={FIELD}
+          />
+        </Field>
+      )}
 
       <CategoryField
         categories={categories}
         defaultValue={defaults?.categoryId ?? ""}
+        allowCreate={isAdmin}
       />
 
-      <Field label={t("assets.adminNotes")} name="adminNotes">
-        <textarea
-          id="adminNotes"
-          name="adminNotes"
-          rows={2}
-          defaultValue={defaults?.adminNotes ?? ""}
-          className={FIELD}
-        />
-      </Field>
+      {isAdmin && (
+        <>
+          <Field label={t("assets.adminNotes")} name="adminNotes">
+            <textarea
+              id="adminNotes"
+              name="adminNotes"
+              rows={2}
+              defaultValue={defaults?.adminNotes ?? ""}
+              className={FIELD}
+            />
+          </Field>
 
-      {/* Stessa misura della spunta nel foglio della richiesta: 20px in una
-          riga alta 44, e tutta la riga è cliccabile. */}
-      <label className="-my-1 flex min-h-11 cursor-pointer items-center gap-3 text-sm">
-        <input
-          type="checkbox"
-          name="unavailable"
-          defaultChecked={defaults?.isBookable === false}
-          className="h-5 w-5 shrink-0 accent-[var(--accent)]"
-        />
-        {t("assets.markUnavailable")}
-      </label>
+          {/* Stessa misura della spunta nel foglio della richiesta: 20px in una
+              riga alta 44, e tutta la riga è cliccabile. */}
+          <label className="-my-1 flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              name="unavailable"
+              defaultChecked={defaults?.isBookable === false}
+              className="h-5 w-5 shrink-0 accent-[var(--accent)]"
+            />
+            {t("assets.markUnavailable")}
+          </label>
+        </>
+      )}
     </>
   );
 }
@@ -108,13 +118,15 @@ export function AssetFields({
 function CategoryField({
   categories,
   defaultValue,
+  allowCreate,
 }: {
   categories: Array<{ id: string; name: string }>;
   defaultValue: string;
+  allowCreate: boolean;
 }) {
   const t = useT();
   const [choice, setChoice] = useState(defaultValue);
-  const creating = choice === NEW_CATEGORY;
+  const creating = allowCreate && choice === NEW_CATEGORY;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -137,7 +149,7 @@ function CategoryField({
             {category.name}
           </option>
         ))}
-        <option value={NEW_CATEGORY}>{t("assets.categoryNew")}</option>
+        {allowCreate && <option value={NEW_CATEGORY}>{t("assets.categoryNew")}</option>}
       </Select>
 
       {creating && (

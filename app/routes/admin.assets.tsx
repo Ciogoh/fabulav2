@@ -56,7 +56,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const [assets, categories, archivedCount] = await Promise.all([
     db.asset.findMany({
-      where: { archivedAt: archived ? { not: null } : null },
+      where: { ownerId: null, archivedAt: archived ? { not: null } : null },
       // Gli oggetti senza categoria finiscono in fondo: in PostgreSQL un
       // `NULL` in ordine crescente sta per ultimo, che è esattamente dove
       // serve il gruppo «senza categoria».
@@ -73,7 +73,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       orderBy: { sortOrder: "asc" },
       select: { id: true, name: true, slug: true },
     }),
-    db.asset.count({ where: { archivedAt: { not: null } } }),
+    db.asset.count({ where: { ownerId: null, archivedAt: { not: null } } }),
   ]);
 
   return { assets, categories, archived, archivedCount };

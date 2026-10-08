@@ -191,11 +191,16 @@ export function SiteHeader({
           <ThemeCycleButton theme={theme} />
           <SkinMenu skin={skin} />
           <LanguageMenu />
+          {user && (
+            <span className="hidden sm:block"><ButtonLink to="/presta" variant="primary" size="md">
+              {t("nav.lend")}
+            </ButtonLink></span>
+          )}
 
           {user ? (
             <ProfileMenu user={user} />
           ) : (
-            <ButtonLink to="/signin" variant="secondary" size="md" className="!px-3 sm:!px-4">
+            <ButtonLink to="/signin" variant="secondary" size="md">
               {t("nav.signIn")}
             </ButtonLink>
           )}
@@ -687,6 +692,10 @@ function ProfileMenu({ user }: { user: HeaderUser }) {
               {t("account.heading")}
             </Link>
 
+            <Link to="/presta" className={`${ITEM} sm:hidden`} onClick={() => setOpen(false)}>{t("p2p.heading")}</Link>
+            <Link to="/account/items" className={ITEM} onClick={() => setOpen(false)}>{t("p2p.myItems")}</Link>
+            <Link to="/account/lending" className={ITEM} onClick={() => setOpen(false)}>{t("p2p.lending")}</Link>
+
             {/* Rosso solo al passaggio, come la variante `danger` del
                 pulsante: l'uscita non è un allarme finché non la si sta
                 davvero premendo. A bandiera a destra: è l'unica voce che fa
@@ -729,6 +738,7 @@ function ProfileMenu({ user }: { user: HeaderUser }) {
  * click fuori, fuoco che esce col Tab — quindi qui non si ripete il perché.
  */
 const MANAGE = [
+  { to: "/admin/proposals", key: "p2p.proposals" },
   { to: "/admin/members", key: "nav.adminMembers" },
   { to: "/admin/assets", key: "nav.adminAssets" },
   { to: "/admin/scan", key: "nav.adminScan" },

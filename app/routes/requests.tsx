@@ -16,12 +16,15 @@ import { requireUser } from "~/lib/session.server";
 import { fullLabelOf } from "~/lib/person";
 import {
   formatDay,
-  getBusyAssetIds,
   MAX_ORDINARY_SPAN_DAYS,
   MAX_SPECIAL_SPAN_DAYS,
   parseDay,
   todayUtc,
 } from "~/lib/availability.server";
+import { notifyLenderNewRequest } from "~/lib/marketplace-notifications.server";
+import { publishLendingChange } from "~/lib/events.server";
+import { parseCartItems } from "~/lib/marketplace";
+import { submitRequestBatch, SubmissionError } from "~/lib/request-submission.server";
 import { notifyAdminsNewRequest } from "~/lib/notifications.server";
 import { unreadForUserIds } from "~/lib/inbox.server";
 import { publishAdminChange } from "~/lib/events.server";
@@ -33,7 +36,6 @@ export function meta({ matches }: Route.MetaArgs) {
   return [{ title: pageTitle(matches, "requests.heading") }];
 }
 
-type CartItemInput = { assetId: string; fromKitId?: string };
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await requireUser(request);
@@ -76,22 +78,10 @@ export async function action({ request }: Route.ActionArgs) {
   const user = await requireUser(request);
   const form = await request.formData();
 
-  let items: CartItemInput[];
-  try {
-    const parsed: unknown = JSON.parse(String(form.get("items") ?? "[]"));
-    if (!Array.isArray(parsed)) throw new Error("not an array");
-    items = parsed
-      .filter(
-        (entry): entry is CartItemInput =>
-          Boolean(entry) && typeof (entry as CartItemInput).assetId === "string"
-      )
-      .map((entry) => ({
-        assetId: entry.assetId,
-        fromKitId: typeof entry.fromKitId === "string" ? entry.fromKitId : undefined,
-      }));
-  } catch {
-    return { ok: false as const, error: "request.errorGeneric" as TranslationKey };
-  }
+  const items = parseCartItems(String(form.get("items") ?? "[]"));
+  if (!items) return { ok: false as const, error: "request.errorGeneric" as TranslationKey };
+  const submissionKey = String(form.get("submissionKey") ?? "");
+  if (!/^[a-zA-Z0-9_-]{16,100}$/.test(submissionKey)) return { ok: false as const, error: "p2p.errorRetry" as TranslationKey };
 
   if (items.length === 0) {
     return { ok: false as const, error: "request.errorEmpty" as TranslationKey };
@@ -122,75 +112,27 @@ export async function action({ request }: Route.ActionArgs) {
     return { ok: false as const, error: "request.errorSpan" as TranslationKey };
   }
 
-  const assetIds = items.map((item) => item.assetId);
-  /* Il carrello vive nel browser e può essere vecchio di settimane: un
-     oggetto archiviato nel frattempo va rifiutato qui, non solo nascosto nel
-     catalogo. */
-  const assets = await db.asset.findMany({
-    where: { id: { in: assetIds }, archivedAt: null },
-    select: { id: true, name: true, isBookable: true },
-  });
-  const assetById = new Map(assets.map((asset) => [asset.id, asset]));
-
-  const missingOrNotBookable = assetIds.filter(
-    (id) => !assetById.get(id)?.isBookable
-  );
-  if (missingOrNotBookable.length > 0) {
-    return { ok: false as const, error: "request.errorUnavailable" as TranslationKey };
-  }
-
-  const busy = await getBusyAssetIds(from, to);
-  const conflicts = assetIds
-    .filter((id) => busy.has(id))
-    .map((id) => assetById.get(id)!.name);
-
-  if (conflicts.length > 0) {
-    return {
-      ok: false as const,
-      error: "request.errorConflict" as TranslationKey,
-      conflicts,
-    };
-  }
-
-  const created = await db.request.create({
-    data: {
-      userId: user.id,
-      startDate: from,
-      endDate: to,
-      purpose: purpose || null,
-      items: {
-        create: items.map((item) => ({
-          assetId: item.assetId,
-          fromKitId: item.fromKitId ?? null,
-        })),
-      },
-    },
-    select: { id: true },
-  });
-
-  /* Il Centro di chi è di turno lo sa subito, senza ricaricare — e lo sa
-     comunque, anche se l'email qui sotto non parte. */
-  publishAdminChange();
-
   try {
-    await notifyAdminsNewRequest({
-      requestId: created.id,
-      // Gli admin devono sapere chi è davvero, non solo come si fa chiamare.
-      requesterName: fullLabelOf(user),
-      requesterEmail: user.email,
-      itemNames: assetIds.map((id) => assetById.get(id)!.name),
-      startDate: from,
-      endDate: to,
-      purpose: purpose || null,
-      origin: new URL(request.url).origin,
-    });
+    const batch = await submitRequestBatch({ userId: user.id, submissionKey, items, from, to, purpose });
+    if (!batch.reused) {
+      publishAdminChange();
+      for (const created of batch.requests) {
+        const summary = { requestId: created.id, requesterName: fullLabelOf(user), requesterEmail: user.email,
+          itemNames: created.items.map((i) => i.asset.name), startDate: from, endDate: to, purpose: purpose || null, origin: new URL(request.url).origin };
+        if (created.lenderId) {
+          publishLendingChange(created.lenderId);
+          await notifyLenderNewRequest(created.lenderId, summary);
+        } else {
+          await notifyAdminsNewRequest(summary).catch((error) => console.error("Notifica di richiesta fallita:", error));
+        }
+      }
+    }
+    return { ok: true as const, batchId: batch.batchId, requestIds: batch.requests.map((r) => r.id) };
   } catch (error) {
-    // Un'email che non parte non deve invalidare una richiesta già scritta
-    // sul database: chi l'ha fatta la vede comunque tra le sue.
-    console.error("Notifica email agli admin fallita:", error);
+    if (error instanceof SubmissionError) return { ok: false as const, error: error.key, conflicts: error.conflicts };
+    console.error("Creazione del lotto fallita:", error);
+    return { ok: false as const, error: "request.errorGeneric" as TranslationKey };
   }
-
-  return { ok: true as const, id: created.id };
 }
 
 export default function MyRequests({ loaderData }: Route.ComponentProps) {

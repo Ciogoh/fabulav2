@@ -66,6 +66,16 @@ export function requestChannel(requestId: string): string {
   return `request:${requestId}`;
 }
 
+export const batchChannel = (id: string) => `batch:${id}`;
+export const proposalChannel = (id: string) => `proposal:${id}`;
+export const lendingChannel = (userId: string) => `lending:${userId}`;
+export function publishLendingChange(userId: string) { bus().emit(lendingChannel(userId)); }
+export function publishProposalChange(id: string, ownerId: string) {
+  bus().emit(proposalChannel(id));
+  publishLendingChange(ownerId);
+  publishAdminChange();
+}
+
 /** Il canale del Centro. Ci arriva tutto ciò che cambia il suo contenuto. */
 export const ADMIN_CHANNEL = "admin";
 
@@ -76,8 +86,9 @@ export const ADMIN_CHANNEL = "admin";
  * Suona **anche** al Centro: una risposta di un socio è una riga in più nella
  * sezione dei messaggi non letti, e una decisione ne toglie una dalla coda.
  */
-export function publishRequestChange(requestId: string): void {
+export function publishRequestChange(requestId: string, batchId?: string | null): void {
   bus().emit(requestChannel(requestId));
+  if (batchId) bus().emit(batchChannel(batchId));
   bus().emit(ADMIN_CHANNEL);
 }
 

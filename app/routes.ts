@@ -18,15 +18,23 @@ export default [
   // ragioni — vedi `lib/skin.ts`.
   route("skin", "routes/skin.tsx"),
   route("account", "routes/account.tsx"),
+  route("account/items", "routes/account.items.tsx"),
+  route("account/items/:id", "routes/account.items.$id.tsx"),
+  route("account/lending", "routes/account.lending.tsx"),
+  route("presta", "routes/presta.tsx"),
   route("requests", "routes/requests.tsx"),
   // Sole risorse: il foglio della richiesta chiede da qui se gli oggetti
   // scelti sono liberi nelle date scelte, mentre le si sceglie.
   route("availability", "routes/availability.tsx"),
+  route("requests/preview", "routes/requests.preview.tsx"),
+  route("requests/batches/:id", "routes/requests.batches.$id.tsx"),
   route("requests/:id", "routes/request-detail.tsx"),
   // Il Centro: tutto quello che aspetta un admin in una schermata sola. Le due
   // rotte qui sotto ci rimandano con `?vista=`, perché un segnalibro non deve
   // smettere di funzionare per una riorganizzazione nostra.
   route("admin", "routes/admin.tsx"),
+  route("admin/proposals", "routes/admin.proposals.tsx"),
+  route("admin/proposals/:id", "routes/admin.proposals.$id.tsx"),
   route("admin/members", "routes/admin.members.tsx"),
   route("admin/requests", "routes/admin.requests.tsx"),
   route("admin/overdue", "routes/admin.overdue.tsx"),

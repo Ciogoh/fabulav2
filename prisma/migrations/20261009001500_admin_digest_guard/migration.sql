@@ -1,0 +1,1 @@
+ALTER TYPE "ReminderKind" ADD VALUE 'ADMIN_DIGEST';

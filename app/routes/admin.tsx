@@ -60,6 +60,7 @@
 
 import { Link } from "react-router";
 import type { Route } from "./+types/admin";
+import { ButtonLink } from "~/components/button";
 import { PageShell, PageTitle } from "~/components/page";
 import { pageTitle } from "~/i18n/meta";
 import { PersonInline } from "~/components/person";
@@ -120,16 +121,19 @@ function shiftDays(date: Date, days: number): Date {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAdmin(request);
+  const user = await requireAdmin(request);
 
   const today = todayUtc();
   const tomorrow = shiftDays(today, 1);
 
-  const unreadIds = await unreadForAdminIds();
+  const personal = new URL(request.url).searchParams.get("scope") === "members";
+  const scope = { lenderId: personal ? { not: null } : null };
+  const proposals = await db.asset.count({ where: { ownerId: { not: null }, status: "PENDING", archivedAt: null } });
+  const unreadIds = await unreadForAdminIds(personal, user.id);
 
   const [pending, unread, overdue, soon] = await Promise.all([
     db.request.findMany({
-      where: { status: "PENDING" },
+      where: { status: "PENDING", ...scope },
       // Le più vecchie prima: si smaltisce dall'alto.
       orderBy: { createdAt: "asc" },
       select: {
@@ -146,7 +150,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     // Gli id li ha scelti l'SQL di `inbox.server.ts`; i campi si scelgono qui,
     // uno per uno, come ovunque.
     db.request.findMany({
-      where: { id: { in: unreadIds } },
+      where: { id: { in: unreadIds }, ...scope },
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
@@ -164,6 +168,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     db.request.findMany({
       where: {
         status: "APPROVED",
+        ...scope,
         endDate: { lt: today },
         items: {
           some: { pickedUpAt: { not: null }, returnedAt: null, asset: { archivedAt: null } },
@@ -187,6 +192,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     db.request.findMany({
       where: {
         status: "APPROVED",
+        ...scope,
         OR: [
           {
             startDate: { gte: today, lte: tomorrow },
@@ -375,6 +381,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   const todo = rows.filter((row) => !row.hasUnread);
 
   return {
+    personal,
+    proposals,
     messages,
     todo,
     agenda: soonRows,
@@ -433,6 +441,11 @@ export default function AdminInbox({ loaderData }: Route.ComponentProps) {
     <main>
       <PageShell width="narrow" className="pb-24 pt-8">
         <PageTitle title={t("inbox.heading")} />
+        <div className="mt-5 flex flex-wrap gap-2">
+          <ButtonLink to="/admin" variant={!loaderData.personal ? "primary" : "quiet"}>Material Matters</ButtonLink>
+          <ButtonLink to="/admin?scope=members" variant={loaderData.personal ? "primary" : "quiet"}>{t("p2p.memberItem")}</ButtonLink>
+          <ButtonLink to="/admin/proposals" variant="secondary">{t("p2p.proposals")} ({loaderData.proposals})</ButtonLink>
+        </div>
 
         {nothing && <p className="mt-8 text-muted">{t("inbox.allClear")}</p>}
 
