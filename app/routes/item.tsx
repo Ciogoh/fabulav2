@@ -109,7 +109,7 @@ export default function Item({ loaderData }: Route.ComponentProps) {
   return (
     <>
       <main>
-        <PageShell width="narrow" className="pb-32 pt-8">
+        <PageShell width="wide" className="pb-32 pt-8">
           <ButtonLink
             to={asset.category ? `/?cat=${asset.category.slug}` : "/"}
             variant="plain"
@@ -235,7 +235,7 @@ function Gallery({
     return (
       <div
         aria-hidden="true"
-        className="flex aspect-4/3 w-full shrink-0 items-center justify-center rounded-sm border border-rule bg-sunk font-serif text-5xl text-faint sm:w-80 lg:w-96"
+        className="flex aspect-4/3 w-full shrink-0 items-center justify-center rounded-sm border border-rule bg-sunk font-serif text-5xl text-faint sm:w-96 lg:w-[640px] xl:w-[720px]"
       >
         {initialsOf(name)}
       </div>
@@ -243,7 +243,7 @@ function Gallery({
   }
 
   return (
-    <div className="w-full shrink-0 sm:w-80 lg:w-96">
+    <div className="w-full shrink-0 sm:w-96 lg:w-[640px] xl:w-[720px]">
       <img
         src={photos[active]!.url}
         alt={t("item.photoAlt", { name })}

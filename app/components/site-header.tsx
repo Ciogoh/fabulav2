@@ -192,9 +192,12 @@ export function SiteHeader({
           <SkinMenu skin={skin} />
           <LanguageMenu />
           {user && (
-            <span className="hidden sm:block"><ButtonLink to="/presta" variant="primary" size="md">
-              {t("nav.lend")}
-            </ButtonLink></span>
+            <span className="hidden sm:block">
+              <ButtonLink to="/presta" variant="secondary" size="md" className="!px-3 sm:!px-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="-ml-0.5 shrink-0"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                {t("nav.lend")}
+              </ButtonLink>
+            </span>
           )}
 
           {user ? (
