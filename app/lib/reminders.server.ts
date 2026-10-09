@@ -40,6 +40,7 @@
  * ritardo di un'ora.
  */
 
+import { notifyLenderOverdueDigest } from "~/lib/marketplace-notifications.server";
 import { db } from "~/lib/db.server";
 import { fullLabelOf } from "~/lib/person";
 import { formatDay, todayUtc } from "~/lib/availability.server";
@@ -243,26 +244,13 @@ async function returnToday(today: Date, dayKey: string): Promise<void> {
  * Il riassunto non passa da `ReminderLog` per richiesta ma per la giornata:
  * è un messaggio che parla di tutte insieme, e la sua idempotenza è la
  * stessa — una riga al giorno. Il `requestId` a cui si aggancia è quello
- * della prima riga dell'elenco, che è arbitrario ma stabile nel giorno.
+ * della prima riga dell'elenco; il controllo considera tutti i digest del giorno.
  */
 async function overdue(today: Date, dayKey: string): Promise<void> {
-  const digest: Array<{
-    holder: string;
-    itemNames: string[];
-    endDate: Date;
-    daysLate: number;
-  }> = [];
-
   for (const daysLate of OVERDUE_DAYS) {
     const due = await outstanding(shiftDays(today, -daysLate), "OVERDUE", dayKey);
 
     for (const req of due) {
-      digest.push({
-        holder: fullLabelOf(req.user),
-        itemNames: req.items.map((item) => item.asset.name),
-        endDate: req.endDate,
-        daysLate,
-      });
 
       await attempt({ requestId: req.id, kind: "OVERDUE" }, dayKey, () =>
         sendOverdueReminder({
@@ -277,17 +265,22 @@ async function overdue(today: Date, dayKey: string): Promise<void> {
     }
   }
 
-  if (digest.length === 0) return;
-
-  /* Il riassunto agli admin: uno solo, con dentro tutti i ritardi del giorno.
-     Dieci avvisi di fila sono dieci avvisi che si cestinano insieme. Il
-     guardiano è la stessa riga `OVERDUE` della prima richiesta dell'elenco:
-     se quella è già partita, il riassunto di oggi è già partito con lei. */
-  try {
-    await notifyAdminsOverdueDigest({ rows: digest, origin: origin() });
-  } catch (error) {
-    console.error("Riassunto dei ritardi agli admin fallito:", error);
+  // Il riepilogo è indipendente dai promemoria al richiedente: un avviso già inviato
+  // non deve nascondere un ritardo al prestatore o sopprimere il suo digest.
+  const OUT = { pickedUpAt: { not: null }, returnedAt: null, asset: { archivedAt: null } } as const;
+  const late = await db.request.findMany({ where: { status: "APPROVED", endDate: { lt: today }, items: { some: OUT } }, select: { id: true, lenderId: true, endDate: true, user: { select: RECIPIENT }, lender: { select: RECIPIENT }, items: { where: OUT, select: ITEM } } });
+  const rowOf = (r: typeof late[number]) => ({ holder: fullLabelOf(r.user), itemNames: r.items.map((i) => i.asset.name), endDate: r.endDate, daysLate: Math.round((today.getTime() - r.endDate.getTime()) / 86_400_000) });
+  const institution = late.filter((r) => r.lenderId === null);
+  if (institution.length) {
+    const marker = institution[0].id;
+    const already = await db.reminderLog.findFirst({ where: { kind: "ADMIN_DIGEST", dayKey }, select: { id: true } });
+    if (!already) {
+      if (await notifyAdminsOverdueDigest({ rows: institution.map(rowOf), origin: origin() })) await markSent({ requestId: marker, kind: "ADMIN_DIGEST" }, dayKey);
+    }
   }
+  const lenders = new Map(late.filter((r) => r.lender).map((r) => [r.lenderId!, r.lender!]));
+  for (const [lenderId, lender] of lenders) await notifyLenderOverdueDigest(recipientOf(lender), late.filter((r) => r.lenderId === lenderId).map(rowOf), dayKey);
+
 }
 
 /* ------------------------------------------------------------ i pezzi */

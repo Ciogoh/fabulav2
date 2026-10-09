@@ -9,7 +9,7 @@ import { buttonClass, ButtonLink } from "~/components/button";
 import { pageTitle } from "~/i18n/meta";
 import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
-import { assetIdsFrom, assetOptions, replaceKitAssets } from "~/lib/kits.server";
+import { assetIdsFrom, assetOptions, replaceKitAssets, isInstitutionalSelection } from "~/lib/kits.server";
 import { useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import { KitFields } from "~/components/kit-fields";
@@ -38,6 +38,8 @@ export async function action({ request }: Route.ActionArgs) {
     // catalogo e che, premuta, non aggiunge niente al carrello.
     return { error: "kits.errorNoAssets" as TranslationKey };
   }
+
+  if (!await isInstitutionalSelection(assetIds)) return { error: "kits.errorInstitutionalOnly" as TranslationKey };
 
   const description = String(form.get("description") ?? "").trim();
 

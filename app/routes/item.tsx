@@ -26,6 +26,7 @@ import {
 import { getUser } from "~/lib/session.server";
 import { useFormatDay, useT } from "~/i18n/use-t";
 import { initialsOf } from "~/lib/initials";
+import { PUBLISHED_ASSET } from "~/lib/asset-publication.server";
 import { pageTitle, pageTitleRaw } from "~/i18n/meta";
 import { StateBadge } from "~/components/state-badge";
 import { PageShell } from "~/components/page";
@@ -56,15 +57,16 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const asset = await db.asset.findFirst({
     // `findFirst` e non `findUnique`: serve una condizione in più dell'id.
-    // Un oggetto archiviato non è nel catalogo, quindi la sua scheda non
+    // Un oggetto archiviato o non approvato non è nel catalogo, quindi la sua scheda non
     // esiste — 404, non una pagina che invita a prenotare qualcosa che non
     // c'è più.
-    where: { id: params.id, archivedAt: null },
+    where: { id: params.id, ...PUBLISHED_ASSET },
     select: {
       id: true,
       name: true,
       description: true,
       isBookable: true,
+      ownerId: true,
       category: { select: { name: true, slug: true } },
       photos: {
         orderBy: { sortOrder: "asc" },
@@ -83,7 +85,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   ]);
 
   return {
-    asset,
+    asset: (({ ownerId, ...publicAsset }) => ({ ...publicAsset, personal: ownerId !== null }))(asset),
     availability: current.get(asset.id) ?? FREE,
     bookings: occupancy
       .filter((entry) => entry.assetId === asset.id)
@@ -93,7 +95,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         endDate: formatDay(entry.endDate),
       })),
     today: formatDay(today),
-    user: user ? { name: user.name } : null,
+    user: user ? { id: user.id, name: user.name } : null,
   };
 }
 
@@ -107,7 +109,7 @@ export default function Item({ loaderData }: Route.ComponentProps) {
   return (
     <>
       <main>
-        <PageShell width="narrow" className="pb-32 pt-8">
+        <PageShell width="wide" className="pb-32 pt-8">
           <ButtonLink
             to={asset.category ? `/?cat=${asset.category.slug}` : "/"}
             variant="plain"
@@ -130,6 +132,12 @@ export default function Item({ loaderData }: Route.ComponentProps) {
               <h1 className="font-serif text-3xl font-semibold tracking-tight">
                 {asset.name}
               </h1>
+
+              <div className="mb-2 text-sm text-muted">
+                {t("catalogue.lentBy", {
+                  name: asset.personal ? t("p2p.memberLender") : "Material Matters",
+                })}
+              </div>
 
               {asset.isBookable ? (
                 <StateBadge
@@ -227,7 +235,7 @@ function Gallery({
     return (
       <div
         aria-hidden="true"
-        className="flex aspect-4/3 w-full shrink-0 items-center justify-center rounded-sm border border-rule bg-sunk font-serif text-5xl text-faint sm:w-64"
+        className="flex aspect-4/3 w-full shrink-0 items-center justify-center rounded-sm border border-rule bg-sunk font-serif text-5xl text-faint sm:w-96 lg:w-[640px] xl:w-[720px]"
       >
         {initialsOf(name)}
       </div>
@@ -235,7 +243,7 @@ function Gallery({
   }
 
   return (
-    <div className="w-full shrink-0 sm:w-64">
+    <div className="w-full shrink-0 sm:w-96 lg:w-[640px] xl:w-[720px]">
       <img
         src={photos[active]!.url}
         alt={t("item.photoAlt", { name })}

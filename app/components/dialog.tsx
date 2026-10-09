@@ -54,7 +54,7 @@ export function Dialog({
 
     const panel = panelRef.current;
     const first =
-      panel?.querySelector<HTMLElement>("input, select, textarea") ??
+      panel?.querySelector<HTMLElement>('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])') ??
       panel?.querySelector<HTMLElement>("button, a[href], [tabindex]");
     first?.focus();
 

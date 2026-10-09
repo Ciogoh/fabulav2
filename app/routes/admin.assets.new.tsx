@@ -49,6 +49,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const asset = await db.asset.create({
     data: {
+      status: "APPROVED",
       name: name.slice(0, 120),
       description: description || null,
       location: location || null,

@@ -28,12 +28,19 @@ import { db } from "~/lib/db.server";
  * etichetta tradotta in `dictionaries.ts` sotto `log.action.*`.
  */
 export type AdminActionKind =
+  | "asset.proposed"
+  | "asset.reviewEdited"
+  | "asset.reviewApproved"
+  | "asset.reviewRejected"
+  | "asset.withdrawn"
+  | "asset.paused"
   | "request.approve"
   | "request.reject"
   | "request.cancel"
   | "requestItem.pickup"
   | "requestItem.return"
   | "member.roleChanged"
+  | "member.notificationsChanged"
   | "member.resetSent"
   | "asset.archived"
   | "asset.deleted"

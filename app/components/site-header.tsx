@@ -191,11 +191,19 @@ export function SiteHeader({
           <ThemeCycleButton theme={theme} />
           <SkinMenu skin={skin} />
           <LanguageMenu />
+          {user && (
+            <span className="hidden sm:block">
+              <ButtonLink to="/presta" variant="secondary" size="md" className="!px-3 sm:!px-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="-ml-0.5 shrink-0"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                {t("nav.lend")}
+              </ButtonLink>
+            </span>
+          )}
 
           {user ? (
             <ProfileMenu user={user} />
           ) : (
-            <ButtonLink to="/signin" variant="secondary" size="md" className="!px-3 sm:!px-4">
+            <ButtonLink to="/signin" variant="secondary" size="md">
               {t("nav.signIn")}
             </ButtonLink>
           )}
@@ -687,6 +695,10 @@ function ProfileMenu({ user }: { user: HeaderUser }) {
               {t("account.heading")}
             </Link>
 
+            <Link to="/presta" className={`${ITEM} sm:hidden`} onClick={() => setOpen(false)}>{t("p2p.heading")}</Link>
+            <Link to="/account/items" className={ITEM} onClick={() => setOpen(false)}>{t("p2p.myItems")}</Link>
+            <Link to="/account/lending" className={ITEM} onClick={() => setOpen(false)}>{t("p2p.lending")}</Link>
+
             {/* Rosso solo al passaggio, come la variante `danger` del
                 pulsante: l'uscita non è un allarme finché non la si sta
                 davvero premendo. A bandiera a destra: è l'unica voce che fa
@@ -729,6 +741,7 @@ function ProfileMenu({ user }: { user: HeaderUser }) {
  * click fuori, fuoco che esce col Tab — quindi qui non si ripete il perché.
  */
 const MANAGE = [
+  { to: "/admin/proposals", key: "p2p.proposals" },
   { to: "/admin/members", key: "nav.adminMembers" },
   { to: "/admin/assets", key: "nav.adminAssets" },
   { to: "/admin/scan", key: "nav.adminScan" },

@@ -26,6 +26,7 @@
  * inutile, visto che dietro non c'è nessun dato da proteggere.
  */
 
+import { db } from "~/lib/db.server";
 import { redirect } from "react-router";
 import type { Route } from "./+types/h.$code";
 import { getUser } from "~/lib/session.server";
@@ -40,6 +41,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Not found", { status: 404 });
   }
 
+  const asset = await db.asset.findUnique({ where: { id: code }, select: { ownerId: true, status: true, archivedAt: true } });
+  if (!asset || asset.status !== "APPROVED" || asset.archivedAt) throw new Response("Not found", { status: 404 });
   const user = await getUser(request);
   if (user?.role === "ADMIN") {
     return redirect(`/admin/handover/${code}`);

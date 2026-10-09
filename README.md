@@ -2,8 +2,9 @@
 
 Il catalogo condiviso dell'associazione MaMa (Material Matters, mamabz.com,
 Bolzano): chiunque vede cosa c'è e quando è libero, chi ha un account lo
-richiede indicando le date, gli admin approvano e registrano ritiro e
-riconsegna.
+richiede indicando le date. Gli admin gestiscono i prestiti Material Matters;
+i soci possono proporre i propri oggetti e gestirne i prestiti, con revisione
+e assistenza del team.
 
 Interfaccia in inglese, italiano e tedesco. I nomi degli oggetti restano nella
 lingua in cui sono stati scritti.
@@ -12,6 +13,9 @@ Per lo stato dettagliato del progetto, le regole architetturali da non
 rompere, il capitolo sicurezza e le trappole già incontrate, vedi
 [`CLAUDE.md`](./CLAUDE.md) — è la guida che usa anche Claude Code per
 lavorare su questo progetto, tenuta aggiornata a ogni cambiamento.
+
+La guida a proposte, revisione e prestiti personali è in
+[`docs/marketplace-p2p.md`](docs/marketplace-p2p.md).
 
 ## Partire da zero
 

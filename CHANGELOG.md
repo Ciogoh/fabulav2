@@ -14,6 +14,55 @@ la prova su iPhone e Android veri di quello che la 0.7.0 ha aggiunto.
 
 ---
 
+## 0.12.0 — 9 ottobre 2026
+
+**Anche i soci possono prestare.** Da Presta si salva una bozza, si invia al
+team e si segue la revisione nella propria scheda, con chat e rifiuto motivato.
+I miei oggetti conserva proposte e storico; dopo la pubblicazione uno switch
+sospende le nuove richieste senza interrompere i prestiti già concordati.
+
+**Un carrello, responsabilità separate.** Gli oggetti di Material Matters e
+quelli dei diversi soci creano una pratica per prestatore, nello stesso invio
+atomico. Il riepilogo le mostra separatamente; ogni proprietario approva e
+registra consegne e restituzioni dei propri pezzi. Retry e doppio invio non
+creano doppioni. Approvazioni e consegne dirette concorrenti ricontrollano la
+disponibilità sotto gli stessi lock.
+
+**Il pubblico vede gli oggetti, i partecipanti si conoscono nella pratica.**
+Il catalogo indica «Un socio», senza identità o indirizzi personali. Proposte,
+chat e foto non pubblicate restano protette anche conoscendo l'URL; note
+interne, pratiche altrui e lotti non sono accessibili a un altro prestatore.
+
+**Gli admin mantengono revisione e assistenza.** Il Centro distingue i prestiti
+istituzionali da quelli dei soci e collega la coda delle proposte. Gli
+interventi vengono registrati e comunicati. Le email personali al prestatore
+rimangono attive anche quando il suo switch amministrativo è spento; chat e
+riepiloghi dei ritardi hanno destinatari e guardiani separati.
+
+L'interfaccia riusa pulsanti, conferme, campi, persone, traduzioni e skin del
+progetto. La prova nel browser ha corretto focus dei dialoghi, spazio dei
+gruppi nel carrello e lettura della chat che invalidava la revisione della
+scheda. Verificati migrazioni, build, tipi, 57 test puri e flussi HTTP/browser
+con cinque account locali e trasporto email simulato. Dettagli e limiti della
+prova in [verifica locale](docs/verifiche/2026-10-09-marketplace-p2p.md).
+
+## 0.11.0 — 8 ottobre 2026
+
+**Essere admin non significa dover ricevere tutte le email.** In Soci c'è
+una sezione con uno switch per amministratore: sceglie chi riceve le nuove
+richieste e il riepilogo giornaliero dei ritardi, senza cambiare i permessi.
+La scelta si salva subito e compare nel registro delle azioni admin.
+
+La migrazione mantiene selezionati gli admin esistenti, così nessun avviso
+sparisce prima di aver scelto i destinatari. Le nuove nomine richiedono una
+selezione esplicita. Gli avvisi sui propri prestiti e le email di accesso
+restano attivi. Gli indirizzi aggiuntivi di `ADMIN_EMAILS` sono visibili nella
+sezione e non possono aggirare lo switch di un admin registrato.
+
+**Preview locale più stabile.** Le dipendenze del browser, compresi accesso e
+scanner QR, vengono preparate all'avvio. La navigazione fra pagine non deve
+più innescare ricompilazioni tardive con copie React non allineate in cache.
+
 ## 0.10.0 — 29 agosto 2026
 
 **Una seconda pelle, scelta dall'utente.** Fabula ha adesso due aspetti:

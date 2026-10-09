@@ -64,22 +64,32 @@ function check(file: File): TranslationKey | null {
  * La sezione delle foto, intera: il titolo, quelle che ci sono e quelle che
  * stai aggiungendo. È l'unica cosa che le rotte importano.
  */
-export function PhotoFields({ existing = [] }: { existing?: ExistingPhoto[] }) {
+export function PhotoFields({
+  existing = [],
+  version,
+}: {
+  existing?: ExistingPhoto[];
+  version?: string;
+}) {
   const t = useT();
 
   return (
     <div className="flex flex-col gap-3">
-      <span className="eyebrow">
-        {t("assets.photos")}
-      </span>
-      <PhotoGallery photos={existing} />
+      <span className="eyebrow">{t("assets.photos")}</span>
+      <PhotoGallery photos={existing} version={version} />
       <PhotoPicker />
     </div>
   );
 }
 
 /** Sulla pagina «nuovo oggetto» resta vuota: non c'è ancora niente da mostrare. */
-function PhotoGallery({ photos }: { photos: ExistingPhoto[] }) {
+function PhotoGallery({
+  photos,
+  version,
+}: {
+  photos: ExistingPhoto[];
+  version?: string;
+}) {
   const t = useT();
   if (photos.length === 0) return null;
 
@@ -87,52 +97,81 @@ function PhotoGallery({ photos }: { photos: ExistingPhoto[] }) {
     <div className="flex flex-col gap-2">
       <ul className="flex flex-wrap gap-3">
         {photos.map((photo, index) => (
-          <ExistingTile key={photo.id} photo={photo} isCover={index === 0} />
+          <ExistingTile
+            key={photo.id}
+            photo={photo}
+            isCover={index === 0}
+            version={version}
+          />
         ))}
       </ul>
-      <p className="font-mono text-2xs text-muted">{t("assets.photoCoverHint")}</p>
+      <p className="font-mono text-2xs text-muted">
+        {t("assets.photoCoverHint")}
+      </p>
     </div>
   );
 }
 
-function ExistingTile({ photo, isCover }: { photo: ExistingPhoto; isCover: boolean }) {
+function ExistingTile({
+  photo,
+  isCover,
+  version,
+}: {
+  photo: ExistingPhoto;
+  isCover: boolean;
+  version?: string;
+}) {
   const t = useT();
-  const fetcher = useFetcher();
+  const fetcher = useFetcher<{ ok: boolean; error?: TranslationKey }>();
   const busy = fetcher.state !== "idle";
 
   const act = (intent: "setCover" | "deletePhoto") =>
-    void fetcher.submit({ intent, photoId: photo.id }, { method: "post" });
+    void fetcher.submit(
+      { intent, photoId: photo.id, ...(version ? { version } : {}) },
+      { method: "post" },
+    );
 
   return (
-    <li
-      className={`relative h-28 w-28 overflow-hidden rounded-sm border ${
-        isCover ? "border-accent" : "border-rule"
-      } ${busy ? "opacity-50" : ""}`}
-    >
-      <img src={photo.thumbUrl} alt="" className="h-full w-full object-cover" />
+    <li className="w-28">
+      <div
+        className={`relative h-28 w-28 overflow-hidden rounded-sm border ${
+          isCover ? "border-accent" : "border-rule"
+        } ${busy ? "opacity-50" : ""}`}
+      >
+        <img
+          src={photo.thumbUrl}
+          alt=""
+          className="h-full w-full object-cover"
+        />
 
-      {isCover && (
-        <span className="absolute left-0 top-0 bg-accent px-1.5 py-0.5 font-mono text-2xs uppercase tracking-wider text-on-accent">
-          {t("assets.photoCover")}
-        </span>
-      )}
+        {isCover && (
+          <span className="absolute left-0 top-0 bg-accent px-1.5 py-0.5 font-mono text-2xs uppercase tracking-wider text-on-accent">
+            {t("assets.photoCover")}
+          </span>
+        )}
 
-      <div className="absolute inset-x-0 bottom-0 flex">
-        {!isCover && (
+        <div className="absolute inset-x-0 bottom-0 flex">
+          {!isCover && (
+            <TileButton
+              type="button"
+              disabled={busy}
+              onClick={() => act("setCover")}
+              label={t("assets.photoMakeCover")}
+            />
+          )}
           <TileButton
             type="button"
             disabled={busy}
-            onClick={() => act("setCover")}
-            label={t("assets.photoMakeCover")}
+            onClick={() => act("deletePhoto")}
+            label={t("assets.removePhoto")}
           />
-        )}
-        <TileButton
-          type="button"
-          disabled={busy}
-          onClick={() => act("deletePhoto")}
-          label={t("assets.removePhoto")}
-        />
+        </div>
       </div>
+      {fetcher.data?.error && (
+        <p role="alert" className="mt-2 text-xs text-out">
+          {t(fetcher.data.error)}
+        </p>
+      )}
     </li>
   );
 }
@@ -187,7 +226,8 @@ function PhotoPicker({ name = "photos" }: { name?: string }) {
   const navigation = useNavigation();
   const wasSending = useRef(false);
   const sending =
-    navigation.state === "submitting" && Boolean(navigation.formData?.has(name));
+    navigation.state === "submitting" &&
+    Boolean(navigation.formData?.has(name));
 
   useEffect(() => {
     if (sending) {
@@ -222,11 +262,17 @@ function PhotoPicker({ name = "photos" }: { name?: string }) {
                 sending ? "animate-pulse" : ""
               }`}
             >
-              <img src={pick.preview} alt="" className="h-full w-full object-cover" />
+              <img
+                src={pick.preview}
+                alt=""
+                className="h-full w-full object-cover"
+              />
               {/* Tratteggio e cartellino: si deve capire a colpo d'occhio che
                   questa foto non c'è ancora e che se ne vai se ne va con te. */}
               <span className="absolute left-0 top-0 bg-accent px-1.5 py-0.5 font-mono text-2xs uppercase tracking-wider text-on-accent">
-                {sending ? t("assets.photoUploading") : t("assets.photoPending")}
+                {sending
+                  ? t("assets.photoUploading")
+                  : t("assets.photoPending")}
               </span>
               <div className="absolute inset-x-0 bottom-0 flex">
                 <TileButton
@@ -266,7 +312,8 @@ function PhotoPicker({ name = "photos" }: { name?: string }) {
           onDrop={(event) => {
             event.preventDefault();
             setDragging(false);
-            if (event.dataTransfer.files.length > 0) add(event.dataTransfer.files);
+            if (event.dataTransfer.files.length > 0)
+              add(event.dataTransfer.files);
           }}
           className={`flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-sm border border-dashed px-4 py-5 text-center text-sm peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent ${
             dragging
@@ -275,7 +322,9 @@ function PhotoPicker({ name = "photos" }: { name?: string }) {
           }`}
         >
           <span className="font-medium">
-            {picks.length > 0 ? t("assets.photoAddMore") : t("assets.photoDrop")}
+            {picks.length > 0
+              ? t("assets.photoAddMore")
+              : t("assets.photoDrop")}
           </span>
           <span className="font-mono text-2xs text-muted">
             {t("assets.photoLimits")}
@@ -290,7 +339,8 @@ function PhotoPicker({ name = "photos" }: { name?: string }) {
         >
           {rejected.map((item) => (
             <li key={item.key}>
-              <span className="font-medium">{item.name}</span> — {t(item.reason)}
+              <span className="font-medium">{item.name}</span> —{" "}
+              {t(item.reason)}
             </li>
           ))}
         </ul>
@@ -313,7 +363,7 @@ function TileButton({
   return (
     <button
       {...props}
-      className="min-h-8 flex-1 bg-black/70 px-1 py-1 text-2xs uppercase tracking-wider text-white hover:bg-black/85 disabled:opacity-60"
+      className="min-h-11 flex-1 bg-black/70 px-1 py-1 text-2xs uppercase tracking-wider text-white hover:bg-black/85 disabled:opacity-60"
     >
       {label}
     </button>

@@ -1,3 +1,5 @@
+import { db } from "~/lib/db.server";
+import { PUBLISHED_ASSET } from "~/lib/asset-publication.server";
 /**
  * «Questi oggetti sono liberi in queste date?», chiesto dal browser.
  *
@@ -42,5 +44,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   // Solo gli identificativi chiesti: la risposta non deve diventare l'elenco
   // di tutto ciò che è occupato in magazzino.
-  return { busy: ids.filter((id) => busy.has(id)) };
+  const publicAssets = await db.asset.findMany({ where: { id: { in: ids }, ...PUBLISHED_ASSET }, select: { id: true } });
+  const visible = new Set(publicAssets.map((a) => a.id));
+  return { busy: ids.filter((id) => visible.has(id) && busy.has(id)) };
 }

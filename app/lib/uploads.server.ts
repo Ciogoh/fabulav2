@@ -95,6 +95,7 @@ export async function saveAssetPhoto(
   } catch {
     // Un file che ha superato il controllo sui byte magici ma è comunque
     // corrotto o troncato: sharp fa da seconda barriera.
+    await Promise.all([unlink(mainPath).catch(() => {}), unlink(thumbPath).catch(() => {})]);
     return { ok: false, error: "invalidType" };
   }
 

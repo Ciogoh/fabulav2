@@ -90,6 +90,11 @@ model User {
   /// amministratore da solo.
   role Role @default(MEMBER)
 
+  /// Avvisi operativi agli admin: nuove richieste e riepilogo dei ritardi.
+  /// Non dà permessi e non modifica gli avvisi sui propri prestiti o l'accesso.
+  /// I nuovi admin vanno scelti esplicitamente dalla pagina Soci.
+  receivesAdminNotifications Boolean @default(false)
+
   /// Socio dell'associazione. Non dà permessi: serve agli admin per
   /// riconoscere chi conoscono quando valutano una richiesta.
   isMember Boolean @default(false)
@@ -104,12 +109,19 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  requests        Request[]
-  messages        Message[]
-  decidedRequests Request[] @relation("DecidedBy")
-  sessions        Session[]
-  accounts        Account[]
-  adminActions    AdminAction[]
+  ownedAssets         Asset[]              @relation("AssetOwner")
+  requests            Request[]
+  lentRequests        Request[]            @relation("RequestLender")
+  requestBatches      RequestBatch[]
+  reviewedAssets      Asset[]              @relation("AssetReviewer")
+  conversationNotices ConversationNotice[]
+  digestNotices       DigestNotice[]
+  messages            Message[]
+  assetMessages       AssetMessage[]
+  decidedRequests     Request[]            @relation("DecidedBy")
+  sessions            Session[]
+  accounts            Account[]
+  adminActions        AdminAction[]
 
   pushSubscriptions PushSubscription[]
 
@@ -175,17 +187,17 @@ model Session {
 }
 
 model Account {
-  id          String @id
+  id                    String    @id
   /// Chi ha emesso l'identità: "local:credential" per la password,
   /// "local:oauth:google" per Google. Concetto introdotto da Better Auth
   /// 1.7 (non c'era quando questa tabella è stata generata la prima volta),
   /// e il suo endpoint di reset password lo richiede per trovare
   /// l'account con la password di un utente — senza, va in errore.
-  issuer      String
-  accountId   String
-  providerId  String
-  userId      String
-  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issuer                String
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -215,6 +227,13 @@ model Verification {
 
 // ---------------------------------------------------------------- catalogo
 
+enum AssetStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Category {
   id        String  @id @default(cuid())
   name      String
@@ -227,6 +246,19 @@ model Asset {
   id          String  @id @default(cuid())
   name        String
   description String?
+
+  ownerId String?
+  owner   User?   @relation("AssetOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+
+  /// Pubblicazione della scheda, distinta dalla disponibilità calcolata.
+  status          AssetStatus @default(DRAFT)
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  reviewedById    String?
+  reviewedBy      User?       @relation("AssetReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  rejectionReason String?
+  ownerSeenAt     DateTime?
+  moderatorSeenAt DateTime?
 
   /// Dove trovarlo, testo libero ("scaffale B3, magazzino di via Roma").
   /// Visibile solo a chi ha fatto l'accesso — vedi la matrice dei permessi.
@@ -262,8 +294,11 @@ model Asset {
   photos       AssetPhoto[]
   requestItems RequestItem[]
   kitAssets    KitAsset[]
+  messages     AssetMessage[]
 
   @@index([categoryId])
+  @@index([ownerId, status])
+  @@index([status, submittedAt])
 }
 
 model AssetPhoto {
@@ -325,9 +360,14 @@ enum RequestStatus {
 }
 
 model Request {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  userId   String
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Responsabile al momento dell’invio: null è Material Matters.
+  lenderId String?
+  lender   User?         @relation("RequestLender", fields: [lenderId], references: [id], onDelete: Restrict)
+  batchId  String?
+  batch    RequestBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
 
   /// Giorni interi: il prestito va dall'inizio del primo alla fine dell'ultimo.
   startDate DateTime @db.Date
@@ -344,7 +384,6 @@ model Request {
   decidedById String?
   decidedBy   User?     @relation("DecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
 
-
   /// L'ultima volta che un admin ha aperto questa richiesta, e l'ultima volta
   /// che l'ha aperta chi l'ha fatta.
   ///
@@ -358,8 +397,9 @@ model Request {
   /// esattamente quello che dicono due date, e la chat di una richiesta si
   /// legge sempre tutta insieme — nessuno legge il terzo messaggio saltando
   /// il secondo.
-  adminSeenAt DateTime?
-  userSeenAt  DateTime?
+  adminSeenAt  DateTime?
+  userSeenAt   DateTime?
+  lenderSeenAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -370,6 +410,8 @@ model Request {
 
   @@index([userId])
   @@index([status, startDate, endDate])
+  @@index([lenderId, status])
+  @@index([batchId])
 }
 
 model RequestItem {
@@ -406,12 +448,26 @@ model Message {
   @@index([requestId])
 }
 
+model AssetMessage {
+  id       String @id @default(cuid())
+  assetId  String
+  asset    Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([assetId, createdAt])
+}
+
 /// I quattro momenti in cui Fabula scrive a chi ha in prestito qualcosa.
 ///
 /// `OVERDUE` è l'unico che si ripete — a 1, 3 e 7 giorni, poi basta: un
 /// promemoria che continua per sempre smette di essere letto, e a quel punto
 /// la strada non è più automatica, è una telefonata.
 enum ReminderKind {
+  ADMIN_DIGEST
   /// Da domani puoi ritirare.
   PICKUP
   /// Domani scade.
@@ -506,11 +562,46 @@ model TutorialVideo {
 /// per lingua: l'interfaccia di Fabula è tipizzata a tre lingue fisse (vedi
 /// `LANGUAGES` in `i18n/dictionaries.ts`), non ne arriva una quarta.
 model LandingContent {
-  id           String   @id
-  abstractEn   String
-  abstractIt   String
-  abstractDe   String
-  updatedById  String
-  updatedBy    User     @relation(fields: [updatedById], references: [id])
-  updatedAt    DateTime @updatedAt
+  id          String   @id
+  abstractEn  String
+  abstractIt  String
+  abstractDe  String
+  updatedById String
+  updatedBy   User     @relation(fields: [updatedById], references: [id])
+  updatedAt   DateTime @updatedAt
+}
+
+/// Un invio può generare pratiche per diversi prestatori: nessuno stato aggregato.
+model RequestBatch {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submissionKey String
+  fingerprint   String
+  createdAt     DateTime  @default(now())
+  requests      Request[]
+
+  @@unique([userId, submissionKey])
+}
+
+/// Guardiano persistente contro raffiche e doppioni degli avvisi chat.
+model ConversationNotice {
+  id            String   @id @default(cuid())
+  thread        String
+  recipientId   String
+  recipient     User     @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  lastMessageId String
+  sentAt        DateTime @default(now())
+
+  @@unique([thread, recipientId])
+}
+
+/// Un digest per persona e giornata; la sede usa una chiave distinta.
+model DigestNotice {
+  id          String @id @default(cuid())
+  recipientId String
+  recipient   User   @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  dayKey      String
+
+  @@unique([recipientId, dayKey])
 }

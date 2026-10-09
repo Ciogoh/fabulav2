@@ -31,6 +31,9 @@ import type { Route } from "./+types/admin.handover.$assetId";
 import { PageShell } from "~/components/page";
 import { ButtonLink, buttonClass } from "~/components/button";
 import { pageTitle } from "~/i18n/meta";
+import { lockAssets } from "~/lib/request-locks.server";
+import { notifyLoanChanged } from "~/lib/marketplace-notifications.server";
+import { publishLendingChange } from "~/lib/events.server";
 import { db } from "~/lib/db.server";
 import { requireAdmin } from "~/lib/session.server";
 import { logAdminAction } from "~/lib/audit.server";
@@ -60,6 +63,8 @@ async function loadAsset(assetId: string) {
       id: true,
       name: true,
       isBookable: true,
+      ownerId: true,
+      status: true,
       archivedAt: true,
       location: true,
       photos: { orderBy: { sortOrder: "asc" }, take: 1, select: { thumbUrl: true } },
@@ -69,7 +74,7 @@ async function loadAsset(assetId: string) {
   /* Un adesivo sopravvive all'oggetto: quello archiviato resta in magazzino
      con la sua etichetta addosso finché qualcuno non la stacca. Meglio un 404
      netto che un modulo che si compila e poi rifiuta di salvare. */
-  if (!asset || asset.archivedAt) throw new Response("Not found", { status: 404 });
+  if (!asset || asset.archivedAt || asset.status !== "APPROVED") throw new Response("Not found", { status: 404 });
   return asset;
 }
 
@@ -104,6 +109,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   return {
     asset: {
       id: asset.id,
+      personal: asset.ownerId !== null,
       name: asset.name,
       isBookable: asset.isBookable,
       location: asset.location,
@@ -149,29 +155,18 @@ export async function action({ request, params }: Route.ActionArgs) {
     return { ok: false as const, error: "request.errorUnavailable" as TranslationKey };
   }
 
-  const busy = await getBusyAssetIds(from, to);
-  if (busy.has(asset.id)) {
-    return { ok: false as const, error: "request.errorConflict" as TranslationKey };
-  }
-
-  const now = new Date();
-
-  /* Approvata e ritirata nello stesso istante, in una transazione sola: se la
-     riga del passaggio di mano non venisse scritta, resterebbe una richiesta
-     approvata che nessuno ha mai chiesto e che nessuno ha in mano. */
-  const created = await db.request.create({
-    data: {
-      userId: recipient.id,
-      startDate: from,
-      endDate: to,
-      status: "APPROVED",
-      purpose: purpose || null,
-      decidedAt: now,
-      decidedById: admin.id,
-      items: { create: [{ assetId: asset.id, pickedUpAt: now }] },
-    },
-    select: { id: true },
+  if (recipient.id === asset.ownerId) return { ok: false as const, error: "p2p.errorSelfLoan" as TranslationKey };
+  const created = await db.$transaction(async (tx) => {
+    await lockAssets(tx, [asset.id]);
+    const current = await tx.asset.findUnique({ where: { id: asset.id }, select: { status: true, archivedAt: true, isBookable: true, ownerId: true } });
+    if (!current || current.archivedAt || current.status !== "APPROVED" || !current.isBookable) return { ok: false as const, error: "request.errorUnavailable" as TranslationKey };
+    const busy = await getBusyAssetIds(from, to, { tx });
+    if (busy.has(asset.id)) return { ok: false as const, error: "request.errorConflict" as TranslationKey };
+    const now = new Date();
+    const row = await tx.request.create({ data: { userId: recipient.id, lenderId: current.ownerId, startDate: from, endDate: to, status: "APPROVED", purpose: purpose || null, decidedAt: now, decidedById: admin.id, items: { create: [{ assetId: asset.id, pickedUpAt: now }] } }, select: { id: true } });
+    return { ok: true as const, id: row.id };
   });
+  if (!created.ok) return created;
 
   await logAdminAction({
     actorId: admin.id,
@@ -185,6 +180,7 @@ export async function action({ request, params }: Route.ActionArgs) {
      compare fra le cose che torneranno, e chi ha un'altra scheda aperta lo
      vede senza ricaricare. */
   publishAdminChange();
+  if (asset.ownerId) { publishLendingChange(asset.ownerId); await notifyLoanChanged(created.id, admin.id, "pickup"); }
 
   try {
     await notifyDirectHandover({
@@ -235,6 +231,7 @@ export default function Handover({ loaderData, actionData }: Route.ComponentProp
           </div>
         </div>
 
+        {asset.personal && <p className="mt-4 rounded-sm border border-rule bg-card p-3 text-sm">{t("p2p.adminIntervention")}</p>}
         {actionData?.ok ? (
           /* A consegna avvenuta il modulo sparisce del tutto. Lasciarlo lì
              compilato invita a premere di nuovo, e il secondo colpo sarebbe

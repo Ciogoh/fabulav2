@@ -31,6 +31,9 @@ import type { Route } from "./+types/api.stream";
 import { db } from "~/lib/db.server";
 import { requireUser } from "~/lib/session.server";
 import {
+  batchChannel,
+  proposalChannel,
+  lendingChannel,
   ADMIN_CHANNEL,
   requestChannel,
   subscribe,
@@ -54,13 +57,25 @@ export async function loader({ request }: Route.LoaderArgs) {
        nemmeno esistere. */
     const target = await db.request.findUnique({
       where: { id: requestId },
-      select: { userId: true },
+      select: { userId: true, lenderId: true },
     });
     if (!target) throw new Response("Not found", { status: 404 });
-    if (target.userId !== user.id && user.role !== "ADMIN") {
+    if (target.userId !== user.id && target.lenderId !== user.id && user.role !== "ADMIN") {
       throw new Response("Not found", { status: 404 });
     }
     channel = requestChannel(requestId);
+  } else if (new URL(request.url).searchParams.has("batch")) {
+    const batchId = new URL(request.url).searchParams.get("batch") ?? "";
+    const target = await db.requestBatch.findUnique({ where: { id: batchId }, select: { userId: true } });
+    if (!target || (target.userId !== user.id && user.role !== "ADMIN")) throw new Response("Not found", { status: 404 });
+    channel = batchChannel(batchId);
+  } else if (new URL(request.url).searchParams.has("proposal")) {
+    const proposalId = new URL(request.url).searchParams.get("proposal") ?? "";
+    const asset = await db.asset.findUnique({ where: { id: proposalId }, select: { ownerId: true } });
+    if (!asset?.ownerId || (asset.ownerId !== user.id && user.role !== "ADMIN")) throw new Response("Not found", { status: 404 });
+    channel = proposalChannel(proposalId);
+  } else if (new URL(request.url).searchParams.has("lending")) {
+    channel = lendingChannel(user.id);
   } else {
     // Senza `?request=`, è il canale del Centro: solo admin.
     if (user.role !== "ADMIN") throw new Response("Not found", { status: 404 });
@@ -123,7 +138,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       // `no-transform` insieme a `no-cache`: senza, un proxy che comprime al
       // volo può accumulare i pezzi e consegnarli a blocchi, che per un
       // flusso vuol dire notizie in ritardo di minuti.
-      "Cache-Control": "no-cache, no-transform",
+      "Cache-Control": "private, no-store, no-transform",
       Connection: "keep-alive",
       // Per i proxy che bufferizzano di serie (nginx e parenti). Traefik non
       // ne ha bisogno, ma l'intestazione non fa danni e la produzione può

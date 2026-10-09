@@ -72,9 +72,9 @@ export function PageTitle({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-      <div>
-        <h1 className="font-serif text-3xl font-semibold tracking-tight">
+    <div className="flex min-w-0 max-w-full flex-wrap items-start justify-between gap-x-6 gap-y-3">
+      <div className="min-w-0 max-w-full">
+        <h1 className="break-words font-serif text-3xl font-semibold tracking-tight">
           {title}
         </h1>
         {intro && <p className="mt-1 max-w-prose text-sm text-muted">{intro}</p>}

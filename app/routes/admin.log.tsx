@@ -76,12 +76,14 @@ export async function loader({ request }: Route.LoaderArgs) {
  * registro continua a dire che qualcosa è successo.
  */
 const KNOWN_ACTIONS = new Set([
+  "asset.proposed", "asset.reviewEdited", "asset.reviewApproved", "asset.reviewRejected", "asset.withdrawn", "asset.paused",
   "request.approve",
   "request.reject",
   "request.cancel",
   "requestItem.pickup",
   "requestItem.return",
   "member.roleChanged",
+  "member.notificationsChanged",
   "member.resetSent",
   "asset.archived",
   "asset.deleted",

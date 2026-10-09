@@ -37,7 +37,8 @@
 import type { NotifyChannel } from "~/generated/prisma/enums";
 import { formatDay } from "~/lib/availability.server";
 import { db } from "~/lib/db.server";
-import { extraAdminEmails, sendEmail } from "~/lib/email.server";
+import { sendEmail } from "~/lib/email.server";
+import { selectAdminNotificationRecipients } from "~/lib/admin-notifications";
 import { sendPush } from "~/lib/push.server";
 
 type RequestSummary = {
@@ -139,25 +140,25 @@ async function channelOf(userId: string): Promise<NotifyChannel> {
  *
  * Prima era una lista fissa nel `.env`, e una lista di indirizzi non ha
  * preferenze: chi voleva solo le notifiche continuava a ricevere la posta.
- * Adesso i destinatari veri sono **gli utenti con ruolo `ADMIN`** letti dal
- * database, ciascuno sul canale che ha scelto.
+ * I destinatari sono gli admin selezionati dalla pagina Soci, ciascuno sul
+ * canale che ha scelto. Il ruolo da solo non implica ricevere gli avvisi.
  *
  * `ADMIN_EMAILS` resta, per la casella condivisa dell'associazione o per chi
  * vuole l'avviso senza avere un account — ma gli indirizzi che coincidono con
- * un admin registrato vengono scartati (in `email.server.ts`), o l'avviso
+ * un admin registrato vengono scartati, o l'avviso
  * rientrerebbe dalla porta di servizio proprio a chi aveva chiesto di non
  * riceverlo.
  */
-async function adminRecipients(): Promise<{ people: Recipient[]; extras: string[] }> {
+export async function adminRecipients(): Promise<{ people: Recipient[]; extras: string[] }> {
   const admins = await db.user.findMany({
     where: { role: "ADMIN" },
-    select: { id: true, email: true, name: true, notifyChannel: true },
+    select: {
+      id: true, email: true, name: true, notifyChannel: true,
+      receivesAdminNotifications: true,
+    },
   });
 
-  return {
-    people: admins,
-    extras: extraAdminEmails(admins.map((admin) => admin.email)),
-  };
+  return selectAdminNotificationRecipients(admins, process.env.ADMIN_EMAILS ?? "");
 }
 
 export async function notifyAdminsNewRequest(
@@ -178,7 +179,7 @@ export async function notifyAdminsNewRequest(
     `\n${requestLink(params.origin, params.requestId)}`;
 
   await Promise.all([
-    ...people.map((admin) =>
+    ...people.filter((p) => p.email.toLowerCase() !== params.requesterEmail.toLowerCase()).map((admin) =>
       deliver(admin, {
         subject,
         text,
@@ -194,7 +195,7 @@ export async function notifyAdminsNewRequest(
     ),
     // Gli indirizzi in più non sono persone di Fabula: niente preferenze,
     // niente notifiche, solo posta.
-    ...extras.map((to) =>
+    ...extras.filter((email) => email.toLowerCase() !== params.requesterEmail.toLowerCase()).map((to) =>
       sendEmail({ to, subject, text }).catch((error) =>
         console.error(`Avviso non consegnato all'indirizzo in più ${to}:`, error)
       )
@@ -234,7 +235,7 @@ export async function notifyRequesterCancelled(
     subject: "Fabula: request cancelled",
     text:
       `Hi ${params.to.name},\n\n` +
-      `An admin has cancelled your request for ${params.itemNames.join(", ")} ` +
+      `Your request for ${params.itemNames.join(", ")} has been cancelled ` +
       `(from ${formatDay(params.startDate)} to ${formatDay(params.endDate)}). ` +
       `If you think this is a mistake, write in the request's chat.\n` +
       `\n${requestLink(params.origin, params.requestId)}`,
@@ -439,11 +440,11 @@ export async function sendOverdueReminder(params: {
 export async function notifyAdminsOverdueDigest(params: {
   rows: Array<{ holder: string; itemNames: string[]; endDate: Date; daysLate: number }>;
   origin: string;
-}): Promise<void> {
-  if (params.rows.length === 0) return;
+}): Promise<boolean> {
+  if (params.rows.length === 0) return false;
 
   const { people, extras } = await adminRecipients();
-  if (people.length === 0 && extras.length === 0) return;
+  if (people.length === 0 && extras.length === 0) return false;
 
   const subject = `Fabula: ${params.rows.length} overdue`;
   const text =
@@ -457,7 +458,7 @@ export async function notifyAdminsOverdueDigest(params: {
       .join("\n") +
     `\n\n${params.origin}/admin?vista=ritardo`;
 
-  await Promise.all([
+  const results = await Promise.all([
     ...people.map((admin) =>
       deliver(admin, {
         subject,
@@ -473,9 +474,11 @@ export async function notifyAdminsOverdueDigest(params: {
       })
     ),
     ...extras.map((to) =>
-      sendEmail({ to, subject, text }).catch((error) =>
-        console.error(`Riassunto ritardi non consegnato a ${to}:`, error)
-      )
+      sendEmail({ to, subject, text }).then(() => true).catch((error) => {
+        console.error(`Riassunto ritardi non consegnato a ${to}:`, error);
+        return false;
+      })
     ),
   ]);
+  return results.some(Boolean);
 }

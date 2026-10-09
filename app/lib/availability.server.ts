@@ -10,6 +10,7 @@
  * il catalogo non può mai raccontare qualcosa di diverso dalla realtà.
  */
 
+import type { Prisma } from "~/generated/prisma/client";
 import { db } from "~/lib/db.server";
 import { displayNameOf, fullLabelOf, type Person } from "~/lib/person";
 
@@ -91,9 +92,9 @@ const NOT_ARCHIVED = { asset: { archivedAt: null } } as const;
 export async function getBusyAssetIds(
   start: Date,
   end: Date,
-  options: { excludeRequestId?: string } = {}
+  options: { excludeRequestId?: string; tx?: Prisma.TransactionClient } = {}
 ): Promise<Set<string>> {
-  const items = await db.requestItem.findMany({
+  const items = await (options.tx ?? db).requestItem.findMany({
     where: {
       ...BLOCKING,
       ...NOT_ARCHIVED,

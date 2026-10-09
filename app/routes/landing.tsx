@@ -91,10 +91,31 @@ export default function Landing({ loaderData }: Route.ComponentProps) {
         </div>
       </section>
 
+      <section className="fabula-section" aria-labelledby="p2p-title">
+        <div className="fabula-inner">
+          <div className="flex flex-col items-center text-center rounded-sm border border-rule bg-card px-6 py-16 sm:px-12 sm:py-24">
+            <p className="eyebrow mb-4">
+              {t("landing.p2pLabel")}
+            </p>
+            <h2 id="p2p-title" className="font-serif text-4xl sm:text-5xl font-semibold tracking-tight">
+              {t("landing.p2pTitle")}
+            </h2>
+            <p className="mt-6 max-w-2xl text-lg text-muted">
+              {t("landing.p2pBody")}
+            </p>
+            <div className="mt-10">
+              <ButtonLink to="/presta" variant="primary" size="md" className="!px-8 !py-3 !text-base">
+                {t("landing.p2pAction")}
+              </ButtonLink>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="fabula-section fabula-network" aria-labelledby="network-title">
         <div className="fabula-inner">
           <div className="fabula-section-heading">
-            <p className="fabula-kicker">02 / {t("landing.networkLabel")}</p>
+            <p className="fabula-kicker">03 / {t("landing.networkLabel")}</p>
             <h2 id="network-title">{t("landing.networkTitle")}</h2>
             <p>{t("landing.networkBody")}</p>
           </div>

@@ -80,6 +80,7 @@ async function main() {
   for (const a of ASSETS) {
     const created = await db.asset.create({
       data: {
+        status: "APPROVED",
         name: a.name,
         location: a.loc,
         categoryId: categories.get(a.cat)!,
@@ -91,6 +92,7 @@ async function main() {
   // Un oggetto visibile ma non prenotabile, per verificare quel percorso.
   await db.asset.create({
     data: {
+      status: "APPROVED",
       name: "Mixer Behringer X32 (in riparazione)",
       categoryId: categories.get("audio")!,
       location: "Dal tecnico",
@@ -126,6 +128,7 @@ async function main() {
       email: "mogno.samu@gmail.com",
       name: "Samu",
       role: "ADMIN",
+      receivesAdminNotifications: true,
       isMember: true,
       language: "IT",
     },

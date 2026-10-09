@@ -5,7 +5,7 @@
  * la vede senza doversela ripassare a mano di componente in componente.
  */
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode, type Context } from "react";
 import {
   translate,
   type Lang,
@@ -17,7 +17,10 @@ type Translator = (
   params?: Record<string, string | number>
 ) => string;
 
-const LangContext = createContext<Lang>("en");
+// Durante HMR i consumatori e il provider possono aggiornarsi separatamente.
+// Conservare il contesto evita che la preview torni alla lingua di ripiego.
+const LangContext: Context<Lang> = import.meta.hot?.data.langContext ?? createContext<Lang>("en");
+if (import.meta.hot) import.meta.hot.data.langContext = LangContext;
 
 export function LangProvider({
   lang,

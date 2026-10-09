@@ -42,17 +42,19 @@ import { todayUtc } from "~/lib/availability.server";
  * Si contano le **richieste** e non i messaggi: il numero sulla pastiglia deve
  * dire quante cose ci sono da aprire, non quante righe sono state scritte.
  */
-export async function unreadForAdminIds(): Promise<string[]> {
+export async function unreadForAdminIds(personal = false, readerId = ""): Promise<string[]> {
   const rows = await db.$queryRaw<Array<{ id: string }>>(Prisma.sql`
     SELECT r."id"
     FROM "Request" r
-    WHERE EXISTS (
+    WHERE ${personal ? Prisma.sql`r."lenderId" IS NOT NULL` : Prisma.sql`r."lenderId" IS NULL`} AND EXISTS (
       SELECT 1
       FROM "Message" m
       JOIN "User" u ON u."id" = m."authorId"
       WHERE m."requestId" = r."id"
-        AND u."role" <> 'ADMIN'
-        AND (r."adminSeenAt" IS NULL OR m."createdAt" > r."adminSeenAt")
+        AND m."authorId" <> ${readerId}
+        AND (r."userId" = ${readerId} OR r."lenderId" = ${readerId} OR m."authorId" = r."userId" OR m."authorId" = r."lenderId")
+        AND (CASE WHEN r."userId" = ${readerId} THEN r."userSeenAt" WHEN r."lenderId" = ${readerId} THEN r."lenderSeenAt" ELSE r."adminSeenAt" END IS NULL
+          OR m."createdAt" > CASE WHEN r."userId" = ${readerId} THEN r."userSeenAt" WHEN r."lenderId" = ${readerId} THEN r."lenderSeenAt" ELSE r."adminSeenAt" END)
     )
     ORDER BY r."updatedAt" DESC
   `);
@@ -72,7 +74,7 @@ export async function unreadForUserIds(userId: string): Promise<string[]> {
         FROM "Message" m
         JOIN "User" u ON u."id" = m."authorId"
         WHERE m."requestId" = r."id"
-          AND u."role" = 'ADMIN'
+          AND m."authorId" <> r."userId"
           AND (r."userSeenAt" IS NULL OR m."createdAt" > r."userSeenAt")
       )
   `);
@@ -88,7 +90,7 @@ export async function unreadForUserIds(userId: string): Promise<string[]> {
  * quelli si contano sugli oggetti (regola 2: una riconsegna parziale può
  * lasciarne in ritardo solo alcuni).
  */
-export async function adminCounts(): Promise<{
+export async function adminCounts(readerId = ""): Promise<{
   pending: number;
   unread: number;
   overdue: number;
@@ -96,14 +98,16 @@ export async function adminCounts(): Promise<{
   const [totals, overdue] = await Promise.all([
     db.$queryRaw<Array<{ pending: bigint; unread: bigint }>>(Prisma.sql`
       SELECT
-        COUNT(*) FILTER (WHERE r."status" = 'PENDING') AS pending,
-        COUNT(*) FILTER (WHERE EXISTS (
+        COUNT(*) FILTER (WHERE r."status" = 'PENDING' AND r."lenderId" IS NULL) AS pending,
+        COUNT(*) FILTER (WHERE r."lenderId" IS NULL AND EXISTS (
           SELECT 1
           FROM "Message" m
           JOIN "User" u ON u."id" = m."authorId"
           WHERE m."requestId" = r."id"
-            AND u."role" <> 'ADMIN'
-            AND (r."adminSeenAt" IS NULL OR m."createdAt" > r."adminSeenAt")
+            AND m."authorId" <> ${readerId}
+            AND (r."userId" = ${readerId} OR m."authorId" = r."userId")
+            AND (CASE WHEN r."userId" = ${readerId} THEN r."userSeenAt" ELSE r."adminSeenAt" END IS NULL
+              OR m."createdAt" > CASE WHEN r."userId" = ${readerId} THEN r."userSeenAt" ELSE r."adminSeenAt" END)
         )) AS unread
       FROM "Request" r
     `),
@@ -115,7 +119,7 @@ export async function adminCounts(): Promise<{
         pickedUpAt: { not: null },
         returnedAt: null,
         asset: { archivedAt: null },
-        request: { status: "APPROVED", endDate: { lt: todayUtc() } },
+        request: { lenderId: null, status: "APPROVED", endDate: { lt: todayUtc() } },
       },
     }),
   ]);
@@ -129,4 +133,13 @@ export async function adminCounts(): Promise<{
     unread: Number(row?.unread ?? 0),
     overdue,
   };
+}
+
+/** I messaggi al prestatore non dipendono dal ruolo dell'autore. */
+export async function unreadForLenderIds(userId: string): Promise<string[]> {
+  const rows = await db.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT r."id" FROM "Request" r WHERE r."lenderId" = ${userId}
+      AND EXISTS (SELECT 1 FROM "Message" m WHERE m."requestId" = r."id"
+        AND m."authorId" <> ${userId} AND (r."lenderSeenAt" IS NULL OR m."createdAt" > r."lenderSeenAt"))`);
+  return rows.map((r) => r.id);
 }

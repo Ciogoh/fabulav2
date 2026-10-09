@@ -10,7 +10,10 @@
  * su un ritiro, non solo un canale per l'admin.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { Conversation } from "~/components/conversation";
+import { requestCapabilities } from "~/lib/marketplace";
+import { mutateRequest, RequestMutationError } from "~/lib/request-mutations.server";
 import { useFetcher } from "react-router";
 import type { Route } from "./+types/request-detail";
 import { PageShell } from "~/components/page";
@@ -18,49 +21,23 @@ import { Button, buttonClass } from "~/components/button";
 import { useConfirm } from "~/components/confirm";
 import { pageTitle } from "~/i18n/meta";
 import { db } from "~/lib/db.server";
-import { requireAdmin, requireUser } from "~/lib/session.server";
+import { requireUser } from "~/lib/session.server";
 import {
   formatDay,
-  getBusyAssetIds,
-  MAX_ORDINARY_SPAN_DAYS,
-  MAX_SPECIAL_SPAN_DAYS,
-  parseDay,
   todayUtc,
 } from "~/lib/availability.server";
-import { notifyRequesterCancelled, notifyRequesterDecision, sendReturnReminder } from "~/lib/notifications.server";
-import { logAdminAction } from "~/lib/audit.server";
 import { REQUEST_STATUS_LABELS } from "~/lib/request-status";
-import { useFormatDay, useLang, useT } from "~/i18n/use-t";
+import { useFormatDay, useT } from "~/i18n/use-t";
 import type { TranslationKey } from "~/i18n/dictionaries";
 import type { RequestStatus } from "~/generated/prisma/enums";
-import { AdminBadge } from "~/components/admin-badge";
-import { PersonInline, PersonName } from "~/components/person";
-import { fullLabelOf, type Person } from "~/lib/person";
+import { PersonName } from "~/components/person";
+import { type Person } from "~/lib/person";
 import { DateRangeFields, daysBetweenInclusive } from "~/components/date-range-fields";
-import { publishRequestChange } from "~/lib/events.server";
 import { useLive } from "~/lib/use-live";
 import { MAX_ORDINARY_SPAN_DAYS as ORDINARY_SPAN } from "~/lib/availability.shared";
 
 export function meta({ matches }: Route.MetaArgs) {
   return [{ title: pageTitle(matches, "requests.detailHeading") }];
-}
-
-/**
- * La riga che finirà nel registro degli admin: cosa e quando, per esteso.
- *
- * Il testo si scrive **adesso** e non si ricalcola mai più — è il punto del
- * registro: fra sei mesi l'oggetto può essere archiviato e la richiesta
- * cancellata, ma «ha approvato Proiettore Epson (2026-08-20 → 2026-08-25)»
- * resta leggibile. Le date restano in ISO e non nel formato della lingua di
- * chi ha premuto: il registro lo leggono altri, magari in un'altra lingua.
- */
-function requestDetailLine(req: {
-  items: Array<{ asset: { name: string } }>;
-  startDate: Date;
-  endDate: Date;
-}): string {
-  const names = req.items.map((item) => item.asset.name).join(", ");
-  return `${names} (${formatDay(req.startDate)} → ${formatDay(req.endDate)})`;
 }
 
 async function loadAuthorized(userId: string, isAdminRole: boolean, id: string) {
@@ -69,6 +46,9 @@ async function loadAuthorized(userId: string, isAdminRole: boolean, id: string) 
     select: {
       id: true,
       userId: true,
+      lenderId: true,
+      lenderSeenAt: true,
+      lender: { select: { name: true, firstName: true, lastName: true, alias: true } },
       startDate: true,
       endDate: true,
       status: true,
@@ -100,7 +80,7 @@ async function loadAuthorized(userId: string, isAdminRole: boolean, id: string) 
           // `location` serve al promemoria a mano, che dice **dove**
           // riportare. Non esce da qui verso il browser: il loader più
           // sotto sceglie campo per campo e non la include.
-          asset: { select: { name: true, location: true } },
+          asset: { select: { name: true, location: true, archivedAt: true } },
           fromKit: { select: { name: true } },
         },
       },
@@ -129,7 +109,7 @@ async function loadAuthorized(userId: string, isAdminRole: boolean, id: string) 
   if (!req) throw new Response("Not found", { status: 404 });
 
   const isOwner = req.userId === userId;
-  if (!isAdminRole && !isOwner) throw new Response("Not found", { status: 404 });
+  if (!isAdminRole && !isOwner && req.lenderId !== userId) throw new Response("Not found", { status: 404 });
 
   return req;
 }
@@ -139,7 +119,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const isAdmin = user.role === "ADMIN";
   const req = await loadAuthorized(user.id, isAdmin, params.id);
 
-  await markSeen(req, user.id, isAdmin);
+  const caps = requestCapabilities(user, req);
+  const last = req.messages.at(-1);
+  const seen = req[caps.seen];
+  if (last && (!seen || last.createdAt > seen)) await db.request.updateMany({ where: { id: req.id, [caps.seen]: req[caps.seen] }, data: { [caps.seen]: last.createdAt } });
 
   return {
     id: req.id,
@@ -148,13 +131,19 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     status: req.status,
     purpose: req.purpose,
     today: formatDay(todayUtc()),
-    isOwner: req.userId === user.id,
+    isOwner: caps.borrower,
+    canManage: caps.manage,
+    canEdit: caps.edit,
+    lender: req.lender,
+    borrower: { name: req.user.name, firstName: req.user.firstName, lastName: req.user.lastName, alias: req.user.alias },
+    intervention: isAdmin && req.lenderId !== null && !caps.borrower && !caps.lender,
     items: req.items.map((item) => ({
       id: item.id,
       name: item.asset.name,
       fromKitName: item.fromKit?.name ?? null,
       pickedUp: item.pickedUpAt !== null,
       returned: item.returnedAt !== null,
+      archived: item.asset.archivedAt !== null,
     })),
     messages: req.messages.map((m) => ({
       id: m.id,
@@ -186,300 +175,18 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   };
 }
 
-/**
- * Il segnalibro: chi apre questa pagina l'ha vista.
- *
- * È ciò che fa esistere la sezione «messaggi da leggere» del Centro e il
- * pallino su «le mie richieste». Due date e non una tabella di lettura per
- * messaggio: vedi il commento sullo schema.
- *
- * **Si scrive solo quando serve davvero**, cioè quando c'è un messaggio più
- * recente del segnalibro. Senza questa guardia sarebbe una `UPDATE` a ogni
- * apertura — e con la chat che si aggiorna da sola le aperture diventano
- * molte, perché ogni colpetto ricarica il loader.
- *
- * Chi è admin **e** proprietario aggiorna tutti e due i segnalibri: sono due
- * ruoli sulla stessa pagina, non due persone.
- */
-async function markSeen(
-  req: {
-    id: string;
-    userId: string;
-    adminSeenAt: Date | null;
-    userSeenAt: Date | null;
-    messages: Array<{ createdAt: Date }>;
-  },
-  userId: string,
-  isAdmin: boolean
-): Promise<void> {
-  // I messaggi arrivano in ordine crescente: l'ultimo è in fondo.
-  const last = req.messages.at(-1);
-  if (!last) return;
-
-  const isOwner = req.userId === userId;
-  const stale = (mark: Date | null) => mark === null || last.createdAt > mark;
-
-  const data: { adminSeenAt?: Date; userSeenAt?: Date } = {};
-  if (isAdmin && stale(req.adminSeenAt)) data.adminSeenAt = new Date();
-  if (isOwner && stale(req.userSeenAt)) data.userSeenAt = new Date();
-  if (Object.keys(data).length === 0) return;
-
-  await db.request.update({ where: { id: req.id }, data });
-}
-
-/**
- * La risposta di ogni intento che ha scritto qualcosa — e la campanella.
- *
- * Sta in una funzione sola perché gli intenti sono sette e il `return` era
- * scritto sette volte: aggiungerne un ottavo dimenticando la campanella
- * darebbe una pagina che si aggiorna dal vivo **quasi** sempre, che è il tipo
- * di difetto che nessuno segnala e tutti smettono di fidarsi.
- *
- * Sul canale non passa niente di quello che è cambiato: vedi
- * `lib/events.server.ts`.
- */
-function changed(requestId: string, intent: string) {
-  publishRequestChange(requestId);
-  return { ok: true as const, intent };
-}
-
+/** L'action delega al servizio che controlla ogni intento dentro la transazione. */
 export async function action({ request, params }: Route.ActionArgs) {
   const user = await requireUser(request);
-  const isAdmin = user.role === "ADMIN";
-  const req = await loadAuthorized(user.id, isAdmin, params.id);
-  const isOwner = req.userId === user.id;
-
-  const form = await request.formData();
-  const intent = String(form.get("intent") ?? "");
-
-  if (intent === "message") {
-    const body = String(form.get("body") ?? "").trim();
-    if (!body) {
-      return { ok: false as const, error: "request.errorMessageEmpty" as TranslationKey };
-    }
-    await db.message.create({
-      data: { requestId: req.id, authorId: user.id, body: body.slice(0, 2000) },
-    });
-    return changed(req.id, intent);
+  try { return await mutateRequest(user, params.id, await request.formData(), new URL(request.url).origin); }
+  catch (error) {
+    if (error instanceof RequestMutationError) return { ok: false as const, error: error.key, conflicts: error.conflicts };
+    throw error;
   }
-
-  // editDates e cancel: chi ha fatto la richiesta o un admin — stessa
-  // guardia già usata per "message", `loadAuthorized` ha già verificato che
-  // solo questi due possano essere arrivati fin qui.
-  if (intent === "editDates") {
-    if (req.status !== "PENDING" && req.status !== "APPROVED") {
-      return { ok: false as const, error: "request.errorNotPendingOrApproved" as TranslationKey };
-    }
-
-    const from = parseDay(String(form.get("from") ?? ""));
-    const to = parseDay(String(form.get("to") ?? ""));
-    const longer = form.get("longer") === "1";
-    // Tagliato qui e non solo nel browser: `maxLength` è un suggerimento che
-  // un `curl` ignora, e questa è l'unica colonna di testo libero senza
-  // tetto proprio. Stessa regola già applicata al corpo dei messaggi.
-  const purpose = String(form.get("purpose") ?? "").trim().slice(0, 2000);
-    const today = todayUtc();
-
-    if (!from || !to || from < today || to < from) {
-      return { ok: false as const, error: "request.errorDates" as TranslationKey };
-    }
-    const spanDays = Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1;
-    if (!longer && spanDays > MAX_ORDINARY_SPAN_DAYS) {
-      return { ok: false as const, error: "request.errorSpan" as TranslationKey };
-    }
-    if (longer && purpose.length === 0) {
-      return { ok: false as const, error: "request.errorPurposeRequired" as TranslationKey };
-    }
-    if (spanDays > MAX_SPECIAL_SPAN_DAYS) {
-      return { ok: false as const, error: "request.errorSpan" as TranslationKey };
-    }
-
-    const busy = await getBusyAssetIds(from, to, { excludeRequestId: req.id });
-    const conflicts = req.items
-      .filter((item) => busy.has(item.assetId))
-      .map((item) => item.asset.name);
-    if (conflicts.length > 0) {
-      return { ok: false as const, error: "request.errorConflict" as TranslationKey, conflicts };
-    }
-
-    // Date nuove sono di fatto una richiesta nuova: se era già approvata,
-    // torna in attesa — l'approvazione manuale non ha scorciatoie.
-    await db.request.update({
-      where: { id: req.id },
-      data: {
-        startDate: from,
-        endDate: to,
-        purpose: purpose || null,
-        status: "PENDING",
-        decidedAt: null,
-        decidedById: null,
-      },
-    });
-    return changed(req.id, intent);
-  }
-
-  if (intent === "cancel") {
-    if (req.status === "CANCELLED" || req.status === "REJECTED") {
-      return { ok: false as const, error: "request.errorGeneric" as TranslationKey };
-    }
-    if (req.items.some((item) => item.pickedUpAt !== null)) {
-      return { ok: false as const, error: "request.errorAlreadyPickedUp" as TranslationKey };
-    }
-
-    await db.request.update({ where: { id: req.id }, data: { status: "CANCELLED" } });
-
-    if (isAdmin && !isOwner) {
-      // Solo l'annullo *di un altro* finisce nel registro: chi ritira la
-      // propria richiesta non sta esercitando un permesso da admin.
-      await logAdminAction({
-        actorId: user.id,
-        action: "request.cancel",
-        targetType: "Request",
-        targetId: req.id,
-        detail: requestDetailLine(req),
-      });
-
-      try {
-        await notifyRequesterCancelled({
-          to: {
-            id: req.user.id,
-            email: req.user.email,
-            name: fullLabelOf(req.user),
-          },
-          itemNames: req.items.map((item) => item.asset.name),
-          startDate: req.startDate,
-          endDate: req.endDate,
-          requestId: req.id,
-          origin: new URL(request.url).origin,
-        });
-      } catch (error) {
-        console.error("Notifica di annullamento fallita:", error);
-      }
-    }
-    return changed(req.id, intent);
-  }
-
-  // Tutto il resto è riservato agli admin. `requireAdmin` protegge anche chi
-  // arrivasse qui direttamente con `curl` bypassando l'interfaccia.
-  const admin = await requireAdmin(request);
-
-  if (intent === "note") {
-    const note = String(form.get("note") ?? "").trim();
-    await db.request.update({
-      where: { id: req.id },
-      data: { adminNote: note || null },
-    });
-    return changed(req.id, intent);
-  }
-
-  if (intent === "approve" || intent === "reject") {
-    if (req.status !== "PENDING") {
-      return { ok: false as const, error: "request.errorNotPending" as TranslationKey };
-    }
-    await db.request.update({
-      where: { id: req.id },
-      data: {
-        status: intent === "approve" ? "APPROVED" : "REJECTED",
-        decidedAt: new Date(),
-        decidedById: admin.id,
-      },
-    });
-
-    await logAdminAction({
-      actorId: admin.id,
-      action: intent === "approve" ? "request.approve" : "request.reject",
-      targetType: "Request",
-      targetId: req.id,
-      detail: `${fullLabelOf(req.user)} — ${requestDetailLine(req)}`,
-    });
-
-    try {
-      await notifyRequesterDecision({
-        to: {
-          id: req.user.id,
-          email: req.user.email,
-          name: fullLabelOf(req.user),
-        },
-        itemNames: req.items.map((item) => item.asset.name),
-        startDate: req.startDate,
-        endDate: req.endDate,
-        decision: intent === "approve" ? "approved" : "rejected",
-        requestId: req.id,
-        origin: new URL(request.url).origin,
-      });
-    } catch (error) {
-      console.error("Notifica di decisione fallita:", error);
-    }
-    return changed(req.id, intent);
-  }
-
-  if (intent === "pickup" || intent === "return") {
-    if (req.status !== "APPROVED") {
-      return { ok: false as const, error: "request.errorGeneric" as TranslationKey };
-    }
-    const itemId = String(form.get("itemId") ?? "");
-    const item = req.items.find((i) => i.id === itemId);
-    if (!item) {
-      return { ok: false as const, error: "request.errorGeneric" as TranslationKey };
-    }
-
-    if (intent === "pickup") {
-      if (item.pickedUpAt) {
-        return { ok: false as const, error: "request.errorGeneric" as TranslationKey };
-      }
-      await db.requestItem.update({ where: { id: itemId }, data: { pickedUpAt: new Date() } });
-    } else {
-      if (!item.pickedUpAt || item.returnedAt) {
-        return { ok: false as const, error: "request.errorGeneric" as TranslationKey };
-      }
-      await db.requestItem.update({ where: { id: itemId }, data: { returnedAt: new Date() } });
-    }
-
-    // Il passaggio di mano è per singolo oggetto (regola 2), quindi anche la
-    // riga di registro lo è: «chi ha segnato quel ritiro» era la domanda
-    // senza risposta da cui nasce tutto questo.
-    await logAdminAction({
-      actorId: admin.id,
-      action: intent === "pickup" ? "requestItem.pickup" : "requestItem.return",
-      targetType: "RequestItem",
-      targetId: item.id,
-      detail: `${item.asset.name} — ${fullLabelOf(req.user)}`,
-    });
-
-    return changed(req.id, intent);
-  }
-
-  if (intent === "reminder") {
-    try {
-      /* `deliver` non solleva: restituisce `false`. Un promemoria che non
-         è arrivato deve dirlo a chi ha premuto il pulsante, o l'admin resta
-         convinto di aver sollecitato qualcuno che non ha saputo niente. */
-      const delivered = await sendReturnReminder({
-        to: {
-          id: req.user.id,
-          email: req.user.email,
-          name: fullLabelOf(req.user),
-        },
-        items: req.items.map((item) => item.asset),
-        endDate: req.endDate,
-        requestId: req.id,
-        origin: new URL(request.url).origin,
-      });
-      if (!delivered) {
-        return { ok: false as const, error: "request.errorReminderFailed" as TranslationKey };
-      }
-    } catch (error) {
-      console.error("Invio promemoria fallito:", error);
-      return { ok: false as const, error: "request.errorReminderFailed" as TranslationKey };
-    }
-    return changed(req.id, intent);
-  }
-
-  return { ok: false as const, error: "request.errorGeneric" as TranslationKey };
 }
 
 export default function RequestDetail({ loaderData }: Route.ComponentProps) {
-  const { id, startDate, endDate, status, purpose, today, isOwner, items, messages, admin } =
+  const { id, startDate, endDate, status, purpose, today, isOwner, canManage, canEdit, lender, borrower, intervention, items, messages, admin } =
     loaderData;
   const t = useT();
   const formatDayLabel = useFormatDay();
@@ -490,9 +197,8 @@ export default function RequestDetail({ loaderData }: Route.ComponentProps) {
      decisioni: chi ha chiesto vede l'approvazione senza ricaricare. */
   useLive(`/api/stream?request=${id}`);
 
-  const canManage = isOwner || Boolean(admin);
-  const canEditOrCancel = canManage && (status === "PENDING" || status === "APPROVED");
   const anyPickedUp = items.some((item) => item.pickedUp);
+  const canEditOrCancel = (canEdit || canManage) && !anyPickedUp && (status === "PENDING" || status === "APPROVED");
 
   return (
     <main>
@@ -506,6 +212,9 @@ export default function RequestDetail({ loaderData }: Route.ComponentProps) {
           </span>
         </div>
 
+        <div className="mt-4 flex flex-col gap-1 text-sm text-muted"><p>{t("p2p.lender")}: {lender ? <PersonName person={lender} /> : "Material Matters"}</p>{canManage && <p>{t("p2p.borrower")}: <PersonName person={borrower} /></p>}</div>
+        {intervention && <p className="mt-3 rounded-sm border border-rule bg-card p-3 text-sm">{t("p2p.adminIntervention")}</p>}
+        {status === "PENDING" && isOwner && <p className="mt-3 text-sm text-muted">{t("p2p.notReserved")}</p>}
         {purpose && <p className="mt-2 text-sm text-muted">{purpose}</p>}
 
         {canEditOrCancel && (
@@ -516,18 +225,19 @@ export default function RequestDetail({ loaderData }: Route.ComponentProps) {
             endDate={endDate}
             purpose={purpose}
             canCancel={!anyPickedUp}
+            canEdit={canEdit}
           />
         )}
 
         <ul className="mt-6 flex flex-col gap-1.5 border-t border-rule pt-4 text-sm">
           {items.map((item) => (
-            <ItemRow key={item.id} id={id} item={item} isAdmin={Boolean(admin)} status={status} />
+            <ItemRow key={item.id} id={id} item={item} isAdmin={canManage} compact={Boolean(admin)} status={status} />
           ))}
         </ul>
 
-        {admin && <AdminSection id={id} status={status} admin={admin} />}
+        {(admin || canManage) && <AdminSection id={id} status={status} admin={admin} canManage={canManage} />}
 
-        <ChatSection id={id} messages={messages} />
+        <Conversation id={id} messages={messages} />
       </PageShell>
     </main>
   );
@@ -542,6 +252,7 @@ function RequestActions({
   endDate,
   purpose: initialPurpose,
   canCancel,
+  canEdit,
 }: {
   id: string;
   today: string;
@@ -549,6 +260,7 @@ function RequestActions({
   endDate: string;
   purpose: string | null;
   canCancel: boolean;
+  canEdit: boolean;
 }) {
   const t = useT();
   const [editing, setEditing] = useState(false);
@@ -579,13 +291,13 @@ function RequestActions({
   return (
     <div className="mt-4 flex flex-col gap-3">
       <div className="flex flex-wrap gap-2">
-        <button
+        {canEdit && <button
           type="button"
           onClick={() => setEditing((value) => !value)}
           className={buttonClass("quiet", "sm")}
         >
           {t("request.editDates")}
-        </button>
+        </button>}
 
         {canCancel && (
           <cancelFetcher.Form
@@ -667,26 +379,29 @@ type Item = {
   fromKitName: string | null;
   pickedUp: boolean;
   returned: boolean;
+  archived: boolean;
 };
 
 function ItemRow({
   id,
   item,
+  compact,
   isAdmin,
   status,
 }: {
   id: string;
   item: Item;
+  compact: boolean;
   isAdmin: boolean;
   status: RequestStatus;
 }) {
   const t = useT();
   const fetcher = useFetcher<typeof action>();
-  const showHandoverActions = isAdmin && status === "APPROVED";
+  const showHandoverActions = isAdmin && status === "APPROVED" && !item.archived;
 
   return (
-    <li className="flex items-center justify-between gap-2">
-      <span>
+    <li className="flex flex-wrap items-center justify-between gap-2">
+      <span className="min-w-0 max-w-full break-words">
         {item.name}
         {item.fromKitName && (
           <span className="ml-2 font-mono text-2xs uppercase tracking-wider text-muted">
@@ -696,7 +411,7 @@ function ItemRow({
       </span>
 
       <span className="flex items-center gap-2">
-        {item.returned ? (
+        {item.archived ? (<span className="font-mono text-2xs uppercase tracking-wider text-muted">{t("p2p.archived")}</span>) : item.returned ? (
           <span className="font-mono text-2xs uppercase tracking-wider text-muted">
             {t("requests.item.returned")}
           </span>
@@ -713,7 +428,7 @@ function ItemRow({
             <button
               type="submit"
               disabled={fetcher.state !== "idle"}
-              className={buttonClass("quiet", "sm", "font-mono text-2xs uppercase tracking-wider")}
+              className={buttonClass("quiet", compact ? "sm" : "md", "font-mono text-2xs uppercase tracking-wider")}
             >
               {t("requests.admin.markPickedUp")}
             </button>
@@ -726,13 +441,14 @@ function ItemRow({
             <button
               type="submit"
               disabled={fetcher.state !== "idle"}
-              className={buttonClass("quiet", "sm", "font-mono text-2xs uppercase tracking-wider")}
+              className={buttonClass("quiet", compact ? "sm" : "md", "font-mono text-2xs uppercase tracking-wider")}
             >
               {t("requests.admin.markReturned")}
             </button>
           </fetcher.Form>
         )}
       </span>
+      {fetcher.data && "error" in fetcher.data && <p role="alert" className="w-full text-sm text-out">{t(fetcher.data.error)}{fetcher.data.conflicts?.length ? ` — ${fetcher.data.conflicts.join(", ")}` : ""}</p>}
     </li>
   );
 }
@@ -743,10 +459,12 @@ function AdminSection({
   id,
   status,
   admin,
+  canManage,
 }: {
   id: string;
   status: RequestStatus;
-  admin: { note: string | null; holder: Person; holderEmail: string };
+  admin: { note: string | null; holder: Person; holderEmail: string } | null;
+  canManage: boolean;
 }) {
   const t = useT();
   const noteFetcher = useFetcher<typeof action>();
@@ -756,23 +474,23 @@ function AdminSection({
   return (
     <section className="mt-8 rounded-sm border border-rule bg-card p-4">
       <span className="eyebrow">
-        {t("requests.admin.heading")}
+        {t(admin ? "requests.admin.heading" : "p2p.lending")}
       </span>
 
-      <p className="mt-2 text-sm">
+      {admin && <p className="mt-2 text-sm">
         {t("requests.admin.requestedBy")}{" "}
         <PersonName person={admin.holder} className="font-medium" />{" "}
         <span className="text-muted">({admin.holderEmail})</span>
-      </p>
+      </p>}
 
-      {status === "PENDING" && (
+      {canManage && status === "PENDING" && (
         <div className="mt-4 flex gap-2">
           <decisionFetcher.Form method="post">
             <input type="hidden" name="intent" value="approve" />
             <Button
               type="submit"
               variant="primary"
-              size="sm"
+              size={admin ? "sm" : "md"}
               busy={decisionFetcher.state !== "idle"}
             >
               {t("requests.admin.approve")}
@@ -783,7 +501,7 @@ function AdminSection({
             <Button
               type="submit"
               variant="danger"
-              size="sm"
+              size={admin ? "sm" : "md"}
               busy={decisionFetcher.state !== "idle"}
             >
               {t("requests.admin.reject")}
@@ -795,7 +513,7 @@ function AdminSection({
         <p className="mt-2 text-sm text-out">{t(decisionFetcher.data.error)}</p>
       )}
 
-      {status === "APPROVED" && (
+      {canManage && status === "APPROVED" && (
         <reminderFetcher.Form method="post" className="mt-4">
           <input type="hidden" name="intent" value="reminder" />
           <button
@@ -816,7 +534,7 @@ function AdminSection({
         </reminderFetcher.Form>
       )}
 
-      <noteFetcher.Form method="post" className="mt-5 flex flex-col gap-2">
+      {admin && <noteFetcher.Form method="post" className="mt-5 flex flex-col gap-2">
         <input type="hidden" name="intent" value="note" />
         <label
           htmlFor={`note-${id}`}
@@ -834,113 +552,11 @@ function AdminSection({
         <button
           type="submit"
           disabled={noteFetcher.state !== "idle"}
-          className={buttonClass("quiet", "sm", "self-start")}
+          className={buttonClass("quiet", admin ? "sm" : "md", "self-start")}
         >
           {t("requests.admin.saveNote")}
         </button>
-      </noteFetcher.Form>
-    </section>
-  );
-}
-
-/* ---------------------------------------------------------------- chat */
-
-type ChatMessage = {
-  id: string;
-  body: string;
-  createdAt: string;
-  author: Person;
-  authorIsAdmin: boolean;
-  isMine: boolean;
-};
-
-function ChatSection({ id, messages }: { id: string; messages: ChatMessage[] }) {
-  const t = useT();
-  const lang = useLang();
-  const fetcher = useFetcher<typeof action>();
-  const formRef = useRef<HTMLFormElement>(null);
-
-  // Il campo si svuota da solo dopo un invio riuscito, senza bisogno di
-  // tenere il testo in uno stato React che dovremmo comunque azzerare.
-  useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data?.ok) {
-      formRef.current?.reset();
-    }
-  }, [fetcher.state, fetcher.data]);
-
-  return (
-    <section className="mt-8 border-t border-rule pt-4">
-      <span className="eyebrow">
-        {t("requests.chat.heading")}
-      </span>
-
-      <ul className="mt-3 flex flex-col gap-3">
-        {messages.length === 0 && (
-          <li className="text-sm text-muted">{t("requests.chat.empty")}</li>
-        )}
-        {messages.map((message) => (
-          <li
-            key={message.id}
-            className={`max-w-[85%] rounded-sm border border-rule p-3 text-sm ${
-              message.isMine ? "ml-auto bg-accent-soft" : "bg-card"
-            }`}
-          >
-            {/* `items-baseline` funziona solo perché avatar e nome sono un
-                pezzo di testo in linea e non un flex annidato: un flex prende
-                come linea di base il bordo inferiore della propria immagine, e
-                l'intestazione tornerebbe sfasata (vedi `PersonInline`). */}
-            <div className="flex items-baseline justify-between gap-3">
-              <span>
-                <PersonInline person={message.author} />
-                {/* Il margine al posto dello spazio scritto: uno spazio è un
-                    punto dove andare a capo, e in una bolla stretta il
-                    cartellino finiva da solo sulla riga sotto. */}
-                {message.authorIsAdmin && (
-                  <span className="ml-2 align-middle">
-                    <AdminBadge />
-                  </span>
-                )}
-              </span>
-              <span className="shrink-0 font-mono text-2xs text-muted">
-                {new Date(message.createdAt).toLocaleString(lang, {
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-            <p className="mt-1 whitespace-pre-wrap">{message.body}</p>
-          </li>
-        ))}
-      </ul>
-
-      <fetcher.Form
-        ref={formRef}
-        method="post"
-        className="mt-4 flex items-end gap-2"
-      >
-        <input type="hidden" name="intent" value="message" />
-        <div className="flex-1">
-          <label htmlFor={`body-${id}`} className="sr-only">
-            {t("requests.chat.placeholder")}
-          </label>
-          <textarea
-            id={`body-${id}`}
-            name="body"
-            rows={2}
-            required
-            placeholder={t("requests.chat.placeholder")}
-            className="field w-full"
-          />
-        </div>
-        <Button type="submit" variant="primary" busy={fetcher.state !== "idle"}>
-          {t("requests.chat.send")}
-        </Button>
-      </fetcher.Form>
-      {fetcher.data && !fetcher.data.ok && (
-        <p className="mt-2 text-sm text-out">{t(fetcher.data.error)}</p>
-      )}
+      </noteFetcher.Form>}
     </section>
   );
 }
