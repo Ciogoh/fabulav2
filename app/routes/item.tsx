@@ -33,6 +33,7 @@ import { PageShell } from "~/components/page";
 import { Button, ButtonLink } from "~/components/button";
 import { CartBar } from "~/components/cart-bar";
 import { useCart } from "~/lib/use-cart";
+import { Dialog } from "~/components/dialog";
 
 /** Fin dove si mostrano le prenotazioni già prese. Oltre, l'elenco diventa
  * lungo e smette di rispondere alla domanda vera: «lo trovo libero adesso?» */
@@ -229,6 +230,7 @@ function Gallery({
   photos: Array<{ id: string; url: string; thumbUrl: string }>;
 }) {
   const [active, setActive] = useState(0);
+  const [isZoomed, setIsZoomed] = useState(false);
   const t = useT();
 
   if (photos.length === 0) {
@@ -244,11 +246,18 @@ function Gallery({
 
   return (
     <div className="w-full shrink-0 sm:w-96 lg:w-[640px] xl:w-[720px]">
-      <img
-        src={photos[active]!.url}
-        alt={t("item.photoAlt", { name })}
-        className="aspect-4/3 w-full rounded-sm border border-rule bg-sunk object-cover"
-      />
+      <button
+        type="button"
+        onClick={() => setIsZoomed(true)}
+        className="group relative block w-full cursor-zoom-in overflow-hidden rounded-sm border border-rule bg-sunk focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        aria-label={t("item.photoAlt", { name })}
+      >
+        <img
+          src={photos[active]!.url}
+          alt={t("item.photoAlt", { name })}
+          className="aspect-4/3 w-full object-cover transition-opacity group-hover:opacity-90"
+        />
+      </button>
 
       {photos.length > 1 && (
         <div className="mt-2 flex flex-wrap gap-2">
@@ -271,6 +280,35 @@ function Gallery({
             </button>
           ))}
         </div>
+      )}
+
+      {isZoomed && (
+        <Dialog
+          onClose={() => setIsZoomed(false)}
+          labelledBy="gallery-dialog-title"
+          panelClassName="max-w-5xl !bg-transparent !border-none !shadow-none !p-0"
+        >
+          <h2 id="gallery-dialog-title" className="sr-only">
+            {t("item.photoAlt", { name })}
+          </h2>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsZoomed(false)}
+              className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:right-2 sm:top-2"
+              aria-label="Chiudi"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={photos[active]!.url}
+              alt={t("item.photoAlt", { name })}
+              className="max-h-[85vh] w-full rounded-sm object-contain"
+            />
+          </div>
+        </Dialog>
       )}
     </div>
   );
