@@ -52,23 +52,30 @@ export default function Presta({
   return (
     <main>
       <PageShell width="narrow" className="pb-24 pt-8">
-        <ButtonLink to="/account/items" variant="plain" className="mb-4 px-0">
+        <ButtonLink
+          to="/account/items"
+          variant="plain"
+          size="sm"
+          className="mb-4 px-0"
+        >
           ← {t("p2p.myItems")}
         </ButtonLink>
-        <PageTitle title={t("p2p.heading")} />
-        <p className="mt-3 text-muted">{t("p2p.intro")}</p>
+
+        <PageTitle title={t("p2p.heading")} intro={t("p2p.intro")} />
+
         {actionData?.error && (
           <p
             role="alert"
-            className="mt-5 rounded-sm bg-out-bg p-4 text-sm text-out"
+            className="mt-6 rounded-sm bg-out-bg px-3 py-2 text-sm text-out"
           >
             {t(actionData.error)}
           </p>
         )}
+
         <Form
           method="post"
           encType="multipart/form-data"
-          className="mt-8 flex flex-col gap-5"
+          className="mt-8 flex flex-col gap-4"
         >
           <AssetFields
             categories={loaderData.categories}

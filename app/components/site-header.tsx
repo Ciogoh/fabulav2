@@ -102,9 +102,7 @@ function InboxLink({ inbox }: { inbox: HeaderUser["inbox"] }) {
             unread: inbox?.unread ?? 0,
             overdue: inbox?.overdue ?? 0,
           })}
-          className={`ml-1.5 rounded-full px-1.5 py-0.5 font-mono text-2xs font-medium ${
-            hasOverdue ? "bg-out-bg text-out" : "bg-accent-soft text-accent"
-          }`}
+          className="ml-1.5 rounded-full bg-out-bg px-1.5 py-0.5 font-mono text-2xs font-medium text-out"
         >
           {total}
         </span>
@@ -172,7 +170,7 @@ export function SiteHeader({
               {user.myUnreadCount > 0 && (
                 <span
                   aria-label={t("nav.myRequestsUnread")}
-                  className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle"
+                  className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-out align-middle"
                 />
               )}
             </NavLink>
