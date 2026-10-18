@@ -178,8 +178,12 @@ export default function SignIn({ loaderData }: Route.ComponentProps) {
                 name="email"
                 type="email"
                 autoComplete="email"
+                aria-describedby="unibz-email-hint"
                 required
               />
+              <p id="unibz-email-hint" className="text-sm text-muted">
+                {t("signin.unibzEmailHint")}
+              </p>
               <Submit busy={busy} label={t("signin.sendCode")} busyLabel={t("signin.sending")} />
             </form>
 

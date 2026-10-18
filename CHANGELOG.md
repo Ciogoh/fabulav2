@@ -14,6 +14,14 @@ la prova su iPhone e Android veri di quello che la 0.7.0 ha aggiunto.
 
 ---
 
+## 0.12.1 — 18 ottobre 2026
+
+**L'email universitaria aiuta a riconoscere la comunità unibz.** La schermata
+di accesso invita chi fa parte dell'ateneo a usare quell'indirizzo, con un
+testo breve in italiano, inglese e tedesco. Rimane un suggerimento: gli altri
+indirizzi sono sempre accettati. Il testo è collegato al campo anche per i
+lettori di schermo.
+
 ## 0.12.0 — 9 ottobre 2026
 
 **Anche i soci possono prestare.** Da Presta si salva una bozza, si invia al

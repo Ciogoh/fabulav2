@@ -1295,6 +1295,11 @@ scrivi l'indirizzo, ricevi il codice, sei dentro; se l'account non c'era, si
 crea. Sparisce la domanda «hai già un account?», che è il punto in cui la gente
 si ferma.
 
+Sotto al campo email, un invito nelle tre lingue chiede a chi fa parte di
+unibz di usare l'indirizzo universitario: aiuta il team a riconoscere la
+comunità dell'ateneo. È un suggerimento, senza vincoli sul dominio. Il testo
+è associato al campo con `aria-describedby` e compare solo nel primo passo.
+
 Di conseguenza **con la password si può solo entrare, mai registrarsi**: un
 account nasce sempre da un codice o da Google, e la password si aggiunge dopo.
 È ciò che tiene l'accesso a una schermata sola.
